@@ -1,0 +1,108 @@
+{
+  "_about": "Real Last.fm track.getTopTags results recorded in Spotify on 2026-11-20 (step 3 testing). Tag counts as returned by Last.fm (top tag = 100). Used as test fixtures: do not 'fix' them, they are meant to be messy.",
+  "songs": [
+    {
+      "uri": "spotify:track:4PhsKqMdgMEUSstTDAmMpg",
+      "title": "Often",
+      "artists": ["The Weeknd"],
+      "tags": [
+        { "name": "sexy", "count": 100 },
+        { "name": "r&b", "count": 81 },
+        { "name": "rnb", "count": 32 },
+        { "name": "Love", "count": 32 },
+        { "name": "dark", "count": 12 },
+        { "name": "sex", "count": 5 },
+        { "name": "Canadian", "count": 5 },
+        { "name": "The Weeknd", "count": 2 },
+        { "name": "alternative rnb", "count": 2 },
+        { "name": "drugged out", "count": 1 }
+      ]
+    },
+    {
+      "uri": "spotify:track:19Lnk1Q2FJcB3Hia0wfgye",
+      "title": "RESCUER",
+      "artists": ["Alex Warren"],
+      "tags": []
+    },
+    {
+      "uri": "spotify:track:5YwBaDW36fztKNnoiHQar3",
+      "title": "Couldn’t Make It Any Harder",
+      "artists": ["Sabrina Carpenter"],
+      "tags": [
+        { "name": "love at first listen", "count": 100 },
+        { "name": "female vocalist", "count": 44 },
+        { "name": "Ballad", "count": 29 },
+        { "name": "singer-songwriter", "count": 29 },
+        { "name": "soty", "count": 15 },
+        { "name": "sad", "count": 4 },
+        { "name": "pop", "count": 4 },
+        { "name": "key change", "count": 1 },
+        { "name": "doowop", "count": 1 },
+        { "name": "female vocalists", "count": 1 }
+      ]
+    },
+    {
+      "uri": "spotify:track:5YABYtKx9qa56vBjlXDbmw",
+      "title": "Snooze (Acoustic) (feat. Justin Bieber)",
+      "artists": ["SZA", "Justin Bieber"],
+      "tags": []
+    },
+    {
+      "uri": "spotify:track:55lijDD6OAjLFFUHU9tcDm",
+      "title": "WHERE IS MY HUSBAND!",
+      "artists": ["RAYE"],
+      "tags": [
+        { "name": "Big Band", "count": 100 },
+        { "name": "pop soul", "count": 51 },
+        { "name": "Go-Go", "count": 12 },
+        { "name": "soul", "count": 12 },
+        { "name": "contemporary rnb", "count": 6 },
+        { "name": "pop", "count": 3 },
+        { "name": "motown sound", "count": 3 },
+        { "name": "rnb", "count": 1 },
+        { "name": "gospel", "count": 1 },
+        { "name": "british", "count": 1 }
+      ]
+    },
+    {
+      "uri": "spotify:track:047fCsbO4NdmwCBn8pcUXl",
+      "title": "Marvins Room",
+      "artists": ["Drake"],
+      "tags": [
+        { "name": "Hip-Hop", "count": 100 },
+        { "name": "rap", "count": 49 },
+        { "name": "hip hop", "count": 32 },
+        { "name": "rnb", "count": 25 },
+        { "name": "Canadian", "count": 9 },
+        { "name": "downtempo", "count": 6 },
+        { "name": "2011", "count": 6 },
+        { "name": "best of 2011", "count": 2 },
+        { "name": "Drake", "count": 1 },
+        { "name": "pop", "count": 1 }
+      ]
+    },
+    {
+      "uri": "spotify:track:29iva9idM6rFCPUlu7Rhxl",
+      "title": "YUKON",
+      "artists": ["Justin Bieber"],
+      "tags": [
+        { "name": "2025", "count": 100 },
+        { "name": "pop", "count": 25 },
+        { "name": "rnb", "count": 16 },
+        { "name": "indie pop", "count": 16 },
+        { "name": "downtempo", "count": 8 },
+        { "name": "fav", "count": 8 },
+        { "name": "bedroom pop", "count": 8 },
+        { "name": "justin bieber", "count": 2 },
+        { "name": "nachspiel", "count": 2 },
+        { "name": "alternative rnb", "count": 2 }
+      ]
+    },
+    {
+      "uri": "spotify:track:4tfMSLesv7YgWZ1Oy0i4NG",
+      "title": "Golden Tears",
+      "artists": ["Carpetman"],
+      "tags": []
+    }
+  ]
+}

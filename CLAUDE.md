@@ -35,7 +35,8 @@ spicetify watch -e     # in a 2nd terminal: reload Spotify when the extension ch
 npm run build          # one-off build, writes to the Spicetify Extensions folder
 spicetify refresh -e   # copy rebuilt extensions into Spotify, then Ctrl+Shift+R in Spotify
 spicetify apply        # apply after first build or config changes
-npm test               # unit tests (once Vitest is added)
+npm test               # unit tests (Vitest, tests/*.test.ts, no Spotify needed)
+npm run smoke          # in-Spotify smoke test via debug port 9222 (needs spicetify watch -e)
 ```
 Gotcha: Spotify runs a COPY of the extension (in `%APPDATA%\Spotify\Apps\xpui\extensions`).
 `npm run build` alone does not update that copy, so run `spicetify refresh -e` (or keep
@@ -72,6 +73,11 @@ First-time registration: `spicetify config extensions playlist-prism.js` and the
 - Before handing a step over for testing, Claude makes sure the new build reached Spotify
   (watch tab says "Reloaded Spotify", or run `spicetify refresh -e` + `spicetify restart`).
   Never ask the developer to press Ctrl+Shift+R.
+- Before handing over a step, run `npm test` and `npm run smoke` and report results.
+  Smoke test is READ-ONLY (uses `window.__playlistPrism` debug hook in src/app.tsx); it never
+  prints the API key. Screenshots go to `smoke-output/` (gitignored; they show the user's library).
+- Test fixtures in `tests/fixtures/` are real recorded Last.fm data: don't "fix" them.
+- `window.__playlistPrism` debug hook must be removed or dev-only before any public release.
 
 ## Working style
 - **Explain what you change and why**,

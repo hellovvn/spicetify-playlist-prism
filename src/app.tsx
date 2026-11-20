@@ -6,6 +6,8 @@ import { getTrackInfo } from "./spotify/read";
 import { getTrackTopTags, LastfmError } from "./lastfm/client";
 import { getLastfmKey } from "./storage";
 import { openSettings } from "./ui/SettingsModal";
+import { cleanTags } from "./tags/cleanTags";
+import { titleVariants } from "./tags/titleVariants";
 
 // A prefix for console logs, so ours are easy to filter in DevTools.
 const LOG_PREFIX = "[Playlist Prism]";
@@ -19,8 +21,31 @@ async function main() {
 
   registerContextMenu();
   registerSettingsMenu();
+  exposeDebugHook();
 
   console.log(`${LOG_PREFIX} loaded`);
+}
+
+// Makes a few READ-ONLY functions callable from outside the extension, so
+// the smoke-test script (scripts/smoke.mjs) can test them inside Spotify
+// through the debug port. Nothing here can change the user's Spotify, and
+// the API key itself is never exposed (only whether one is saved).
+// TODO before publishing: remove this or hide it behind a dev-only flag.
+function exposeDebugHook() {
+  (window as any).__playlistPrism = {
+    isSingleTrack,
+    getTrackInfo,
+    cleanTags,
+    titleVariants,
+    openSettings,
+    hasLastfmKey: () => getLastfmKey() !== null,
+    // Uses the saved key internally so the caller never sees it.
+    getTrackTopTags: (artist: string, track: string) => {
+      const key = getLastfmKey();
+      if (!key) throw new Error("No Last.fm key saved");
+      return getTrackTopTags(artist, track, key);
+    },
+  };
 }
 
 // Adds "Start a Prism playlist" to the right-click menu, for songs only.
@@ -80,12 +105,20 @@ async function onStartPrism(uris: string[]) {
     // One line with our prefix, so it survives the "[Playlist Prism]" console
     // filter (console.table output has no prefix, so the filter hides it).
     const tagList = result.tags.map((tag) => `${tag.name} (${tag.count})`).join(", ");
-    console.log(`${LOG_PREFIX} tags: ${tagList || "(none)"}`);
+    console.log(`${LOG_PREFIX} raw tags: ${tagList || "(none)"}`);
 
-    if (result.tags.length === 0) {
-      Spicetify.showNotification(`Last.fm has no tags for "${track.name}"`);
+    // Step 4: clean the tags (drop junk, merge duplicates, re-scale 0..1).
+    const cleaned = cleanTags(result.tags, { artistNames: track.artists });
+    const cleanList = cleaned.map((tag) => `${tag.name} (${tag.weight.toFixed(2)})`).join(", ");
+    console.log(`${LOG_PREFIX} clean tags: ${cleanList || "(none)"}`);
+
+    // Preview only (used in step 4b): the title variants we'd try next.
+    console.log(`${LOG_PREFIX} title variants: ${JSON.stringify(titleVariants(track.name))}`);
+
+    if (cleaned.length === 0) {
+      Spicetify.showNotification(`No usable Last.fm tags for "${track.name}"`);
     } else {
-      const top = result.tags.slice(0, 5).map((tag) => tag.name).join(", ");
+      const top = cleaned.slice(0, 5).map((tag) => tag.name).join(", ");
       Spicetify.showNotification(`${track.name}: ${top}`);
     }
   } catch (error) {
