@@ -32,11 +32,28 @@ artist-level genres.
 npm install            # first time
 npm run watch          # rebuild on save (keep running while developing)
 spicetify watch -e     # in a 2nd terminal: reload Spotify when the extension changes
-npm run build          # one-off build, copies to the Spicetify Extensions folder
+npm run build          # one-off build, writes to the Spicetify Extensions folder
+spicetify refresh -e   # copy rebuilt extensions into Spotify, then Ctrl+Shift+R in Spotify
 spicetify apply        # apply after first build or config changes
 npm test               # unit tests (once Vitest is added)
 ```
+Gotcha: Spotify runs a COPY of the extension (in `%APPDATA%\Spotify\Apps\xpui\extensions`).
+`npm run build` alone does not update that copy, so run `spicetify refresh -e` (or keep
+`spicetify watch -e` running) before reloading Spotify.
+
 First-time registration: `spicetify config extensions playlist-prism.js` and then `spicetify apply`.
+
+## Spicetify.Platform APIs (confirmed present 2026-11-20, Spotify via Spicetify 2.46.4)
+- Reads we plan to use: `RootlistAPI.getContents` (user's playlists), `PlaylistAPI.getContents`
+  (a playlist's tracks), `LibraryAPI.getTracks` (Liked Songs).
+- Writes allowed ONLY in `src/spotify/write.ts`: `RootlistAPI.createPlaylist`, then
+  `PlaylistAPI.add` targeting the URI we just created.
+- Never call: `PlaylistAPI.remove/move/updateDetails/setAttributes/clearAttributes/uploadImage`,
+  `RootlistAPI.remove/move/renameFolder/removeFolder`, `LibraryAPI.add/remove/pin/unpin`.
+- Method signatures are undocumented: test each one by logging before relying on it.
+- Avoid the Web API via `Spicetify.CosmosAsync` (api.spotify.com): it returned 429 Too Many
+  Requests even for single calls. For song details use `Spicetify.GraphQL.Request(
+  Spicetify.GraphQL.Definitions.getTrack, { uri })` → `data.trackUnion`.
 
 ## Secrets
 - The Last.fm API key is entered by the user in a settings field and stored in
@@ -48,6 +65,13 @@ First-time registration: `spicetify config extensions playlist-prism.js` and the
 - `src/scoring/`: match scoring (pure, unit-tested)
 - `src/spotify/`: read helpers and the single write module
 - `src/ui/`: React components (chips, playlist picker, preview)
+
+## Dev loop (Claude runs this, not the developer)
+- Keep two terminal tabs running: `npm run watch` (rebuild on save) and `spicetify watch -e`
+  (copies the build into Spotify and reloads Spotify automatically via the debugger).
+- Before handing a step over for testing, Claude makes sure the new build reached Spotify
+  (watch tab says "Reloaded Spotify", or run `spicetify refresh -e` + `spicetify restart`).
+  Never ask the developer to press Ctrl+Shift+R.
 
 ## Working style
 - **Explain what you change and why**,
