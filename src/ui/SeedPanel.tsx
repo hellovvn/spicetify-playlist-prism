@@ -16,6 +16,8 @@ import type { TrackInfo } from "../spotify/read";
 import { formatAudio, type AudioAttributes } from "../spotify/audio";
 import type { SourcedTag } from "../tags/combineTags";
 import { canContinue, keptTags, seedStatus, splitBySource, toggleTag } from "./tagSelection";
+import type { SourceOption } from "../sources/sources";
+import { SourcePicker } from "./SourcePicker";
 
 export interface SeedData {
   track: TrackInfo;
@@ -26,15 +28,34 @@ export interface SeedData {
 export interface SeedPanelProps {
   // Loads everything about the seed. The panel calls it once when it opens.
   load: () => Promise<SeedData>;
+  // Loads the playlists the user can pick from (screen 2).
+  loadSources: () => Promise<SourceOption[]>;
   // Turns an error into a message the user can act on.
   describeError: (error: unknown) => string;
-  onNext: (kept: SourcedTag[]) => void;
+  // Called when the user finishes screen 2 (step 7 will scan from here).
+  onDone: (choice: { seed: SeedData; kept: SourcedTag[]; sources: SourceOption[] }) => void;
 }
 
-// The outer component: loading -> ready (or error).
-function SeedPanel({ load, describeError, onNext }: SeedPanelProps) {
+// Runs `action` just AFTER the current click finishes.
+// Why: Spotify's popup closes on clicks "outside" it, and decides that by
+// checking whether the clicked element is inside the popup. If a click swaps
+// the screen immediately, the clicked button is already gone from the page
+// when Spotify checks, so Spotify thinks it was outside and closes the popup.
+// (Found by the smoke test: clicking Next closed the popup.)
+function afterClick(action: () => void) {
+  setTimeout(action, 0);
+}
+
+// The outer component. It owns the state BOTH screens need, so going
+// Back and Next keeps the user's choices ("lifting state up" in React terms).
+//   screen "seed":    loading -> tag chips   (or an error)
+//   screen "sources": playlist picker
+function SeedPanel({ load, loadSources, describeError, onDone }: SeedPanelProps) {
   const [data, setData] = React.useState<SeedData | null>(null);
   const [error, setError] = React.useState<string | null>(null);
+  const [screen, setScreen] = React.useState<"seed" | "sources">("seed");
+  const [offNames, setOffNames] = React.useState<string[]>([]); // chips switched off
+  const [selectedSources, setSelectedSources] = React.useState<string[]>([]); // ticked playlist URIs
 
   // useEffect runs code AFTER the panel is on screen (so the popup can
   // appear first). The empty [] means "only once, when it opens".
@@ -67,8 +88,30 @@ function SeedPanel({ load, describeError, onNext }: SeedPanelProps) {
         <p style={styles.subtext}>Reading the song...</p>
       </div>
     );
+  } else if (screen === "seed") {
+    body = (
+      <SeedContent
+        data={data}
+        offNames={offNames}
+        setOffNames={setOffNames}
+        onNext={() => afterClick(() => setScreen("sources"))}
+      />
+    );
   } else {
-    body = <SeedContent data={data} onNext={onNext} />;
+    body = (
+      // The wrapper's `key` makes React treat each screen as new, so the
+      // fade-in plays when switching screens.
+      <div key="sources" className="prism-fade-in">
+        <SourcePicker
+          loadSources={loadSources}
+          describeError={describeError}
+          selected={selectedSources}
+          setSelected={setSelectedSources}
+          onBack={() => afterClick(() => setScreen("seed"))}
+          onNext={(sources) => onDone({ seed: data, kept: keptTags(data.tags, offNames), sources })}
+        />
+      </div>
+    );
   }
 
   // data-prism marks this as Prism content (the open animation looks for it).
@@ -80,15 +123,21 @@ function SeedPanel({ load, describeError, onNext }: SeedPanelProps) {
 }
 
 // The loaded content: song info, chips, and buttons.
-function SeedContent({ data, onNext }: { data: SeedData; onNext: SeedPanelProps["onNext"] }) {
+interface SeedContentProps {
+  data: SeedData;
+  // The names of the tags the user switched off (empty = all on). Owned by
+  // the parent so it survives going to the next screen and back.
+  offNames: string[];
+  setOffNames: (names: string[]) => void;
+  onNext: () => void;
+}
+
+function SeedContent({ data, offNames, setOffNames, onNext }: SeedContentProps) {
   // Read Spotify's components here, not at the top of the file: the file is
   // loaded before Spicetify is ready, but this runs only when the panel opens.
   // `as any`: Chip exists in Spotify (checked in the running app) but is
   // missing from Spicetify's type definitions file.
   const { Chip, ButtonPrimary, ButtonSecondary } = Spicetify.ReactComponent as any;
-
-  // The names of the tags the user switched off. Starts empty = all on.
-  const [offNames, setOffNames] = React.useState<string[]>([]);
 
   const { track, tags, audio } = data;
   const kept = keptTags(tags, offNames);
@@ -157,7 +206,7 @@ function SeedContent({ data, onNext }: { data: SeedData; onNext: SeedPanelProps[
         <ButtonSecondary buttonSize="sm" onClick={() => Spicetify.PopupModal.hide()}>
           Cancel
         </ButtonSecondary>
-        <ButtonPrimary buttonSize="sm" disabled={!allowed} onClick={() => allowed && onNext(kept)}>
+        <ButtonPrimary buttonSize="sm" disabled={!allowed} onClick={() => allowed && onNext()}>
           Next: choose playlists
         </ButtonPrimary>
       </div>

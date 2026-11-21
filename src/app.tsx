@@ -2,7 +2,7 @@
 // Spicetify Creator bundles this file (and anything it imports) into
 // playlist-prism.js, which Spotify loads at startup.
 
-import { getTrackInfo } from "./spotify/read";
+import { getSources, getTrackInfo } from "./spotify/read";
 import { getArtistTopTags, getTrackTopTags, LastfmError } from "./lastfm/client";
 import { getLastfmKey } from "./storage";
 import { openSettings } from "./ui/SettingsModal";
@@ -117,12 +117,15 @@ function onStartPrism(uris: string[]) {
   // Open the panel RIGHT AWAY (it shows a spinner); it calls loadSeed itself.
   openSeedPanel({
     load: () => loadSeed(uri, apiKey),
+    loadSources: getSources,
     describeError: friendlyError,
-    // "Next" will open the playlist picker in step 6; for now it logs what was kept.
-    onNext: (kept) => {
-      console.log(`${LOG_PREFIX} kept tags: ${kept.map((tag) => tag.name).join(", ") || "(none)"}`);
+    // The scan comes in step 7; for now, log the choices.
+    onDone: ({ seed, kept, sources }) => {
+      console.log(`${LOG_PREFIX} seed: ${seed.track.name}`);
+      console.log(`${LOG_PREFIX} kept tags: ${kept.map((tag) => tag.name).join(", ")}`);
+      console.log(`${LOG_PREFIX} sources: ${sources.map((s) => `${s.name} (${s.trackCount})`).join(", ")}`);
       Spicetify.PopupModal.hide();
-      Spicetify.showNotification(`Kept ${kept.length} tags. Choosing playlists comes in step 6.`);
+      Spicetify.showNotification(`Picked ${sources.length} source(s). Scanning comes in step 7.`);
     },
   });
 }

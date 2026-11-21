@@ -60,6 +60,10 @@ Gotcha: Spotify runs a COPY of the extension (in `%APPDATA%\Spotify\Apps\xpui\ex
 `npm run build` alone does not update that copy, so run `spicetify refresh -e` (or keep
 `spicetify watch -e` running) before reloading Spotify.
 
+Gotcha: `Spicetify.PopupModal` closes on "outside" clicks. A click handler that removes the
+clicked button (e.g. switching screens) makes Spotify think the click was outside and close the
+popup. Delay such changes with `afterClick()` in `src/ui/SeedPanel.tsx`.
+
 First-time registration: `spicetify config extensions playlist-prism.js` and then `spicetify apply`.
 
 ## Spicetify.Platform APIs (confirmed present 2026-11-20, Spotify via Spicetify 2.46.4)

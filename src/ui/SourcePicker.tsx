@@ -1,0 +1,178 @@
+// Source picker: screen 2 of the Prism popup. The user ticks the playlists
+// (and/or Liked Songs) that songs may come FROM. Those are only READ.
+
+import React from "react";
+import {
+  allShownSelected,
+  clearShown,
+  filterSources,
+  selectedSongCount,
+  selectShown,
+  type SourceOption,
+} from "../sources/sources";
+import { toggleTag as toggleInList } from "./tagSelection"; // same on/off logic, for URIs
+
+export interface SourcePickerProps {
+  loadSources: () => Promise<SourceOption[]>;
+  describeError: (error: unknown) => string;
+  // Lifted up to the parent so the ticks survive going Back and Next again.
+  selected: string[];
+  setSelected: (uris: string[]) => void;
+  onBack: () => void;
+  onNext: (sources: SourceOption[]) => void;
+}
+
+export function SourcePicker({ loadSources, describeError, selected, setSelected, onBack, onNext }: SourcePickerProps) {
+  const { ButtonPrimary, ButtonSecondary } = Spicetify.ReactComponent as any;
+  const [sources, setSources] = React.useState<SourceOption[] | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
+  const [query, setQuery] = React.useState("");
+
+  // Load the list once when this screen opens (same pattern as the seed).
+  React.useEffect(() => {
+    let closed = false;
+    loadSources()
+      .then((list) => !closed && setSources(list))
+      .catch((err) => {
+        console.error("[Playlist Prism] loading playlists failed", err);
+        if (!closed) setError(describeError(err));
+      });
+    return () => {
+      closed = true;
+    };
+  }, []);
+
+  if (error) {
+    return (
+      <div style={styles.centered}>
+        <p style={styles.text}>{error}</p>
+      </div>
+    );
+  }
+  if (!sources) {
+    return (
+      <div style={styles.centered} data-prism-state="loading">
+        <div className="prism-spinner" />
+        <p style={styles.subtext}>Loading your playlists...</p>
+      </div>
+    );
+  }
+
+  const shown = filterSources(sources, query);
+  const songCount = selectedSongCount(sources, selected);
+  const picked = sources.filter((s) => selected.includes(s.uri));
+  const allSelected = allShownSelected(shown, selected);
+  const someSelected = shown.some((s) => selected.includes(s.uri));
+
+  return (
+    <div style={styles.column} data-prism-state="sources">
+      <p style={styles.subtext}>
+        Pick where songs can come from. Only songs in these will be considered, and nothing in them is
+        changed. A song in several playlists is only counted once.
+      </p>
+
+      <input
+        type="search"
+        value={query}
+        placeholder="Search your playlists"
+        aria-label="Search your playlists"
+        onChange={(event) => setQuery(event.target.value)}
+        style={styles.search}
+      />
+
+      {/* "Select all" row: acts on the SHOWN rows, so with a search typed it
+          only ticks the matches. Its checkbox shows a dash ("indeterminate")
+          when only some shown rows are ticked. It's always there (just
+          disabled when nothing matches), so the layout never jumps. */}
+      <label style={{ ...styles.row, ...styles.selectAllRow, opacity: shown.length ? 1 : 0.5 }} data-prism="select-all">
+          <input
+            type="checkbox"
+            disabled={shown.length === 0}
+            checked={allSelected}
+            // indeterminate can't be set as a JSX attribute, only on the element
+            // itself, so a "ref callback" sets it after React draws the checkbox.
+            ref={(el) => {
+              if (el) el.indeterminate = someSelected && !allSelected;
+            }}
+            onChange={() => setSelected(allSelected ? clearShown(shown, selected) : selectShown(shown, selected))}
+            style={styles.checkbox}
+          />
+          <span style={styles.name}>
+            {query.trim() ? `Select all ${shown.length} shown` : `Select all (${shown.length})`}
+          </span>
+        </label>
+
+      {/* A scrolling list. Each row is a <label> wrapping a checkbox, so
+          clicking anywhere on the row ticks it (and screen readers read the name). */}
+      <div style={styles.list} data-prism="source-list">
+        {shown.length === 0 && <p style={{ ...styles.subtext, padding: "8px 4px" }}>No playlists match "{query}".</p>}
+        {shown.map((source) => (
+          <label key={source.uri} style={styles.row}>
+            <input
+              type="checkbox"
+              checked={selected.includes(source.uri)}
+              onChange={() => setSelected(toggleInList(selected, source.uri))}
+              style={styles.checkbox}
+            />
+            <span style={styles.rowText}>
+              <span style={styles.name}>{source.name}</span>
+              <span style={styles.meta}>
+                {[source.folder && `in ${source.folder}`, `${source.trackCount} songs`, source.owner && `by ${source.owner}`]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </span>
+            </span>
+          </label>
+        ))}
+      </div>
+
+      <p style={styles.summary} data-prism="source-summary">
+        {picked.length === 0
+          ? "Nothing picked yet."
+          : `${picked.length} picked · up to ${songCount} songs`}
+      </p>
+
+      <div style={styles.buttons}>
+        <ButtonSecondary buttonSize="sm" onClick={onBack}>
+          Back
+        </ButtonSecondary>
+        <ButtonPrimary buttonSize="sm" disabled={picked.length === 0} onClick={() => picked.length > 0 && onNext(picked)}>
+          Next: scan songs
+        </ButtonPrimary>
+      </div>
+    </div>
+  );
+}
+
+// The screen is ONE fixed height, whatever the search shows, so the popup
+// never resizes while typing (and the buttons stay put under the mouse).
+// The list takes whatever height is left (flex: 1) and scrolls inside it.
+const SCREEN_HEIGHT = 560;
+
+const styles: Record<string, React.CSSProperties> = {
+  column: { display: "flex", flexDirection: "column", gap: 12, height: SCREEN_HEIGHT },
+  // The loading spinner uses the same height, so nothing jumps when the list arrives.
+  centered: {
+    display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+    gap: 12, height: SCREEN_HEIGHT,
+  },
+  text: { color: "var(--spice-text)", margin: 0 },
+  subtext: { color: "var(--spice-subtext)", margin: 0 },
+  search: {
+    padding: "8px 12px", borderRadius: 4, border: "1px solid var(--spice-subtext)",
+    background: "var(--spice-main)", color: "var(--spice-text)",
+  },
+  // minHeight: 0 lets a flex child shrink below its content and scroll instead.
+  list: { flex: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 2 },
+  // Keep the summary to one line so it can't change the layout either.
+  summary: { color: "var(--spice-subtext)", margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
+  row: { display: "flex", alignItems: "center", gap: 12, padding: "8px 4px", borderRadius: 4, cursor: "pointer" },
+  // A thin line under "Select all" separates it from the playlists.
+  selectAllRow: { borderBottom: "1px solid var(--spice-card)", borderRadius: 0, paddingBottom: 10 },
+  // accent-color paints the native checkbox in Spotify's green.
+  checkbox: { width: 18, height: 18, accentColor: "var(--spice-button)", cursor: "pointer", flexShrink: 0 },
+  rowText: { display: "flex", flexDirection: "column", minWidth: 0 },
+  name: { color: "var(--spice-text)", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  meta: { color: "var(--spice-subtext)", fontSize: 13 },
+  buttons: { display: "flex", justifyContent: "flex-end", gap: 8 },
+};

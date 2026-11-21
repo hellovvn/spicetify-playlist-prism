@@ -1,6 +1,8 @@
 // Read-only helpers for getting data from Spotify.
 // Nothing in this file changes anything in the user's account.
 
+import { flattenRootlist, LIKED_SONGS_URI, type SourceOption } from "../sources/sources";
+
 // The small set of song details we need. Spotify returns much more,
 // but keeping our own type makes the rest of the code simpler to read.
 export interface TrackInfo {
@@ -46,4 +48,22 @@ export async function getTrackInfo(uri: string): Promise<TrackInfo> {
     artists,
     album: track.albumOfTrack?.name ?? "",
   };
+}
+
+// Everything the user can pick songs FROM: Liked Songs first, then every
+// playlist in their library (their own and ones they follow), folders flattened.
+// READ-ONLY: RootlistAPI.getContents and LibraryAPI.getTracks only read.
+export async function getSources(): Promise<SourceOption[]> {
+  // Both requests at once (see Promise.all in app.tsx).
+  const [root, liked] = await Promise.all([
+    Spicetify.Platform.RootlistAPI.getContents(),
+    // limit: 1 because we only need the total count here, not the songs.
+    Spicetify.Platform.LibraryAPI.getTracks({ limit: 1 }),
+  ]);
+
+  const likedSongs: SourceOption[] =
+    liked?.totalLength > 0
+      ? [{ uri: LIKED_SONGS_URI, name: "Liked Songs", trackCount: liked.totalLength, folder: null, owner: "You" }]
+      : [];
+  return [...likedSongs, ...flattenRootlist(root?.items)];
 }

@@ -228,7 +228,105 @@ try {
   await cdp.evaluate("Spicetify.PopupModal.hide()");
   await sleep(500);
 
-  console.log("\n[6] Settings popup (screenshot)");
+  console.log("\n[6] Source picker (screen 2) - UI clicks only, playlists are only read");
+  const SOURCES = `document.querySelector('[data-prism-state="sources"]')`;
+  const rows = `[...${SOURCES}.querySelectorAll('[data-prism="source-list"] label')]`;
+  const rowNames = `${rows}.map((r) => r.querySelector("span span").textContent)`;
+  const summary = `${SOURCES}.querySelector('[data-prism="source-summary"]').textContent`;
+  const SCAN = `[...${SOURCES}.querySelectorAll("button")].find((b) => b.textContent.includes("scan"))`;
+  const tickedNames = `${rows}.filter((r) => r.querySelector("input").checked).map((r) => r.querySelector("span span").textContent)`;
+
+  await cdp.evaluate(`window.__playlistPrism.startPrism("spotify:track:4PhsKqMdgMEUSstTDAmMpg")`); // Often
+  if (await waitFor(READY)) {
+    await cdp.evaluate(`${PANEL}.querySelector('[role="checkbox"]').click()`); // switch "sexy" off
+    await sleep(200);
+    await cdp.evaluate(`${NEXT}.click()`);
+    const shown = await waitFor(`!!${SOURCES}`);
+    check("Next opens the source picker", shown);
+    if (shown) {
+      const names = await cdp.evaluate(rowNames);
+      check("Liked Songs is listed first", names[0] === "Liked Songs", names.slice(0, 3).join(", "));
+      info(`${names.length} sources: ${names.join(", ")}`);
+      check("nothing picked yet: 'Next: scan songs' disabled", await cdp.evaluate(`${SCAN}.disabled`));
+
+      // Tick Dark Romance by clicking its row (the whole row is a label).
+      await cdp.evaluate(`${rows}.find((r) => r.textContent.includes("Dark Romance")).click()`);
+      await sleep(200);
+      const sum = await cdp.evaluate(summary);
+      check("ticking Dark Romance updates the summary", sum.startsWith("1 picked · up to 25 songs"), sum);
+      check("scan button enabled once something is picked", !(await cdp.evaluate(`${SCAN}.disabled`)));
+
+      // Search filters the list. Setting a React input's value needs the
+      // native setter + an "input" event, or React won't notice.
+      await cdp.evaluate(`(() => {
+        const input = ${SOURCES}.querySelector('input[type="search"]');
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(input, "kpop");
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+      })()`);
+      await sleep(200);
+      const filtered = await cdp.evaluate(rowNames);
+      check("search 'kpop' filters the list (name or folder)", filtered.length > 0 && filtered.length < names.length, filtered.join(", "));
+      const pickerShot = await cdp.send("Page.captureScreenshot", { format: "png" });
+      await writeFile(new URL("source-picker.png", outputDir), Buffer.from(pickerShot.result.data, "base64"));
+      info("screenshot: smoke-output/source-picker.png");
+
+      // Back keeps the chips as they were; Next keeps the ticks.
+      await cdp.evaluate(`[...${SOURCES}.querySelectorAll("button")].find((b) => b.textContent === "Back").click()`);
+      await waitFor(READY);
+      check("Back returns to the chips, with 'sexy' still off", (await cdp.evaluate(chipStates))[0] === "false");
+      await cdp.evaluate(`${NEXT}.click()`);
+      await waitFor(`!!${SOURCES}`);
+      check("Next again: Dark Romance is still ticked", JSON.stringify(await cdp.evaluate(tickedNames)) === JSON.stringify(["Dark Romance"]));
+
+      // Select all / clear
+      const SELECT_ALL = `${SOURCES}.querySelector('[data-prism="select-all"]')`;
+      const total = (await cdp.evaluate(rowNames)).length;
+      check("some ticked: 'Select all' shows a partial dash", await cdp.evaluate(`${SELECT_ALL}.querySelector("input").indeterminate`));
+      await cdp.evaluate(`${SELECT_ALL}.click()`);
+      await sleep(200);
+      check("Select all ticks every playlist", (await cdp.evaluate(tickedNames)).length === total, await cdp.evaluate(summary));
+      const allShot = await cdp.send("Page.captureScreenshot", { format: "png" });
+      await writeFile(new URL("source-picker-all.png", outputDir), Buffer.from(allShot.result.data, "base64"));
+      info("screenshot: smoke-output/source-picker-all.png");
+      await cdp.evaluate(`${SELECT_ALL}.click()`);
+      await sleep(200);
+      check("clicking it again clears everything", (await cdp.evaluate(tickedNames)).length === 0 && (await cdp.evaluate(`${SCAN}.disabled`)));
+
+      // With a search typed, Select all only ticks the matches.
+      await cdp.evaluate(`(() => {
+        const input = ${SOURCES}.querySelector('input[type="search"]');
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(input, "kpop");
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+      })()`);
+      await sleep(200);
+      check("label says how many shown", (await cdp.evaluate(`${SELECT_ALL}.textContent`)) === "Select all 2 shown", await cdp.evaluate(`${SELECT_ALL}.textContent`));
+      await cdp.evaluate(`${SELECT_ALL}.click()`);
+      await sleep(200);
+      const sumKpop = await cdp.evaluate(summary);
+      check("with search 'kpop', Select all picks only the 2 matches", sumKpop.startsWith("2 picked"), sumKpop);
+
+      // The popup must keep ONE size whatever the search shows.
+      const SET_QUERY = (q) => `(() => {
+        const input = ${SOURCES}.querySelector('input[type="search"]');
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(input, ${JSON.stringify(q)});
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+      })()`;
+      const modalHeight = `Math.round(document.querySelector(".GenericModal").getBoundingClientRect().height)`;
+      const heights = {};
+      for (const q of ["", "kpop", "zzz-no-match"]) {
+        await cdp.evaluate(SET_QUERY(q));
+        await sleep(200);
+        heights[q || "(empty)"] = await cdp.evaluate(modalHeight);
+      }
+      const sizes = new Set(Object.values(heights));
+      check("popup height stays the same while searching", sizes.size === 1, JSON.stringify(heights));
+      check("no matches: 'Select all' stays visible but disabled", await cdp.evaluate(`${SELECT_ALL}.querySelector("input").disabled`));
+    }
+  }
+  await cdp.evaluate("Spicetify.PopupModal.hide()");
+  await sleep(500);
+
+  console.log("\n[7] Settings popup (screenshot)");
   await cdp.evaluate("window.__playlistPrism.openSettings()");
   await sleep(800); // let React draw it
   const visible = await cdp.evaluate(
