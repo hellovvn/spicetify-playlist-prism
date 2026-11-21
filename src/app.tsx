@@ -3,6 +3,7 @@
 // playlist-prism.js, which Spotify loads at startup.
 
 import { getSources, getSourceTracks, getTrackInfo } from "./spotify/read";
+import { createPrismPlaylist, PrismWriteError } from "./spotify/write";
 import { getArtistTopTags, getTrackTopTags, LastfmError } from "./lastfm/client";
 import { getLastfmKey, loadTagCacheText, saveTagCacheText } from "./storage";
 import { mergeTracks } from "./scan/tracks";
@@ -185,17 +186,21 @@ function onStartPrism(uris: string[]) {
     loadSources: getSources,
     runScan,
     describeError: friendlyError,
-    // Creating the playlist is step 9; for now, log what would go in it.
-    onDone: ({ seed, kept, sources, songs }) => {
-      console.log(`${LOG_PREFIX} seed: ${seed.track.name}`);
-      console.log(`${LOG_PREFIX} kept tags: ${kept.map((tag) => tag.name).join(", ")}`);
-      console.log(`${LOG_PREFIX} sources: ${sources.map((s) => s.name).join(", ")}`);
+    // Step 9: create the NEW playlist. All writing happens in src/spotify/write.ts.
+    onCreate: async ({ name, seed, kept, sources, songs }) => {
+      // Seed first, then the picks best-first (the preview's order).
+      const trackUris = [seed.track.uri, ...songs.map((song) => song.uri)];
       console.log(
-        `${LOG_PREFIX} picked ${songs.length} songs: ` +
-          songs.map((s) => `${s.name} (${Math.round(s.match.score * 100)}%)`).join(", ")
+        `${LOG_PREFIX} creating "${name}" with ${trackUris.length} songs ` +
+          `(tags: ${kept.map((tag) => tag.name).join(", ")}; from: ${sources.map((s) => s.name).join(", ")})`
       );
+      const playlistUri = await createPrismPlaylist(name, trackUris);
+      console.log(`${LOG_PREFIX} created ${playlistUri}`);
+
       Spicetify.PopupModal.hide();
-      Spicetify.showNotification(`${songs.length + 1} songs picked. Creating the playlist comes in step 9.`);
+      Spicetify.showNotification(`Created "${name.trim()}" with ${trackUris.length} songs`);
+      // Open the new playlist (just navigation, like clicking it in the sidebar).
+      Spicetify.Platform.History.push(`/playlist/${playlistUri.split(":")[2]}`);
     },
   });
 }
@@ -240,6 +245,7 @@ function friendlyError(error: unknown): string {
   if (isRateLimit(error)) {
     return "Last.fm rate limit hit: wait a minute and try again.";
   }
+  if (error instanceof PrismWriteError) return error.message; // already written for the user
   return "Something went wrong. Details are in the console.";
 }
 

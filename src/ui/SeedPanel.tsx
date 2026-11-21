@@ -37,8 +37,15 @@ export interface SeedPanelProps {
   runScan: ScanScreenProps["runScan"];
   // Turns an error into a message the user can act on.
   describeError: (error: unknown) => string;
-  // Called with the songs the user picked in the preview (step 9 creates the playlist).
-  onDone: (choice: { seed: SeedData; kept: SourcedTag[]; sources: SourceOption[]; songs: RankedSong[] }) => void;
+  // Creates the new playlist from the preview's picks. Rejects with an error
+  // the preview shows (the popup stays open so the user can retry).
+  onCreate: (choice: {
+    name: string;
+    seed: SeedData;
+    kept: SourcedTag[];
+    sources: SourceOption[];
+    songs: RankedSong[];
+  }) => Promise<void>;
 }
 
 // Runs `action` just AFTER the current click finishes.
@@ -57,7 +64,7 @@ function afterClick(action: () => void) {
 //   screen "sources": playlist picker
 //   screen "scan":    scanning progress, then a summary
 //   screen "preview": ranked matches with scores; pick what goes in
-function SeedPanel({ load, loadSources, runScan, describeError, onDone }: SeedPanelProps) {
+function SeedPanel({ load, loadSources, runScan, describeError, onCreate }: SeedPanelProps) {
   const [data, setData] = React.useState<SeedData | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [screen, setScreen] = React.useState<"seed" | "sources" | "scan" | "preview">("seed");
@@ -153,7 +160,8 @@ function SeedPanel({ load, loadSources, runScan, describeError, onDone }: SeedPa
           songs={scan?.songs ?? []}
           // Back goes to the playlist picker (re-scanning is quick thanks to the cache).
           onBack={() => afterClick(() => setScreen("sources"))}
-          onCreate={(songs) => onDone({ seed: data, kept: keptTags(data.tags, offNames), sources: picked, songs })}
+          describeError={describeError}
+          onCreate={(name, songs) => onCreate({ name, seed: data, kept: keptTags(data.tags, offNames), sources: picked, songs })}
         />
       </div>
     );

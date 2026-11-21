@@ -451,6 +451,23 @@ try {
         } else {
           info("no extra matches beyond the recommended ones");
         }
+        // Playlist name (step 9). Create is NEVER clicked here: the smoke test stays read-only.
+        const NAME = `${PREVIEW}.querySelector('[data-prism="playlist-name"]')`;
+        const CREATE = `[...${PREVIEW}.querySelectorAll("button")].find((b) => b.textContent.startsWith("Create"))`;
+        const defaultName = await cdp.evaluate(`${NAME}.value`);
+        check("playlist name defaults to 'Prism · <seed>'", defaultName === "Prism · Often", defaultName);
+        const typeName = (text) => cdp.evaluate(`(() => {
+          const input = ${NAME};
+          Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(input, ${JSON.stringify(text)});
+          input.dispatchEvent(new Event("input", { bubbles: true }));
+        })()`);
+        await typeName("   ");
+        await sleep(200);
+        check("a blank name disables Create", await cdp.evaluate(`${CREATE}.disabled`));
+        await typeName("Prism · Often");
+        await sleep(200);
+        check("a name enables Create again", !(await cdp.evaluate(`${CREATE}.disabled`)));
+
         const shot = await cdp.send("Page.captureScreenshot", { format: "png" });
         await writeFile(new URL("preview.png", outputDir), Buffer.from(shot.result.data, "base64"));
         info("screenshot: smoke-output/preview.png");

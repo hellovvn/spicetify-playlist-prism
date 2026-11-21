@@ -91,13 +91,13 @@ First-time registration: `spicetify config extensions playlist-prism.js` and the
 
 ## Build plan
 Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cleanup,
-4b title retries + artist fallback.
-- 4c: BPM/key read helper (`src/spotify/audio.ts`), show the seed's BPM/key in the log.
-- 5: Seed panel UI: tag chips (toggle) + seed BPM/key, Spotify-styled buttons.
-- 6: Source picker: user's playlists + Liked Songs (read-only).
-- 7: Scan sources: tags + BPM/key per song, with throttle, cache, progress bar.
-- 8: Scoring (pure, unit-tested): tag match + BPM closeness + key compatibility, then preview.
-- 9: Create the new playlist (private by default; writes only in `src/spotify/write.ts`).
+4b title retries + artist fallback, 4c BPM/key, 5 seed panel + chips, 6 source picker,
+7 scan (throttle, cache, progress), 8 scoring + preview (top 30 recommended, ticked),
+9 create the new playlist (writes only in `src/spotify/write.ts`, guarded + static test
+`tests/writeGuard.test.ts`; real test 2026-11-21 made "[Prism test] Often", no other list changed).
+  Note: `RootlistAPI.createPlaylist` has no public/private option; on the developer's account new
+  playlists came out Private. The smoke test never creates playlists.
+- 9b (from the original spec, not built yet): optional second seed song.
 - 10: Lyrics mood as an extra score (decide word list vs AI first).
 - 11: Cleanup: remove the debug hook, README, release.
 

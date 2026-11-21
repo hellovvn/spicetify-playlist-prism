@@ -19,13 +19,19 @@ export interface PreviewScreenProps {
   kept: SourcedTag[]; // the seed tags the user kept ON
   songs: ScannedSong[]; // everything the scan found
   onBack: () => void;
-  onCreate: (picked: RankedSong[]) => void;
+  // Creates the playlist (step 9). Resolves when done; rejects with an error to show.
+  onCreate: (name: string, picked: RankedSong[]) => Promise<void>;
+  describeError: (error: unknown) => string;
 }
 
 const percent = (value: number) => `${Math.round(value * 100)}%`;
 
-export function PreviewScreen({ seed, kept, songs, onBack, onCreate }: PreviewScreenProps) {
+export function PreviewScreen({ seed, kept, songs, onBack, onCreate, describeError }: PreviewScreenProps) {
   const { ButtonPrimary, ButtonSecondary } = Spicetify.ReactComponent as any;
+  const [name, setName] = React.useState(`Prism · ${seed.track.name}`);
+  // "creating" blocks a second click, which would otherwise make TWO playlists.
+  const [creating, setCreating] = React.useState(false);
+  const [createError, setCreateError] = React.useState<string | null>(null);
 
   // useMemo: remember the ranking and only recompute it if its inputs change,
   // not on every tick of a checkbox (ranking 900 songs is wasted work to repeat).
@@ -132,12 +138,46 @@ export function PreviewScreen({ seed, kept, songs, onBack, onCreate }: PreviewSc
         Hover a song to see its score breakdown.
       </p>
 
+      <label style={styles.nameRow}>
+        <span style={styles.nameLabel}>Playlist name</span>
+        <input
+          type="text"
+          value={name}
+          maxLength={100}
+          disabled={creating}
+          onChange={(event) => setName(event.target.value)}
+          style={styles.nameInput}
+          data-prism="playlist-name"
+        />
+      </label>
+
+      {createError && (
+        <p role="alert" style={styles.error} data-prism="create-error">
+          {createError}
+        </p>
+      )}
+
       <div style={styles.buttons}>
-        <ButtonSecondary buttonSize="sm" onClick={onBack}>
+        <ButtonSecondary buttonSize="sm" onClick={onBack} disabled={creating}>
           Back
         </ButtonSecondary>
-        <ButtonPrimary buttonSize="sm" onClick={() => onCreate(pickedSongs)}>
-          Create playlist ({pickedSongs.length + 1} songs)
+        <ButtonPrimary
+          buttonSize="sm"
+          disabled={creating || !name.trim()}
+          onClick={async () => {
+            if (creating || !name.trim()) return;
+            setCreating(true);
+            setCreateError(null);
+            try {
+              await onCreate(name, pickedSongs); // on success the popup closes
+            } catch (error) {
+              console.error("[Playlist Prism] creating the playlist failed", error);
+              setCreateError(describeError(error));
+              setCreating(false);
+            }
+          }}
+        >
+          {creating ? "Creating..." : `Create playlist (${pickedSongs.length + 1} songs)`}
         </ButtonPrimary>
       </div>
     </div>
@@ -170,6 +210,13 @@ const styles: Record<string, React.CSSProperties> = {
     minWidth: 44, textAlign: "right", flexShrink: 0,
   },
   buttons: { display: "flex", justifyContent: "flex-end", gap: 8 },
+  nameRow: { display: "flex", alignItems: "center", gap: 12 },
+  nameLabel: { color: "var(--spice-subtext)", fontSize: 13, flexShrink: 0 },
+  nameInput: {
+    flex: 1, padding: "6px 10px", borderRadius: 4, border: "1px solid var(--spice-subtext)",
+    background: "var(--spice-main)", color: "var(--spice-text)",
+  },
+  error: { margin: 0, padding: "6px 10px", borderLeft: "3px solid #f15e6c", background: "var(--spice-card)", color: "var(--spice-text)", fontSize: 13 },
   moreToggle: {
     background: "none", border: "none", padding: "10px 4px", textAlign: "left", cursor: "pointer",
     color: "var(--spice-subtext)", fontWeight: 600, fontSize: 14,
