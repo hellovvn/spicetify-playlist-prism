@@ -71,7 +71,7 @@ const JUNK_TAGS = new Set([
   "fip",
 ]);
 
-// Nationalities describe the artist, not the vibe of a song.
+// Nationalities and countries describe where the artist is from, not the vibe of a song.
 const NATIONALITIES = new Set([
   "american",
   "british",
@@ -101,9 +101,47 @@ const NATIONALITIES = new Set([
   "south african",
   "nigerian",
   "jamaican",
+  "haitian", // found in real artist tags
+  "japanese", // found in real artist tags
+  "korean",
+  "chinese",
+  "indian",
+  // Countries too, not just nationalities ("sweden", "canada", "haiti" were all seen).
+  "sweden",
+  "canada",
+  "haiti",
+  "america",
+  "united states",
+  "united kingdom",
+  "england",
+  "scotland",
+  "ireland",
+  "australia",
+  "germany",
+  "france",
+  "netherlands",
+  "spain",
+  "italy",
+  "norway",
+  "denmark",
+  "finland",
+  "poland",
+  "russia",
+  "ukraine",
+  "belgium",
+  "brazil",
+  "mexico",
+  "japan",
+  "korea",
+  "south korea",
+  "china",
+  "india",
+  "nigeria",
+  "jamaica",
+  "south africa",
 ]);
-// Note: only the bare nationality is dropped. Genres that contain one
-// ("ukrainian pop", "british soul") are kept: those describe a sound.
+// Note: only the bare nationality or country is dropped. Genres that contain
+// one ("ukrainian pop", "british soul", "korean r&b") are kept: those describe a sound.
 
 // Pattern-based junk:
 //   ^\d{4}$          a year on its own, e.g. "2011", "2025"

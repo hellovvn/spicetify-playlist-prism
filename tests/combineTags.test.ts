@@ -65,6 +65,16 @@ describe("combineTags", () => {
     expect(combineTags([], artist, { maxTags: 2 })).toHaveLength(2);
   });
 
+  test("drops artist tags that become too weak once halved (real case: 'japanese' 0.06 -> 0.03)", () => {
+    const result = combineTags([], [
+      { name: "electronic", weight: 1 },
+      { name: "downtempo", weight: 0.1 }, // 0.05 after halving: exactly the cut-off, kept
+      { name: "japanese", weight: 0.06 }, // 0.03 after halving: dropped
+    ]);
+    expect(result.map((t) => t.name)).toEqual(["electronic", "downtempo"]);
+    expect(combineTags([], [{ name: "x", weight: 0.06 }], { minWeight: 0 })).toHaveLength(1);
+  });
+
   test("nothing anywhere -> []", () => {
     expect(combineTags([], [])).toEqual([]);
   });

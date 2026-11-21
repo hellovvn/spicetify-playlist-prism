@@ -9,6 +9,7 @@ import { openSettings } from "./ui/SettingsModal";
 import { cleanTags } from "./tags/cleanTags";
 import { titleVariants } from "./tags/titleVariants";
 import { getSongTags, type TagFetchers } from "./tags/getSongTags";
+import { formatAudio, getAudioAttributes } from "./spotify/audio";
 
 // The REAL Last.fm fetchers for getSongTags (unit tests pass fakes instead).
 function lastfmFetchers(apiKey: string): TagFetchers {
@@ -47,6 +48,12 @@ function exposeDebugHook() {
     cleanTags,
     titleVariants,
     openSettings,
+    // BPM/key for some songs. Returns a plain object (a Map can't cross the debug port).
+    getAudioAttributes: async (uris: string[]) => {
+      const plain: Record<string, unknown> = {};
+      (await getAudioAttributes(uris)).forEach((audio, uri) => (plain[uri] = audio));
+      return plain;
+    },
     hasLastfmKey: () => getLastfmKey() !== null,
     // Uses the saved key internally so the caller never sees it.
     getTrackTopTags: (artist: string, track: string) => {
@@ -105,11 +112,19 @@ async function onStartPrism(uris: string[]) {
   try {
     // Step 1: song details from Spotify.
     const track = await getTrackInfo(uri);
-    console.log(`${LOG_PREFIX} seed song:`, track);
+    console.log(`${LOG_PREFIX} seed song: ${track.name} - ${track.artists.join(", ")}`);
 
-    // Step 2: usable tags from Last.fm: tries cleaned titles, cleans the
-    // tags, and falls back to the artist's tags when the song has few.
-    const result = await getSongTags(track, lastfmFetchers(apiKey));
+    // Step 2 (in parallel): Last.fm tags AND Spotify's BPM/key.
+    // Promise.all starts both requests at once and waits for both, which is
+    // faster than doing one after the other.
+    // getSongTags: tries cleaned titles, cleans the tags, and falls back to
+    // the artist's tags when the song has few.
+    const [result, audioMap] = await Promise.all([
+      getSongTags(track, lastfmFetchers(apiKey)),
+      getAudioAttributes([uri]),
+    ]);
+    const audioText = formatAudio(audioMap.get(uri) ?? null);
+    console.log(`${LOG_PREFIX} bpm/key: ${audioText}`);
 
     // Each log line starts with our prefix so the console filter keeps it.
     console.log(`${LOG_PREFIX} titles tried: ${JSON.stringify(result.titlesTried)}`);
@@ -121,11 +136,11 @@ async function onStartPrism(uris: string[]) {
     console.log(`${LOG_PREFIX} tags: ${tagList || "(none)"}`);
 
     if (result.tags.length === 0) {
-      Spicetify.showNotification(`No usable Last.fm tags for "${track.name}" or its artist`);
+      Spicetify.showNotification(`${track.name}: ${audioText}. No usable Last.fm tags for it or its artist`);
     } else {
       const top = result.tags.slice(0, 5).map((tag) => tag.name).join(", ");
       const note = result.matchedTitle ? "" : " (from artist)";
-      Spicetify.showNotification(`${track.name}${note}: ${top}`);
+      Spicetify.showNotification(`${track.name}: ${audioText}. Tags${note}: ${top}`);
     }
   } catch (error) {
     console.error(`${LOG_PREFIX} failed for ${uri}`, error);

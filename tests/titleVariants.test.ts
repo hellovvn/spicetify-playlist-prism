@@ -19,6 +19,8 @@ describe("titleVariants", () => {
     ["Peaches [feat. Daniel Caesar & Giveon]", ["Peaches [feat. Daniel Caesar & Giveon]", "Peaches"]],
     ["Stay ft. Justin Bieber", ["Stay ft. Justin Bieber", "Stay"]],
     ["Run (with Someone)", ["Run (with Someone)", "Run"]],
+    // Real title from testing: the bracketed "(with ...)" goes, the "With" in the name stays.
+    ["Dancing With A Stranger (with Normani)", ["Dancing With A Stranger (with Normani)", "Dancing With A Stranger"]],
 
     // Version markers after a dash or in brackets.
     ["Let It Be - Remastered 2009", ["Let It Be - Remastered 2009", "Let It Be"]],

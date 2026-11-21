@@ -134,7 +134,27 @@ try {
     }
   }
 
-  console.log("\n[4] Settings popup (screenshot)");
+  console.log("\n[4] BPM/key from Spotify (fixture songs)");
+  const audioFixtures = JSON.parse(await readFile(new URL("../tests/fixtures/audio-attributes.json", import.meta.url), "utf8"));
+  const audioUris = audioFixtures.songs.map((s) => s.uri);
+  const audio = await cdp.evaluate(`window.__playlistPrism.getAudioAttributes(${JSON.stringify(audioUris)})`);
+  for (const song of audioFixtures.songs) {
+    const got = audio?.[song.uri] ?? null;
+    if (song.raw === null) {
+      check(`no BPM/key (expected): ${song.title}`, got === null, got ? `got ${JSON.stringify(got)}` : "");
+    } else {
+      // Live values should match the recording (they're computed from the audio, so stable).
+      const ok = got && Math.abs(got.bpm - song.raw.bpm) < 1 && got.camelot === song.raw.key.camelotKey.value;
+      check(`BPM/key: ${song.title}`, !!ok, got ? `${Math.round(got.bpm)} BPM, ${got.key} ${got.mode} (${got.camelot})` : "got null");
+    }
+  }
+  // Every main-fixture song should have BPM/key (step 4c's coverage goal).
+  const allUris = fixtures.songs.map((s) => s.uri);
+  const all = await cdp.evaluate(`window.__playlistPrism.getAudioAttributes(${JSON.stringify(allUris)})`);
+  const covered = allUris.filter((u) => all?.[u]).length;
+  check(`BPM/key coverage on fixture songs`, covered === allUris.length, `${covered}/${allUris.length}`);
+
+  console.log("\n[5] Settings popup (screenshot)");
   await mkdir(outputDir, { recursive: true });
   await cdp.evaluate("window.__playlistPrism.openSettings()");
   await sleep(800); // let React draw it

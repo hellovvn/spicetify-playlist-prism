@@ -22,6 +22,10 @@ export interface CombineOptions {
   artistWeight?: number;
   // Keep at most this many tags. Default 15.
   maxTags?: number;
+  // Artist tags weaker than this AFTER being reduced are dropped. Default 0.05,
+  // the same cut-off cleanTags uses, so a weak tag can't sneak in by being
+  // halved after the filter (real case: "japanese" 0.06 -> 0.03).
+  minWeight?: number;
 }
 
 // Tells the caller whether it's worth fetching artist tags at all, so we
@@ -37,6 +41,7 @@ export function combineTags(
 ): SourcedTag[] {
   const artistWeight = options.artistWeight ?? 0.5;
   const maxTags = options.maxTags ?? 15;
+  const minWeight = options.minWeight ?? 0.05;
 
   const fromTrack: SourcedTag[] = trackTags.map((tag) => ({ ...tag, source: "track" }));
   if (!needsArtistTags(trackTags, options)) {
@@ -47,10 +52,12 @@ export function combineTags(
   const byName = new Map<string, SourcedTag>();
   for (const tag of fromTrack) byName.set(tag.name, tag);
 
-  // Add artist tags at reduced weight, but only names the song doesn't already have.
+  // Add artist tags at reduced weight, but only names the song doesn't
+  // already have, and only if they're still strong enough once reduced.
   for (const tag of artistTags) {
-    if (!byName.has(tag.name)) {
-      byName.set(tag.name, { name: tag.name, weight: tag.weight * artistWeight, source: "artist" });
+    const weight = tag.weight * artistWeight;
+    if (!byName.has(tag.name) && weight >= minWeight) {
+      byName.set(tag.name, { name: tag.name, weight, source: "artist" });
     }
   }
 

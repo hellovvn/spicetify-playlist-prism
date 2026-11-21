@@ -98,6 +98,19 @@ describe("cleanTags rules", () => {
     expect(names(result)).toEqual(["pop", "dark r&b", "ukrainian pop"]);
   });
 
+  test("drops bare country names too, but keeps genres that contain one", () => {
+    // Real cases: "sweden" (Isak Danielson), "canada"/"haiti"/"haitian" earlier.
+    const result = cleanTags([
+      { name: "pop", count: 100 },
+      { name: "Sweden", count: 30 },
+      { name: "canada", count: 30 },
+      { name: "haitian", count: 30 },
+      { name: "japanese", count: 30 },
+      { name: "korean r&b", count: 20 },
+    ]);
+    expect(names(result)).toEqual(["pop", "korean r&b"]);
+  });
+
   test("drops every credited artist's name, any capitalisation", () => {
     const result = cleanTags(
       [

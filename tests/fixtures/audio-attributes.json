@@ -1,0 +1,10 @@
+{
+  "_note": "Real raw BPM/key answers recorded from Spotify on 2026-11-20 (kind 222). Don't 'fix' these.",
+  "songs": [
+    { "title": "Often", "uri": "spotify:track:4PhsKqMdgMEUSstTDAmMpg", "raw": { "bpm": 133.365, "key": { "key": "G", "mode": 1, "camelotKey": { "value": "6A", "color": "#ffadb9" } } } },
+    { "title": "Couldn’t Make It Any Harder", "uri": "spotify:track:5YwBaDW36fztKNnoiHQar3", "raw": { "bpm": 76.0809, "key": { "key": "E", "mode": 2, "camelotKey": { "value": "12B", "color": "#04ebeb" } } } },
+    { "title": "WHERE IS MY HUSBAND!", "uri": "spotify:track:55lijDD6OAjLFFUHU9tcDm", "raw": { "bpm": 115.99908447265625, "key": { "key": "A#", "mode": 1, "camelotKey": { "value": "3A", "color": "#aff68e" } } } },
+    { "title": "Marvins Room", "uri": "spotify:track:047fCsbO4NdmwCBn8pcUXl", "raw": { "bpm": 84.0003, "key": { "key": "A", "mode": 1, "camelotKey": { "value": "8A", "color": "#f1ace7" } } } },
+    { "title": "(a podcast episode)", "uri": "spotify:episode:0000000000000000000000", "raw": null }
+  ]
+}
