@@ -3,11 +3,20 @@
 // playlist-prism.js, which Spotify loads at startup.
 
 import { getTrackInfo } from "./spotify/read";
-import { getTrackTopTags, LastfmError } from "./lastfm/client";
+import { getArtistTopTags, getTrackTopTags, LastfmError } from "./lastfm/client";
 import { getLastfmKey } from "./storage";
 import { openSettings } from "./ui/SettingsModal";
 import { cleanTags } from "./tags/cleanTags";
 import { titleVariants } from "./tags/titleVariants";
+import { getSongTags, type TagFetchers } from "./tags/getSongTags";
+
+// The REAL Last.fm fetchers for getSongTags (unit tests pass fakes instead).
+function lastfmFetchers(apiKey: string): TagFetchers {
+  return {
+    fetchTrackTags: async (artist, title) => (await getTrackTopTags(artist, title, apiKey)).tags,
+    fetchArtistTags: (artist) => getArtistTopTags(artist, apiKey),
+  };
+}
 
 // A prefix for console logs, so ours are easy to filter in DevTools.
 const LOG_PREFIX = "[Playlist Prism]";
@@ -44,6 +53,12 @@ function exposeDebugHook() {
       const key = getLastfmKey();
       if (!key) throw new Error("No Last.fm key saved");
       return getTrackTopTags(artist, track, key);
+    },
+    // The full chain (title retries + artist fallback) for one song.
+    getSongTags: (song: { name: string; artists: string[] }) => {
+      const key = getLastfmKey();
+      if (!key) throw new Error("No Last.fm key saved");
+      return getSongTags(song, lastfmFetchers(key));
     },
   };
 }
@@ -92,42 +107,32 @@ async function onStartPrism(uris: string[]) {
     const track = await getTrackInfo(uri);
     console.log(`${LOG_PREFIX} seed song:`, track);
 
-    // Step 2: tags from Last.fm. We send only the MAIN artist (first in the
-    // list), because Last.fm stores songs under the main artist's name.
-    // (Title cleanup like removing "- Remastered" comes in step 4.)
-    const mainArtist = track.artists[0] ?? "";
-    const result = await getTrackTopTags(mainArtist, track.name, apiKey);
+    // Step 2: usable tags from Last.fm: tries cleaned titles, cleans the
+    // tags, and falls back to the artist's tags when the song has few.
+    const result = await getSongTags(track, lastfmFetchers(apiKey));
 
-    console.log(
-      `${LOG_PREFIX} Last.fm matched "${result.matchedTrack}" by "${result.matchedArtist}"` +
-        ` (we asked for "${track.name}" by "${mainArtist}"): ${result.tags.length} tags`
-    );
-    // One line with our prefix, so it survives the "[Playlist Prism]" console
-    // filter (console.table output has no prefix, so the filter hides it).
-    const tagList = result.tags.map((tag) => `${tag.name} (${tag.count})`).join(", ");
-    console.log(`${LOG_PREFIX} raw tags: ${tagList || "(none)"}`);
+    // Each log line starts with our prefix so the console filter keeps it.
+    console.log(`${LOG_PREFIX} titles tried: ${JSON.stringify(result.titlesTried)}`);
+    console.log(`${LOG_PREFIX} matched title: ${result.matchedTitle ?? "(none: no song-level tags)"}`);
+    console.log(`${LOG_PREFIX} used artist tags: ${result.usedArtistTags ? "yes" : "no"}`);
+    const tagList = result.tags
+      .map((tag) => `${tag.name} (${tag.weight.toFixed(2)}${tag.source === "artist" ? ", via artist" : ""})`)
+      .join(", ");
+    console.log(`${LOG_PREFIX} tags: ${tagList || "(none)"}`);
 
-    // Step 4: clean the tags (drop junk, merge duplicates, re-scale 0..1).
-    const cleaned = cleanTags(result.tags, { artistNames: track.artists });
-    const cleanList = cleaned.map((tag) => `${tag.name} (${tag.weight.toFixed(2)})`).join(", ");
-    console.log(`${LOG_PREFIX} clean tags: ${cleanList || "(none)"}`);
-
-    // Preview only (used in step 4b): the title variants we'd try next.
-    console.log(`${LOG_PREFIX} title variants: ${JSON.stringify(titleVariants(track.name))}`);
-
-    if (cleaned.length === 0) {
-      Spicetify.showNotification(`No usable Last.fm tags for "${track.name}"`);
+    if (result.tags.length === 0) {
+      Spicetify.showNotification(`No usable Last.fm tags for "${track.name}" or its artist`);
     } else {
-      const top = cleaned.slice(0, 5).map((tag) => tag.name).join(", ");
-      Spicetify.showNotification(`${track.name}: ${top}`);
+      const top = result.tags.slice(0, 5).map((tag) => tag.name).join(", ");
+      const note = result.matchedTitle ? "" : " (from artist)";
+      Spicetify.showNotification(`${track.name}${note}: ${top}`);
     }
   } catch (error) {
     console.error(`${LOG_PREFIX} failed for ${uri}`, error);
 
     // Turn known Last.fm error codes into messages a user can act on.
-    if (error instanceof LastfmError && error.code === 6) {
-      Spicetify.showNotification("Last.fm doesn't know this song", true);
-    } else if (error instanceof LastfmError && (error.code === 10 || error.code === 26)) {
+    // (Error 6 "not found" never gets here: getSongTags treats it as "no tags".)
+    if (error instanceof LastfmError && (error.code === 10 || error.code === 26)) {
       Spicetify.showNotification("Last.fm API key problem: check Playlist Prism settings", true);
     } else if (error instanceof LastfmError && error.code === 29) {
       Spicetify.showNotification("Last.fm rate limit hit: wait a minute and try again", true);

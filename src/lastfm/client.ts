@@ -58,18 +58,29 @@ export async function getTrackTopTags(artist: string, track: string, apiKey: str
     apiKey
   );
 
-  // The tags are in data.toptags.tag. Quirk: when there is exactly ONE tag,
-  // Last.fm's JSON may give a single object instead of an array, so we
-  // normalize to an array either way.
-  const raw = data?.toptags?.tag ?? [];
-  const list: any[] = Array.isArray(raw) ? raw : [raw];
-
   return {
-    tags: list.map((tag) => ({ name: String(tag.name), count: Number(tag.count) })),
+    tags: parseTagList(data),
     // "@attr" holds the artist/track names Last.fm actually matched.
     matchedArtist: data?.toptags?.["@attr"]?.artist ?? artist,
     matchedTrack: data?.toptags?.["@attr"]?.track ?? track,
   };
+}
+
+// Gets the top tags for an ARTIST. Used as a fallback when a song has few or
+// no tags of its own. Less precise (one artist, many styles) but much better
+// coverage, because artists get tagged far more often than single songs.
+export async function getArtistTopTags(artist: string, apiKey: string): Promise<LastfmTag[]> {
+  const data = await callLastfm({ method: "artist.getTopTags", artist, autocorrect: "1" }, apiKey);
+  return parseTagList(data);
+}
+
+// Both tag methods answer in the same shape: data.toptags.tag.
+// Quirk: when there is exactly ONE tag, Last.fm's JSON may give a single
+// object instead of an array, so we normalize to an array either way.
+function parseTagList(data: any): LastfmTag[] {
+  const raw = data?.toptags?.tag ?? [];
+  const list: any[] = Array.isArray(raw) ? raw : [raw];
+  return list.map((tag) => ({ name: String(tag.name), count: Number(tag.count) }));
 }
 
 // Checks an API key with one cheap, well-known request.

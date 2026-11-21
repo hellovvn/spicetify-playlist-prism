@@ -87,6 +87,17 @@ describe("cleanTags rules", () => {
     expect(names(result)).toEqual(["soul"]);
   });
 
+  test("drops a bare nationality but keeps genres that contain one", () => {
+    // Real case from the smoke test: Carpetman's artist tags.
+    const result = cleanTags([
+      { name: "pop", count: 100 },
+      { name: "ukrainian", count: 100 },
+      { name: "dark r&b", count: 66 },
+      { name: "ukrainian pop", count: 66 },
+    ]);
+    expect(names(result)).toEqual(["pop", "dark r&b", "ukrainian pop"]);
+  });
+
   test("drops every credited artist's name, any capitalisation", () => {
     const result = cleanTags(
       [

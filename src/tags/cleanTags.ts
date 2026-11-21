@@ -90,7 +90,20 @@ const NATIONALITIES = new Set([
   "dutch",
   "spanish",
   "italian",
+  "ukrainian", // found by the smoke test (Carpetman's artist tags)
+  "russian",
+  "polish",
+  "finnish",
+  "belgian",
+  "brazilian",
+  "mexican",
+  "new zealand",
+  "south african",
+  "nigerian",
+  "jamaican",
 ]);
+// Note: only the bare nationality is dropped. Genres that contain one
+// ("ukrainian pop", "british soul") are kept: those describe a sound.
 
 // Pattern-based junk:
 //   ^\d{4}$          a year on its own, e.g. "2011", "2025"

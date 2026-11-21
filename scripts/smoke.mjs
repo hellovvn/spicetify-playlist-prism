@@ -116,20 +116,20 @@ try {
     if (!track) continue;
 
     if (hasKey) {
-      // Same as the extension: main artist + exact title.
-      const live = await cdp.evaluate(
-        `window.__playlistPrism.getTrackTopTags(${JSON.stringify(track.artists[0])}, ${JSON.stringify(track.name)})`
-      );
-      const cleaned = await cdp.evaluate(
-        `window.__playlistPrism.cleanTags(${JSON.stringify(live.tags)}, { artistNames: ${JSON.stringify(track.artists)} })`
-      );
-      const variants = await cdp.evaluate(`window.__playlistPrism.titleVariants(${JSON.stringify(track.name)})`);
-      // Live Last.fm data can change over time, so differences from the
-      // recorded fixture are reported as info, not as failures.
-      const drift = live.tags.length !== song.tags.length ? `  (fixture had ${song.tags.length})` : "";
-      info(`raw: ${live.tags.length} tags${drift}`);
-      info(`clean: ${cleaned.map((t) => `${t.name} ${t.weight.toFixed(2)}`).join(", ") || "(none)"}`);
-      if (variants.length > 1) info(`title variants: ${variants.join("  |  ")}`);
+      // The full chain, exactly as the extension runs it.
+      const result = await cdp.evaluate(`window.__playlistPrism.getSongTags(${JSON.stringify(track)})`);
+      const tagText = result.tags
+        .map((t) => `${t.name} ${t.weight.toFixed(2)}${t.source === "artist" ? "*" : ""}`)
+        .join(", ");
+      info(`titles tried: ${result.titlesTried.join("  |  ")}`);
+      info(`matched title: ${result.matchedTitle ?? "(none)"}   artist fallback: ${result.usedArtistTags ? "yes" : "no"}`);
+      info(`tags (* = via artist): ${tagText || "(none)"}`);
+
+      // Goal of step 4b: songs that had ZERO tags in step 3 should now get some.
+      // (Live Last.fm data can change, so other songs are reported as info only.)
+      if (song.tags.length === 0) {
+        check(`now has tags (had 0 in step 3): ${song.title}`, result.tags.length > 0);
+      }
       await sleep(300); // be polite to Last.fm's rate limit
     }
   }

@@ -1,18 +1,35 @@
 # Playlist Prism (Spicetify extension)
 
 ## Goal
-Build a NEW Spotify playlist around the vibe of 1–2 "seed" songs, using
-**song-level** genre/mood tags (Last.fm `track.getTopTags`), not Spotify's
-artist-level genres.
+Build a NEW Spotify playlist around the vibe of 1–2 "seed" songs, using only songs
+from the playlists the user picks (never new songs from Spotify's catalog). Songs are
+scored on **song-level** signals (see "Scoring signals"), not Spotify's artist-level genres.
 
 ## User flow
 1. Right-click a song, then choose **Start a Prism playlist** (option to add a second seed).
 2. Fetch and clean the seed songs' tags, then show them as toggleable chips.
 3. The user turns off any tags they don't want.
 4. The user picks source playlists and/or Liked Songs.
-5. Scan the sources, score each candidate against the selected tags, and show a preview
-   with each song's score and the tags it matched.
+5. Scan the sources, score each candidate against the seed (tags, BPM/key, later lyrics
+   mood), and show a preview with each song's score and the reasons it matched.
 6. The user confirms, and the extension creates a **new** playlist with those songs.
+   Candidates come ONLY from the selected sources: no Song Radio / recommendations.
+
+## Scoring signals (decided 2026-11-20 after a read-only spike on "Dark Romance", 25 songs)
+1. **Last.fm tags**: song tags, artist-tag fallback at half weight. About 50% of songs
+   have song-level tags. Used for the chips and the "why it matched" text.
+2. **BPM + musical key**: 25/25 coverage. Read via
+   `PlaylistAPI._metadataExtensionsAPI.fetch(...uris.map(u => [u, 222]))` (222 =
+   AUDIO_ATTRIBUTES_V2, found by watching the client's own call) →
+   `{ bpm, key: { key, mode, camelotKey: { value } } }`. Internal and undocumented: keep it in
+   one read helper so a Spotify update is easy to fix.
+3. **Lyrics mood** (later step): lyrics from
+   `CosmosAsync.get("https://spclient.wg.spotify.com/color-lyrics/v2/track/{id}?format=json&market=from_token")`,
+   23/25 coverage (Musixmatch). How to judge mood (word list vs AI) is still undecided.
+   Never store or log the lyrics text itself.
+- Not available: Web API audio features (energy/valence) return 429.
+- Rejected: Song Radio and playlist recommendations. They work, but only 1/50 radio songs
+  was in Liked Songs, and the user wants only their own songs.
 
 ## Hard rule: never modify existing playlists
 - Never add to, remove from, reorder, rename, or delete any existing playlist or Liked Songs.
@@ -23,7 +40,8 @@ artist-level genres.
 
 ## Stack
 - Spicetify Creator (`npx create-spicetify-app`), TypeScript, React
-- Data: Last.fm API (`track.getTopTags`, fallback `artist.getTopTags`)
+- Data: Last.fm API (`track.getTopTags`, fallback `artist.getTopTags`), Spotify BPM/key,
+  Spotify lyrics (later)
 - Spotify access: `Spicetify.Platform.*` / `Spicetify.CosmosAsync` (Spotify client's own auth)
 - Tests: Vitest for pure functions (tag cleanup, scoring, title normalization)
 
@@ -66,6 +84,18 @@ First-time registration: `spicetify config extensions playlist-prism.js` and the
 - `src/scoring/`: match scoring (pure, unit-tested)
 - `src/spotify/`: read helpers and the single write module
 - `src/ui/`: React components (chips, playlist picker, preview)
+
+## Build plan
+Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cleanup,
+4b title retries + artist fallback.
+- 4c: BPM/key read helper (`src/spotify/audio.ts`), show the seed's BPM/key in the log.
+- 5: Seed panel UI: tag chips (toggle) + seed BPM/key, Spotify-styled buttons.
+- 6: Source picker: user's playlists + Liked Songs (read-only).
+- 7: Scan sources: tags + BPM/key per song, with throttle, cache, progress bar.
+- 8: Scoring (pure, unit-tested): tag match + BPM closeness + key compatibility, then preview.
+- 9: Create the new playlist (private by default; writes only in `src/spotify/write.ts`).
+- 10: Lyrics mood as an extra score (decide word list vs AI first).
+- 11: Cleanup: remove the debug hook, README, release.
 
 ## Dev loop (Claude runs this, not the developer)
 - Keep two terminal tabs running: `npm run watch` (rebuild on save) and `spicetify watch -e`
