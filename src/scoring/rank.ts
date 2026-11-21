@@ -4,6 +4,7 @@
 import type { ScannedSong } from "../scan/scan";
 import type { AudioAttributes } from "../spotify/audio";
 import type { SourcedTag } from "../tags/combineTags";
+import type { MoodProfile } from "../mood/lyricsMood";
 import { removeFeatures, removeVersionMarkers } from "../tags/titleVariants";
 import { scoreSong, type MatchDetails } from "./score";
 
@@ -22,6 +23,7 @@ export interface SeedForRanking {
   artists: string[];
   tags: SourcedTag[]; // only the chips the user kept ON
   audio: AudioAttributes | null;
+  mood: MoodProfile | null;
 }
 
 // The "same song" key: core title + main artist, ignoring capitals.

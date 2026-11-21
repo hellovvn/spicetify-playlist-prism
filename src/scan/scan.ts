@@ -1,5 +1,6 @@
-// The scan: for every song in the chosen playlists, get its tags (Last.fm)
-// and BPM/key (Spotify). Scoring them against the seed is step 8.
+// The scan: for every song in the chosen playlists, get its tags (Last.fm),
+// BPM/key (Spotify) and lyrics mood (Spotify lyrics, step 10).
+// Scoring them against the seed is src/scoring/.
 //
 // Everything it talks to is passed in ("dependency injection"), so the unit
 // tests (tests/scan.test.ts) use fakes: no network, no real waiting.
@@ -7,6 +8,8 @@
 // READ-ONLY: it never changes anything in Spotify.
 
 import type { AudioAttributes } from "../spotify/audio";
+import type { MoodProfile } from "../mood/lyricsMood";
+import type { MoodCache } from "./moodCache";
 import type { SourcedTag } from "../tags/combineTags";
 import type { SongTagsResult, TagFetchers } from "../tags/getSongTags";
 import type { LastfmTag } from "../lastfm/client";
@@ -24,6 +27,7 @@ export type TagStatus = "song" | "artist" | "none" | "error";
 export interface ScannedSong extends ScanTrack {
   tags: SourcedTag[];
   audio: AudioAttributes | null;
+  mood: MoodProfile | null; // null = no lyrics mood (none, not English, or lookup failed)
   tagStatus: TagStatus;
 }
 
@@ -44,6 +48,12 @@ export interface ScanDeps {
   isFatal: (error: unknown) => boolean;
   // "Slow down" errors: wait and try the same song again.
   isRateLimit: (error: unknown) => boolean;
+  // Lyrics mood (optional: without it every song's mood is null).
+  mood?: {
+    get: (uri: string) => Promise<MoodProfile | null>;
+    cache: MoodCache;
+    save: () => void;
+  };
 }
 
 export interface ScanOptions {
@@ -64,7 +74,7 @@ export async function scanSongs(
   onProgress: (progress: ScanProgress) => void = () => {},
   shouldStop: () => boolean = () => false,
   options: ScanOptions = {}
-): Promise<{ songs: ScannedSong[]; cancelled: boolean }> {
+): Promise<{ songs: ScannedSong[]; cancelled: boolean; moodFailed: number }> {
   const concurrency = options.concurrency ?? 4;
   const maxRetries = options.maxRetries ?? 3;
   const retryDelayMs = options.retryDelayMs ?? 10_000;
@@ -87,11 +97,33 @@ export async function scanSongs(
   let unsaved = 0;
   const stop = () => fatal !== null || shouldStop();
 
+  // Lyrics mood for one song: from the cache, or ask Spotify. Never throws:
+  // a failed lookup just means "mood unknown" (and isn't cached, so the next
+  // scan tries again).
+  let moodFailed = 0;
+  const lookUpMood = async (uri: string): Promise<MoodProfile | null> => {
+    const mood = deps.mood;
+    if (!mood) return null;
+    const cached = mood.cache.get(uri, deps.clock.now());
+    if (cached !== undefined) return cached;
+    try {
+      const profile = await mood.get(uri);
+      mood.cache.set(uri, profile, deps.clock.now());
+      return profile;
+    } catch {
+      // Usually Spotify's lyrics rate limit. Counted, not logged per song.
+      moodFailed++;
+      return null;
+    }
+  };
+
   const index = new Map(tracks.map((t, i) => [t, i]));
   await runPool(
     tracks,
     concurrency,
     async (track) => {
+      // Start the mood lookup now; it runs WHILE the tags are fetched below.
+      const moodPromise = lookUpMood(track.uri);
       let tags: SourcedTag[] | null = null;
 
       const cached = deps.cache.get(track.uri, deps.clock.now());
@@ -129,6 +161,7 @@ export async function scanSongs(
         ...track,
         tags: tags ?? [],
         audio: audioMap.get(track.uri) ?? null,
+        mood: await moodPromise,
         tagStatus: tags === null ? "error" : tagStatusOf(tags),
       };
       progress.done++;
@@ -140,10 +173,12 @@ export async function scanSongs(
   // 3. Always save what we learned, even after Cancel or an error,
   //    so the next scan doesn't repeat that work.
   if (unsaved > 0) deps.saveCache();
+  deps.mood?.save();
   if (fatal !== null) throw fatal;
 
   const songs = results.filter((song): song is ScannedSong => song !== undefined);
-  return { songs, cancelled: songs.length < tracks.length };
+  if (moodFailed > 0) console.log(`[Playlist Prism] lyrics mood skipped for ${moodFailed} songs (Spotify limit); next scan retries them`);
+  return { songs, cancelled: songs.length < tracks.length, moodFailed };
 }
 
 // Many songs share an artist. This makes each artist's Last.fm lookup happen
@@ -189,5 +224,6 @@ export function summarize(songs: ScannedSong[]) {
     noTags: count("none"),
     failed: count("error"),
     withBpm: songs.filter((s) => s.audio !== null).length,
+    withMood: songs.filter((s) => s.mood !== null).length,
   };
 }

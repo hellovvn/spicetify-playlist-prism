@@ -187,6 +187,9 @@ try {
     check("counter says 5 of 5", (await cdp.evaluate(keptText)) === "5 of 5 tags on", await cdp.evaluate(keptText));
     info(`BPM/key line: ${await cdp.evaluate(`${PANEL}.textContent.match(/\\d+ BPM[^)]*\\)/)?.[0]`)}`);
 
+    const moodLine = await cdp.evaluate(`${PANEL}.querySelector('[data-prism="seed-mood"]')?.textContent`);
+    check("seed panel shows Often's lyrics mood", /^Lyrics mood: (?!unknown)/.test(moodLine ?? ""), moodLine);
+
     await cdp.evaluate(`${PANEL}.querySelector('[role="checkbox"]').click()`); // switch the first chip off
     await sleep(300);
     const after = await cdp.evaluate(chipStates);
@@ -355,6 +358,9 @@ try {
     if (done1) {
       const title = await cdp.evaluate(SCAN_TITLE);
       check("summary says 25 songs scanned", title === "Scanned 25 songs", title);
+      const subline = await cdp.evaluate(`document.querySelector('[data-prism-state="scan-done"] p').textContent`);
+      const moodCount = Number(/lyrics mood for (\d+)/.exec(subline)?.[1] ?? -1);
+      check("lyrics mood found for most Dark Romance songs", moodCount >= 15, `${moodCount} of 25`);
       info(`summary: ${await cdp.evaluate(`document.querySelector('[data-prism="scan-summary"]').innerText.replace(/\\s+/g, " ")`)}`);
       const doneShot = await cdp.send("Page.captureScreenshot", { format: "png" });
       await writeFile(new URL("scan-done.png", outputDir), Buffer.from(doneShot.result.data, "base64"));
@@ -420,6 +426,8 @@ try {
           `[...${PREVIEW}.querySelectorAll('[data-prism="preview-list"] label')].slice(0, 5).map((r) => r.innerText.replace(/\\s+/g, " "))`
         );
         top.forEach((row) => info(`top: ${row}`));
+        const tip = await cdp.evaluate(`${PREVIEW}.querySelector('[data-prism="preview-list"] label').title`);
+        check("score tooltip includes the lyrics mood", /mood (\d+%|unknown)/.test(tip) && tip.includes("Lyrics mood:"), tip.replace(/\n/g, " / "));
         const createLabel = () => cdp.evaluate(`[...${PREVIEW}.querySelectorAll("button")].find((b) => b.textContent.startsWith("Create")).textContent`);
         const n = (label) => parseInt(label.match(/\((\d+)/)[1]);
         const REC_BOXES = `[...${PREVIEW}.querySelectorAll('[data-prism="preview-recommended"] input')]`;
@@ -487,7 +495,10 @@ try {
   const positions = {};
   // Wait for the popup's open animation (slides up 8 px over 220 ms) to finish,
   // or the first reading is taken mid-slide.
-  await sleep(500);
+  // A fixed wait isn't enough when Spotify's window is hidden (animations run
+  // slower), so wait until the browser says every animation has finished.
+  await waitFor(`document.getAnimations().every((a) => a.playState === "finished")`, 5000);
+  await sleep(100);
   positions["before any progress"] = await cdp.evaluate(barTop);
   await setProgress({ done: 3, total: 9, fromCache: 0, failed: 0 });
   await sleep(150);

@@ -41,3 +41,20 @@ export function saveTagCacheText(json: string): void {
     console.warn("[Playlist Prism] couldn't save the tag cache", error);
   }
 }
+
+// ----- Lyrics mood cache (see src/scan/moodCache.ts) -----
+// Only mood profiles (a few numbers per song), never lyrics.
+
+const MOOD_CACHE_KEY = "prism:moodCache";
+
+export function loadMoodCacheText(): string | null {
+  return Spicetify.LocalStorage.get(MOOD_CACHE_KEY);
+}
+
+export function saveMoodCacheText(json: string): void {
+  try {
+    Spicetify.LocalStorage.set(MOOD_CACHE_KEY, json);
+  } catch (error) {
+    console.warn("[Playlist Prism] couldn't save the mood cache", error);
+  }
+}

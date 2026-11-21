@@ -23,10 +23,15 @@ scored on **song-level** signals (see "Scoring signals"), not Spotify's artist-l
    AUDIO_ATTRIBUTES_V2, found by watching the client's own call) →
    `{ bpm, key: { key, mode, camelotKey: { value } } }`. Internal and undocumented: keep it in
    one read helper so a Spotify update is easy to fix.
-3. **Lyrics mood** (later step): lyrics from
-   `CosmosAsync.get("https://spclient.wg.spotify.com/color-lyrics/v2/track/{id}?format=json&market=from_token")`,
-   23/25 coverage (Musixmatch). How to judge mood (word list vs AI) is still undecided.
-   Never store or log the lyrics text itself.
+3. **Lyrics mood** (step 10, word list, decided 2026-11-21): lyrics from
+   `CosmosAsync.get("https://spclient.wg.spotify.com/color-lyrics/v2/track/{id}?format=json&market=from_token")`
+   (`src/spotify/lyrics.ts`) -> `src/mood/lyricsMood.ts` counts words from 8 mood lists into a
+   profile; songs compare by cosine similarity. English only; <5 mood words = no profile.
+   Never store or log the lyrics text itself (only the profile, cached in `prism:moodCache`).
+   Gotchas: CosmosAsync often RETURNS errors as `{code, message}` instead of throwing (404 = no
+   lyrics; anything else must not be cached). The endpoint allows a burst, then 429s for a
+   while, so lookups pause 60 s after a 429 and the next scan fills in the rest.
+   Score weights: tags 60, mood 15, BPM 15, key 10.
 - Not available: Web API audio features (energy/valence) return 429.
 - Rejected: Song Radio and playlist recommendations. They work, but only 1/50 radio songs
   was in Liked Songs, and the user wants only their own songs.
@@ -98,7 +103,7 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   Note: `RootlistAPI.createPlaylist` has no public/private option; on the developer's account new
   playlists came out Private. The smoke test never creates playlists.
 - 9b (from the original spec, not built yet): optional second seed song.
-- 10: Lyrics mood as an extra score (decide word list vs AI first).
+- 10: Lyrics mood (word list) as an extra score. Done (tested by the developer 2026-11-21).
 - 11: Cleanup: remove the debug hook, README, release.
 
 ## Dev loop (Claude runs this, not the developer)
@@ -107,6 +112,11 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
 - Before handing a step over for testing, Claude makes sure the new build reached Spotify
   (watch tab says "Reloaded Spotify", or run `spicetify refresh -e` + `spicetify restart`).
   Never ask the developer to press Ctrl+Shift+R.
+- If Spotify's window is minimized/hidden, `spicetify watch -e`'s reload can leave
+  `Spicetify.showNotification` undefined, so the extension never starts (main() waits for it).
+  Fix: reload the page via the debug port (`location.reload()`), which works even when hidden.
+- Type check: `npx -y -p typescript@5.6.3 tsc --noEmit -p .` (TypeScript isn't a local dependency;
+  plain `npx tsc` fetches an unrelated package).
 - Before handing over a step, run `npm test` and `npm run smoke` and report results.
   Smoke test is READ-ONLY (uses `window.__playlistPrism` debug hook in src/app.tsx); it never
   prints the API key. Screenshots go to `smoke-output/` (gitignored; they show the user's library).

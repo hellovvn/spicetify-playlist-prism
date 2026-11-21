@@ -13,6 +13,7 @@ import { SCREEN_HEIGHT } from "./styles";
 export interface ScanOutcome {
   songs: ScannedSong[];
   cancelled: boolean;
+  moodFailed: number; // lyrics lookups skipped (Spotify's limit); the next scan retries them
   duplicates: number;
 }
 
@@ -94,7 +95,8 @@ export function ScanScreen({ sources, runScan, describeError, onBack, onNext }: 
           </div>
           <p style={styles.subtext}>
             {outcome.duplicates > 0 && `${outcome.duplicates} duplicates skipped · `}
-            BPM/key found for {s.withBpm} of {s.total}
+            BPM/key found for {s.withBpm} of {s.total} · lyrics mood for {s.withMood}
+            {outcome.moodFailed > 0 && ` · ${outcome.moodFailed} more next scan`}
           </p>
         </div>
         <table style={styles.table} data-prism="scan-summary">

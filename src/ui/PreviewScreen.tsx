@@ -9,6 +9,7 @@ import type { ScannedSong } from "../scan/scan";
 import { defaultPicks, rankSongs, type RankedSong } from "../scoring/rank";
 import type { SourcedTag } from "../tags/combineTags";
 import { formatAudio } from "../spotify/audio";
+import { formatMood } from "../mood/lyricsMood";
 import { allShownSelected, clearShown, selectShown } from "../sources/sources";
 import type { SeedData } from "./SeedPanel";
 import { SCREEN_HEIGHT } from "./styles";
@@ -36,7 +37,7 @@ export function PreviewScreen({ seed, kept, songs, onBack, onCreate, describeErr
   // useMemo: remember the ranking and only recompute it if its inputs change,
   // not on every tick of a checkbox (ranking 900 songs is wasted work to repeat).
   const ranking = React.useMemo(
-    () => rankSongs({ ...seed.track, tags: kept, audio: seed.audio }, songs),
+    () => rankSongs({ ...seed.track, tags: kept, audio: seed.audio, mood: seed.mood }, songs),
     [seed, kept, songs]
   );
   // The RECOMMENDED songs (top 30 by rank) start ticked; the user unticks
@@ -184,12 +185,14 @@ export function PreviewScreen({ seed, kept, songs, onBack, onCreate, describeErr
   );
 }
 
-// e.g. "Score 82% · tags 90% (r&b, dark) · tempo 75% (98 BPM, G minor (6A)) · key 80%"
+// e.g. "Score 82% · tags 90% (r&b, dark) · mood 70% · tempo 75% · key 80%"
+//      "98 BPM, G minor (6A) · Lyrics mood: heartbreak, dark"
 function breakdown(song: RankedSong): string {
   const parts = [`Score ${percent(song.match.score)}`, `tags ${percent(song.match.tagScore)} (${song.match.matchedTags.join(", ")})`];
+  parts.push(song.match.moodScore === null ? "mood unknown" : `mood ${percent(song.match.moodScore)}`);
   parts.push(song.match.bpmScore === null ? "tempo unknown" : `tempo ${percent(song.match.bpmScore)}`);
   parts.push(song.match.keyScore === null ? "key unknown" : `key ${percent(song.match.keyScore)}`);
-  return `${parts.join(" · ")}\n${formatAudio(song.audio)}`;
+  return `${parts.join(" · ")}\n${formatAudio(song.audio)} · ${formatMood(song.mood)}`;
 }
 
 const styles: Record<string, React.CSSProperties> = {

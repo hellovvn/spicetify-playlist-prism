@@ -5,11 +5,14 @@
 import { getSources, getSourceTracks, getTrackInfo } from "./spotify/read";
 import { createPrismPlaylist, PrismWriteError } from "./spotify/write";
 import { getArtistTopTags, getTrackTopTags, LastfmError } from "./lastfm/client";
-import { getLastfmKey, loadTagCacheText, saveTagCacheText } from "./storage";
+import { getLastfmKey, loadMoodCacheText, loadTagCacheText, saveMoodCacheText, saveTagCacheText } from "./storage";
 import { mergeTracks } from "./scan/tracks";
 import { scanSongs, shareArtistLookups, type ScanProgress } from "./scan/scan";
 import { createRateLimiter, realClock } from "./scan/limits";
 import { TagCache } from "./scan/tagCache";
+import { MoodCache } from "./scan/moodCache";
+import { getLyricsMood, pausingLyricsMood } from "./spotify/lyrics";
+import { formatMood, type MoodProfile } from "./mood/lyricsMood";
 import type { SourceOption } from "./sources/sources";
 import { openScanPreview, type ScanOutcome } from "./ui/ScanScreen";
 import { openSettings } from "./ui/SettingsModal";
@@ -37,6 +40,9 @@ function lastfmFetchers(apiKey: string, wait: () => Promise<void> = async () => 
 
 // Last.fm asks for about 5 requests per second at most; stay a bit under.
 const LASTFM_REQUESTS_PER_SECOND = 4;
+// Lyrics come from Spotify, not Last.fm: separate, gentle limit.
+// Spotify still limits bursts, see pausingLyricsMood in src/spotify/lyrics.ts.
+const LYRICS_REQUESTS_PER_SECOND = 5;
 
 const isKeyProblem = (error: unknown) => error instanceof LastfmError && (error.code === 10 || error.code === 26);
 const isRateLimit = (error: unknown) => error instanceof LastfmError && error.code === 29;
@@ -59,6 +65,9 @@ async function runScan(
 
   const fetchers = shareArtistLookups(lastfmFetchers(apiKey, createRateLimiter(LASTFM_REQUESTS_PER_SECOND)));
   const cache = new TagCache(loadTagCacheText());
+  const moodCache = new MoodCache(loadMoodCacheText());
+  const waitForLyrics = createRateLimiter(LYRICS_REQUESTS_PER_SECOND);
+  const lyricsMood = pausingLyricsMood(Date.now);
   const started = Date.now();
   const result = await scanSongs(
     tracks,
@@ -70,6 +79,14 @@ async function runScan(
       clock: realClock,
       isFatal: isKeyProblem,
       isRateLimit,
+      mood: {
+        get: async (uri) => {
+          await waitForLyrics();
+          return lyricsMood(uri);
+        },
+        cache: moodCache,
+        save: () => saveMoodCacheText(moodCache.toJSON(Date.now())),
+      },
     },
     onProgress,
     shouldStop
@@ -126,6 +143,8 @@ function exposeDebugHook() {
       return plain;
     },
     hasLastfmKey: () => getLastfmKey() !== null,
+    // Lyrics MOOD profile for one song (the lyrics themselves never leave the extension).
+    getLyricsMood,
     // Uses the saved key internally so the caller never sees it.
     getTrackTopTags: (artist: string, track: string) => {
       const key = getLastfmKey();
@@ -212,19 +231,21 @@ async function loadSeed(uri: string, apiKey: string): Promise<SeedData> {
   const track = await getTrackInfo(uri);
   console.log(`${LOG_PREFIX} seed song: ${track.name} - ${track.artists.join(", ")}`);
 
-  // Step 2 (in parallel): Last.fm tags AND Spotify's BPM/key.
+  // Step 2 (in parallel): Last.fm tags, Spotify's BPM/key, and the lyrics mood.
   // Promise.all starts both requests at once and waits for both, which is
   // faster than doing one after the other.
   // getSongTags: tries cleaned titles, cleans the tags, and falls back to
   // the artist's tags when the song has few.
-  const [result, audioMap] = await Promise.all([
+  const [result, audioMap, mood] = await Promise.all([
     getSongTags(track, lastfmFetchers(apiKey)),
     getAudioAttributes([uri]),
+    seedMood(uri),
   ]);
   const audio = audioMap.get(uri) ?? null;
 
   // Each log line starts with our prefix so the console filter keeps it.
   console.log(`${LOG_PREFIX} bpm/key: ${formatAudio(audio)}`);
+  console.log(`${LOG_PREFIX} ${formatMood(mood)}`); // the mood only, never the lyrics
   console.log(`${LOG_PREFIX} titles tried: ${JSON.stringify(result.titlesTried)}`);
   console.log(`${LOG_PREFIX} matched title: ${result.matchedTitle ?? "(none: no song-level tags)"}`);
   console.log(`${LOG_PREFIX} used artist tags: ${result.usedArtistTags ? "yes" : "no"}`);
@@ -233,7 +254,25 @@ async function loadSeed(uri: string, apiKey: string): Promise<SeedData> {
     .join(", ");
   console.log(`${LOG_PREFIX} tags: ${tagList || "(none)"}`);
 
-  return { track, tags: result.tags, audio };
+  return { track, tags: result.tags, audio, mood };
+}
+
+// The seed's lyrics mood: from the mood cache if a scan already looked it up,
+// otherwise from Spotify (and then cached). A lyrics problem shouldn't stop
+// the panel: the mood is just "unknown".
+async function seedMood(uri: string): Promise<MoodProfile | null> {
+  const cache = new MoodCache(loadMoodCacheText());
+  const cached = cache.get(uri, Date.now());
+  if (cached !== undefined) return cached;
+  try {
+    const mood = await getLyricsMood(uri);
+    cache.set(uri, mood, Date.now());
+    saveMoodCacheText(cache.toJSON(Date.now()));
+    return mood;
+  } catch (error) {
+    console.warn(`${LOG_PREFIX} lyrics mood failed`, error);
+    return null;
+  }
 }
 
 // Turns known errors into messages a user can act on (shown inside the panel).

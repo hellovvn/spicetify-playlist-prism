@@ -1,23 +1,27 @@
 // Scoring: how well does a candidate song fit the seed's vibe?
 // PURE functions, unit-tested in tests/score.test.ts.
 //
-// Three parts (decided together in step 5):
-//   TAGS (70%)    the vibe itself. No shared tags = not a match, full stop.
-//   BPM (20%)     similar tempo ranks higher.
+// Four parts:
+//   TAGS (60%)    the vibe itself. No shared tags = not a match, full stop.
+//   MOOD (15%)    lyrics about the same things rank higher (step 10).
+//   BPM (15%)     similar tempo ranks higher.
 //   KEY (10%)     musically compatible keys rank higher.
-// BPM and key only RANK songs that already share tags; they can't make a
+// Mood, BPM and key only RANK songs that already share tags; they can't make a
 // song match on their own (a slow minor-key country song isn't dark R&B).
+// (Before step 10 it was tags 70 / BPM 20 / key 10.)
 
 import type { AudioAttributes } from "../spotify/audio";
 import type { SourcedTag } from "../tags/combineTags";
+import { moodMatch, type MoodProfile } from "../mood/lyricsMood";
 
-export const WEIGHTS = { tags: 0.7, bpm: 0.2, key: 0.1 };
+export const WEIGHTS = { tags: 0.6, mood: 0.15, bpm: 0.15, key: 0.1 };
 
 export interface MatchDetails {
   score: number; // 0..1 overall
   tagScore: number; // 0..1
   bpmScore: number | null; // null = BPM unknown for seed or song
   keyScore: number | null; // null = key unknown
+  moodScore: number | null; // null = lyrics mood unknown for seed or song
   matchedTags: string[]; // seed tags this song shares, strongest first
 }
 
@@ -92,21 +96,29 @@ function parseCamelot(code: string): { number: number; letter: string } | null {
 }
 
 // ----- All together -----
-export function scoreSong(
-  seed: { tags: SourcedTag[]; audio: AudioAttributes | null },
-  song: { tags: SourcedTag[]; audio: AudioAttributes | null }
-): MatchDetails {
+interface Scorable {
+  tags: SourcedTag[];
+  audio: AudioAttributes | null;
+  mood?: MoodProfile | null; // optional: missing = unknown
+}
+
+export function scoreSong(seed: Scorable, song: Scorable): MatchDetails {
   const tags = tagMatch(seed.tags, song.tags);
   const bpmScore = seed.audio && song.audio ? bpmMatch(seed.audio.bpm, song.audio.bpm) : null;
   const keyScore = seed.audio && song.audio ? keyMatch(seed.audio.camelot, song.audio.camelot) : null;
+  const moodScore = seed.mood && song.mood ? moodMatch(seed.mood, song.mood) : null;
 
-  // No shared tags: not a match, whatever the tempo/key.
-  if (tags.score === 0) return { score: 0, tagScore: 0, bpmScore, keyScore, matchedTags: [] };
+  // No shared tags: not a match, whatever the mood/tempo/key.
+  if (tags.score === 0) return { score: 0, tagScore: 0, bpmScore, keyScore, moodScore, matchedTags: [] };
 
-  // Weighted average of the parts we HAVE. If BPM/key is unknown, the
-  // score is based on tags alone rather than being punished for missing data.
+  // Weighted average of the parts we HAVE. If mood/BPM/key is unknown, the
+  // score is based on the other parts rather than being punished for missing data.
   let sum = WEIGHTS.tags * tags.score;
   let weights = WEIGHTS.tags;
+  if (moodScore !== null) {
+    sum += WEIGHTS.mood * moodScore;
+    weights += WEIGHTS.mood;
+  }
   if (bpmScore !== null) {
     sum += WEIGHTS.bpm * bpmScore;
     weights += WEIGHTS.bpm;
@@ -115,5 +127,5 @@ export function scoreSong(
     sum += WEIGHTS.key * keyScore;
     weights += WEIGHTS.key;
   }
-  return { score: sum / weights, tagScore: tags.score, bpmScore, keyScore, matchedTags: tags.matched };
+  return { score: sum / weights, tagScore: tags.score, bpmScore, keyScore, moodScore, matchedTags: tags.matched };
 }

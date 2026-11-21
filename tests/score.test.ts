@@ -98,9 +98,33 @@ describe("scoreSong", () => {
     expect(result.matchedTags).toEqual([]);
   });
 
-  test("weights: tags 70%, BPM 20%, key 10%", () => {
-    // Full tag match, BPM way off, key way off -> only the tag part counts.
-    expect(scoreSong(seed, { tags: [t("r&b")], audio: audio(160, "2A") }).score).toBeCloseTo(WEIGHTS.tags);
+  test("weights: tags 60%, mood 15%, BPM 15%, key 10% (adding up to 100%)", () => {
+    expect(WEIGHTS.tags + WEIGHTS.mood + WEIGHTS.bpm + WEIGHTS.key).toBeCloseTo(1);
+    // Full tag + mood match, BPM way off, key way off -> only tags + mood count.
+    const withMood = { ...seed, mood: { dark: 1 } };
+    const result = scoreSong(withMood, { tags: [t("r&b")], audio: audio(160, "2A"), mood: { dark: 1 } });
+    expect(result.score).toBeCloseTo(WEIGHTS.tags + WEIGHTS.mood);
+    expect(result.moodScore).toBeCloseTo(1);
+  });
+
+  test("similar lyrics mood ranks a song higher, with the same tags", () => {
+    const withMood = { ...seed, mood: { heartbreak: 0.7, dark: 0.3 } };
+    const same = scoreSong(withMood, { tags: [t("r&b")], audio: audio(100, "8A"), mood: { heartbreak: 0.6, dark: 0.4 } });
+    const other = scoreSong(withMood, { tags: [t("r&b")], audio: audio(100, "8A"), mood: { party: 1 } });
+    expect(same.score).toBeGreaterThan(other.score);
+    expect(other.moodScore).toBe(0);
+  });
+
+  test("mood can't make a match on its own: no shared tags -> 0", () => {
+    const result = scoreSong({ ...seed, mood: { dark: 1 } }, { tags: [t("country")], audio: null, mood: { dark: 1 } });
+    expect(result.score).toBe(0);
+  });
+
+  test("unknown mood (seed or song) is left out, not punished", () => {
+    expect(scoreSong(seed, { tags: [t("r&b")], audio: audio(100, "8A"), mood: { dark: 1 } }).moodScore).toBeNull();
+    const result = scoreSong({ ...seed, mood: { dark: 1 } }, { tags: [t("r&b")], audio: audio(100, "8A"), mood: null });
+    expect(result.moodScore).toBeNull();
+    expect(result.score).toBeCloseTo(1);
   });
 
   test("closer tempo and key rank a song higher, with the same tags", () => {

@@ -12,6 +12,7 @@ const song = (id: string, name: string, artist: string, tags: SourcedTag[], bpm 
   artists: [artist],
   tags,
   audio: { bpm, key: "C", mode: "minor", camelot: "8A" },
+  mood: null,
   tagStatus: tags.length ? "song" : "none",
 });
 
@@ -21,6 +22,7 @@ const seed = {
   artists: ["The Weeknd"],
   tags: [t("r&b"), t("dark", 0.5)],
   audio: { bpm: 100, key: "C", mode: "minor" as const, camelot: "8A" },
+  mood: null,
 };
 
 describe("rankSongs", () => {

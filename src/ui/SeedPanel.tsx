@@ -14,6 +14,7 @@
 import React from "react";
 import type { TrackInfo } from "../spotify/read";
 import { formatAudio, type AudioAttributes } from "../spotify/audio";
+import { formatMood, type MoodProfile } from "../mood/lyricsMood";
 import type { SourcedTag } from "../tags/combineTags";
 import { canContinue, keptTags, seedStatus, splitBySource, toggleTag } from "./tagSelection";
 import type { SourceOption } from "../sources/sources";
@@ -26,6 +27,7 @@ export interface SeedData {
   track: TrackInfo;
   tags: SourcedTag[];
   audio: AudioAttributes | null;
+  mood: MoodProfile | null; // from the lyrics (step 10); null = unknown
 }
 
 export interface SeedPanelProps {
@@ -192,7 +194,7 @@ function SeedContent({ data, offNames, setOffNames, onNext }: SeedContentProps) 
   // missing from Spicetify's type definitions file.
   const { Chip, ButtonPrimary, ButtonSecondary } = Spicetify.ReactComponent as any;
 
-  const { track, tags, audio } = data;
+  const { track, tags, audio, mood } = data;
   const kept = keptTags(tags, offNames);
   const { song, artist } = splitBySource(tags);
   const status = seedStatus(tags, kept);
@@ -219,6 +221,9 @@ function SeedContent({ data, offNames, setOffNames, onNext }: SeedContentProps) 
         <div style={styles.songName}>{track.name}</div>
         <div style={styles.subtext}>{track.artists.join(", ")}</div>
         <div style={styles.subtext}>{formatAudio(audio)}</div>
+        <div style={styles.subtext} data-prism="seed-mood">
+          {formatMood(mood)}
+        </div>
       </div>
 
       {tags.length > 0 && (

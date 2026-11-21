@@ -11,6 +11,7 @@ import {
   type ScanDeps,
 } from "../src/scan/scan";
 import { TagCache } from "../src/scan/tagCache";
+import { MoodCache } from "../src/scan/moodCache";
 import { LastfmError } from "../src/lastfm/client";
 import type { SongTagsResult } from "../src/tags/getSongTags";
 
@@ -138,6 +139,45 @@ describe("scanSongs", () => {
   });
 });
 
+describe("scanSongs: lyrics mood", () => {
+  const withMood = (get: (uri: string) => Promise<any>, cache = new MoodCache()) => {
+    const { deps } = fakeDeps(() => songTags("pop"));
+    deps.mood = { get: vi.fn(get), cache, save: vi.fn() };
+    return deps;
+  };
+
+  test("each song gets its mood; no mood deps = mood null", async () => {
+    const deps = withMood(async (uri) => (uri.endsWith("a") ? { dark: 1 } : null));
+    const { songs } = await scanSongs([track("a"), track("b")], deps);
+    expect(songs.map((s) => s.mood)).toEqual([{ dark: 1 }, null]);
+
+    const { deps: plain } = fakeDeps(() => songTags("pop"));
+    expect((await scanSongs([track("a")], plain)).songs[0].mood).toBeNull();
+  });
+
+  test("cached moods (including 'none') skip Spotify; new ones are cached and saved", async () => {
+    const cache = new MoodCache();
+    cache.set("spotify:track:a", null, 0);
+    const deps = withMood(async () => ({ love: 1 }), cache);
+    const { songs } = await scanSongs([track("a"), track("b")], deps);
+    expect(deps.mood!.get).toHaveBeenCalledTimes(1);
+    expect(songs.map((s) => s.mood)).toEqual([null, { love: 1 }]);
+    expect(cache.get("spotify:track:b", 0)).toEqual({ love: 1 });
+    expect(deps.mood!.save).toHaveBeenCalled();
+  });
+
+  test("a failed mood lookup = mood unknown, NOT cached, scan carries on", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const deps = withMood(async () => {
+      throw new Error("429");
+    });
+    const { songs, moodFailed } = await scanSongs([track("a")], deps);
+    expect(songs[0]).toMatchObject({ tagStatus: "song", mood: null });
+    expect(moodFailed).toBe(1);
+    expect(deps.mood!.cache.get("spotify:track:a", 0)).toBeUndefined();
+  });
+});
+
 describe("tagStatusOf / summarize", () => {
   test.each([
     [[{ name: "pop", weight: 1, source: "track" }], "song"],
@@ -152,12 +192,12 @@ describe("tagStatusOf / summarize", () => {
     const base = { uri: "u", name: "n", artists: [], tags: [] };
     expect(
       summarize([
-        { ...base, tagStatus: "song", audio: bpm },
-        { ...base, tagStatus: "artist", audio: null },
-        { ...base, tagStatus: "none", audio: bpm },
-        { ...base, tagStatus: "error", audio: null },
+        { ...base, tagStatus: "song", audio: bpm, mood: { dark: 1 } },
+        { ...base, tagStatus: "artist", audio: null, mood: null },
+        { ...base, tagStatus: "none", audio: bpm, mood: null },
+        { ...base, tagStatus: "error", audio: null, mood: null },
       ])
-    ).toEqual({ total: 4, songTags: 1, artistOnly: 1, noTags: 1, failed: 1, withBpm: 2 });
+    ).toEqual({ total: 4, songTags: 1, artistOnly: 1, noTags: 1, failed: 1, withBpm: 2, withMood: 1 });
   });
 });
 
