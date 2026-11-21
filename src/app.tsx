@@ -10,6 +10,8 @@ import { cleanTags } from "./tags/cleanTags";
 import { titleVariants } from "./tags/titleVariants";
 import { getSongTags, type TagFetchers } from "./tags/getSongTags";
 import { formatAudio, getAudioAttributes } from "./spotify/audio";
+import { openSeedPanel, type SeedData } from "./ui/SeedPanel";
+import { injectStyles } from "./ui/styles";
 
 // The REAL Last.fm fetchers for getSongTags (unit tests pass fakes instead).
 function lastfmFetchers(apiKey: string): TagFetchers {
@@ -29,6 +31,7 @@ async function main() {
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
 
+  injectStyles(); // popup animations
   registerContextMenu();
   registerSettingsMenu();
   exposeDebugHook();
@@ -48,6 +51,8 @@ function exposeDebugHook() {
     cleanTags,
     titleVariants,
     openSettings,
+    // Runs the same thing as clicking "Start a Prism playlist" (reads only, opens the panel).
+    startPrism: (uri: string) => onStartPrism([uri]),
     // BPM/key for some songs. Returns a plain object (a Map can't cross the debug port).
     getAudioAttributes: async (uris: string[]) => {
       const plain: Record<string, unknown> = {};
@@ -98,7 +103,7 @@ function isSingleTrack(uris: string[]): boolean {
 }
 
 // Runs when the user clicks "Start a Prism playlist".
-async function onStartPrism(uris: string[]) {
+function onStartPrism(uris: string[]) {
   const uri = uris[0];
 
   // No key yet? Explain and open settings instead of failing later.
@@ -109,52 +114,60 @@ async function onStartPrism(uris: string[]) {
     return;
   }
 
-  try {
-    // Step 1: song details from Spotify.
-    const track = await getTrackInfo(uri);
-    console.log(`${LOG_PREFIX} seed song: ${track.name} - ${track.artists.join(", ")}`);
+  // Open the panel RIGHT AWAY (it shows a spinner); it calls loadSeed itself.
+  openSeedPanel({
+    load: () => loadSeed(uri, apiKey),
+    describeError: friendlyError,
+    // "Next" will open the playlist picker in step 6; for now it logs what was kept.
+    onNext: (kept) => {
+      console.log(`${LOG_PREFIX} kept tags: ${kept.map((tag) => tag.name).join(", ") || "(none)"}`);
+      Spicetify.PopupModal.hide();
+      Spicetify.showNotification(`Kept ${kept.length} tags. Choosing playlists comes in step 6.`);
+    },
+  });
+}
 
-    // Step 2 (in parallel): Last.fm tags AND Spotify's BPM/key.
-    // Promise.all starts both requests at once and waits for both, which is
-    // faster than doing one after the other.
-    // getSongTags: tries cleaned titles, cleans the tags, and falls back to
-    // the artist's tags when the song has few.
-    const [result, audioMap] = await Promise.all([
-      getSongTags(track, lastfmFetchers(apiKey)),
-      getAudioAttributes([uri]),
-    ]);
-    const audioText = formatAudio(audioMap.get(uri) ?? null);
-    console.log(`${LOG_PREFIX} bpm/key: ${audioText}`);
+// Everything the seed panel needs: song details, tags, BPM/key.
+// If anything fails, the error goes back to the panel, which shows friendlyError().
+async function loadSeed(uri: string, apiKey: string): Promise<SeedData> {
+  // Step 1: song details from Spotify.
+  const track = await getTrackInfo(uri);
+  console.log(`${LOG_PREFIX} seed song: ${track.name} - ${track.artists.join(", ")}`);
 
-    // Each log line starts with our prefix so the console filter keeps it.
-    console.log(`${LOG_PREFIX} titles tried: ${JSON.stringify(result.titlesTried)}`);
-    console.log(`${LOG_PREFIX} matched title: ${result.matchedTitle ?? "(none: no song-level tags)"}`);
-    console.log(`${LOG_PREFIX} used artist tags: ${result.usedArtistTags ? "yes" : "no"}`);
-    const tagList = result.tags
-      .map((tag) => `${tag.name} (${tag.weight.toFixed(2)}${tag.source === "artist" ? ", via artist" : ""})`)
-      .join(", ");
-    console.log(`${LOG_PREFIX} tags: ${tagList || "(none)"}`);
+  // Step 2 (in parallel): Last.fm tags AND Spotify's BPM/key.
+  // Promise.all starts both requests at once and waits for both, which is
+  // faster than doing one after the other.
+  // getSongTags: tries cleaned titles, cleans the tags, and falls back to
+  // the artist's tags when the song has few.
+  const [result, audioMap] = await Promise.all([
+    getSongTags(track, lastfmFetchers(apiKey)),
+    getAudioAttributes([uri]),
+  ]);
+  const audio = audioMap.get(uri) ?? null;
 
-    if (result.tags.length === 0) {
-      Spicetify.showNotification(`${track.name}: ${audioText}. No usable Last.fm tags for it or its artist`);
-    } else {
-      const top = result.tags.slice(0, 5).map((tag) => tag.name).join(", ");
-      const note = result.matchedTitle ? "" : " (from artist)";
-      Spicetify.showNotification(`${track.name}: ${audioText}. Tags${note}: ${top}`);
-    }
-  } catch (error) {
-    console.error(`${LOG_PREFIX} failed for ${uri}`, error);
+  // Each log line starts with our prefix so the console filter keeps it.
+  console.log(`${LOG_PREFIX} bpm/key: ${formatAudio(audio)}`);
+  console.log(`${LOG_PREFIX} titles tried: ${JSON.stringify(result.titlesTried)}`);
+  console.log(`${LOG_PREFIX} matched title: ${result.matchedTitle ?? "(none: no song-level tags)"}`);
+  console.log(`${LOG_PREFIX} used artist tags: ${result.usedArtistTags ? "yes" : "no"}`);
+  const tagList = result.tags
+    .map((tag) => `${tag.name} (${tag.weight.toFixed(2)}${tag.source === "artist" ? ", via artist" : ""})`)
+    .join(", ");
+  console.log(`${LOG_PREFIX} tags: ${tagList || "(none)"}`);
 
-    // Turn known Last.fm error codes into messages a user can act on.
-    // (Error 6 "not found" never gets here: getSongTags treats it as "no tags".)
-    if (error instanceof LastfmError && (error.code === 10 || error.code === 26)) {
-      Spicetify.showNotification("Last.fm API key problem: check Playlist Prism settings", true);
-    } else if (error instanceof LastfmError && error.code === 29) {
-      Spicetify.showNotification("Last.fm rate limit hit: wait a minute and try again", true);
-    } else {
-      Spicetify.showNotification("Playlist Prism: something went wrong (see console)", true);
-    }
+  return { track, tags: result.tags, audio };
+}
+
+// Turns known errors into messages a user can act on (shown inside the panel).
+// (Last.fm error 6 "not found" never gets here: getSongTags treats it as "no tags".)
+function friendlyError(error: unknown): string {
+  if (error instanceof LastfmError && (error.code === 10 || error.code === 26)) {
+    return "Last.fm API key problem: check Playlist Prism settings (profile menu).";
   }
+  if (error instanceof LastfmError && error.code === 29) {
+    return "Last.fm rate limit hit: wait a minute and try again.";
+  }
+  return "Something went wrong reading this song. Details are in the console.";
 }
 
 export default main;

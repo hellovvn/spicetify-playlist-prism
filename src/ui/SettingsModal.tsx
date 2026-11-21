@@ -9,6 +9,8 @@ import { getLastfmKey, setLastfmKey, clearLastfmKey } from "../storage";
 import { testApiKey } from "../lastfm/client";
 
 function SettingsModal() {
+  const { ButtonPrimary, ButtonSecondary } = Spicetify.ReactComponent;
+
   // useState(initial) returns [currentValue, functionToChangeIt].
   // Changing state makes React re-render this component.
   const [key, setKey] = React.useState<string>(getLastfmKey() ?? "");
@@ -44,7 +46,8 @@ function SettingsModal() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+    // data-prism: marks this as Prism content, so the open animation applies here too.
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }} data-prism="settings">
       <p>
         Playlist Prism uses Last.fm to get song-level genre and mood tags. Get a free API key at{" "}
         <a href="https://www.last.fm/api/account/create" target="_blank" rel="noreferrer">
@@ -64,12 +67,13 @@ function SettingsModal() {
         style={{ padding: 8, borderRadius: 4, border: "1px solid #555", background: "#222", color: "#fff" }}
       />
       <div style={{ display: "flex", gap: 8 }}>
-        <button onClick={onSave} disabled={busy}>
+        {/* Spotify's own buttons, so they match the rest of the app. */}
+        <ButtonPrimary buttonSize="sm" onClick={onSave} disabled={busy}>
           {busy ? "Testing..." : "Test & save"}
-        </button>
-        <button onClick={onClear} disabled={busy}>
+        </ButtonPrimary>
+        <ButtonSecondary buttonSize="sm" onClick={onClear} disabled={busy}>
           Remove key
-        </button>
+        </ButtonSecondary>
       </div>
       {/* Only show the status line when there is something to say. */}
       {status && <p>{status}</p>}

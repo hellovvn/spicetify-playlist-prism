@@ -154,8 +154,81 @@ try {
   const covered = allUris.filter((u) => all?.[u]).length;
   check(`BPM/key coverage on fixture songs`, covered === allUris.length, `${covered}/${allUris.length}`);
 
-  console.log("\n[5] Settings popup (screenshot)");
   await mkdir(outputDir, { recursive: true });
+
+  console.log("\n[5] Seed panel (chips) - UI clicks only, Spotify is not changed");
+  // Waits until a JS condition is true in Spotify (checks every 250 ms).
+  async function waitFor(expression, ms = 10000) {
+    for (let waited = 0; waited < ms; waited += 250) {
+      if (await cdp.evaluate(expression)) return true;
+      await sleep(250);
+    }
+    return false;
+  }
+  const PANEL = `document.querySelector('[data-prism="seed-panel"]')`;
+  const chipStates = `[...${PANEL}.querySelectorAll('[role="checkbox"]')].map((c) => c.getAttribute("aria-checked"))`;
+  const keptText = `${PANEL}.querySelector('[data-prism="kept-count"]')?.textContent`;
+
+  const READY = `!!document.querySelector('[data-prism-state="ready"]')`;
+  const NEXT = `[...${PANEL}.querySelectorAll("button")].find((b) => b.textContent.includes("Next"))`;
+  const statusKind = `${PANEL}.querySelector('[data-prism="status"]')?.dataset.prismKind ?? "none"`;
+
+  await cdp.evaluate(`window.__playlistPrism.startPrism("spotify:track:4PhsKqMdgMEUSstTDAmMpg")`); // Often
+  // The popup should appear at once, showing the spinner while it loads.
+  const loadingShown = await waitFor(`!!document.querySelector('[data-prism-state="loading"]')`, 1000);
+  check("popup opens immediately with a loading spinner", loadingShown);
+  const anim = await cdp.evaluate(`getComputedStyle(document.querySelector(".GenericModal")).animationName`);
+  check("open animation is applied to the popup", anim === "prism-pop", `animation: ${anim}`);
+  const opened = await waitFor(READY);
+  check("seed panel finishes loading for Often", opened);
+  if (opened) {
+    const before = await cdp.evaluate(chipStates);
+    check("Often: one chip per tag, all on", before.length === 5 && before.every((s) => s === "true"), JSON.stringify(before));
+    check("counter says 5 of 5", (await cdp.evaluate(keptText)) === "5 of 5 tags on", await cdp.evaluate(keptText));
+    info(`BPM/key line: ${await cdp.evaluate(`${PANEL}.textContent.match(/\\d+ BPM[^)]*\\)/)?.[0]`)}`);
+
+    await cdp.evaluate(`${PANEL}.querySelector('[role="checkbox"]').click()`); // switch the first chip off
+    await sleep(300);
+    const after = await cdp.evaluate(chipStates);
+    check("clicking a chip switches it off", after[0] === "false" && after.slice(1).every((s) => s === "true"), JSON.stringify(after));
+    check("counter updates to 4 of 5", (await cdp.evaluate(keptText)) === "4 of 5 tags on", await cdp.evaluate(keptText));
+
+    await cdp.evaluate(`${PANEL}.querySelector('[role="checkbox"]').click()`); // and back on
+    await sleep(300);
+    check("clicking again switches it back on", (await cdp.evaluate(chipStates))[0] === "true");
+    check("all tags on: no warning, Next enabled", (await cdp.evaluate(statusKind)) === "none" && !(await cdp.evaluate(`${NEXT}.disabled`)));
+
+    const shot = await cdp.send("Page.captureScreenshot", { format: "png" });
+    await writeFile(new URL("seed-panel.png", outputDir), Buffer.from(shot.result.data, "base64"));
+    info("screenshot: smoke-output/seed-panel.png");
+
+    // Switch EVERY chip off: Next must be blocked, with an explanation.
+    await cdp.evaluate(`${PANEL}.querySelectorAll('[role="checkbox"]').forEach((c) => c.click())`);
+    await sleep(300);
+    check("all tags off: blocked message shown", (await cdp.evaluate(statusKind)) === "all-off", await cdp.evaluate(statusKind));
+    check("all tags off: Next is disabled", await cdp.evaluate(`${NEXT}.disabled`));
+    const blockedShot = await cdp.send("Page.captureScreenshot", { format: "png" });
+    await writeFile(new URL("seed-panel-blocked.png", outputDir), Buffer.from(blockedShot.result.data, "base64"));
+    info("screenshot: smoke-output/seed-panel-blocked.png");
+    await cdp.evaluate("Spicetify.PopupModal.hide()");
+  }
+
+  // A song with no song-level tags: artist row + "broader matches" warning, still allowed.
+  await sleep(500);
+  await cdp.evaluate(`window.__playlistPrism.startPrism("spotify:track:19Lnk1Q2FJcB3Hia0wfgye")`); // RESCUER
+  const rescuerReady = await waitFor(READY);
+  check("RESCUER: shows the 'From the artist' chip row", rescuerReady && (await cdp.evaluate(`${PANEL}.textContent.includes("From the artist")`)));
+  if (rescuerReady) {
+    check("RESCUER: artist-only warning shown", (await cdp.evaluate(statusKind)) === "artist-only", await cdp.evaluate(statusKind));
+    check("RESCUER: Next still enabled (warning, not a block)", !(await cdp.evaluate(`${NEXT}.disabled`)));
+    const warnShot = await cdp.send("Page.captureScreenshot", { format: "png" });
+    await writeFile(new URL("seed-panel-artist-only.png", outputDir), Buffer.from(warnShot.result.data, "base64"));
+    info("screenshot: smoke-output/seed-panel-artist-only.png");
+  }
+  await cdp.evaluate("Spicetify.PopupModal.hide()");
+  await sleep(500);
+
+  console.log("\n[6] Settings popup (screenshot)");
   await cdp.evaluate("window.__playlistPrism.openSettings()");
   await sleep(800); // let React draw it
   const visible = await cdp.evaluate(
