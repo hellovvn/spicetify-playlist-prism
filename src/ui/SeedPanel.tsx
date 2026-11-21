@@ -19,6 +19,8 @@ import { canContinue, keptTags, seedStatus, splitBySource, toggleTag } from "./t
 import type { SourceOption } from "../sources/sources";
 import { SourcePicker } from "./SourcePicker";
 import { ScanScreen, type ScanOutcome, type ScanScreenProps } from "./ScanScreen";
+import { PreviewScreen } from "./PreviewScreen";
+import type { RankedSong } from "../scoring/rank";
 
 export interface SeedData {
   track: TrackInfo;
@@ -35,8 +37,8 @@ export interface SeedPanelProps {
   runScan: ScanScreenProps["runScan"];
   // Turns an error into a message the user can act on.
   describeError: (error: unknown) => string;
-  // Called after the scan, with everything step 8 needs to score songs.
-  onDone: (choice: { seed: SeedData; kept: SourcedTag[]; sources: SourceOption[]; scan: ScanOutcome }) => void;
+  // Called with the songs the user picked in the preview (step 9 creates the playlist).
+  onDone: (choice: { seed: SeedData; kept: SourcedTag[]; sources: SourceOption[]; songs: RankedSong[] }) => void;
 }
 
 // Runs `action` just AFTER the current click finishes.
@@ -54,10 +56,12 @@ function afterClick(action: () => void) {
 //   screen "seed":    loading -> tag chips   (or an error)
 //   screen "sources": playlist picker
 //   screen "scan":    scanning progress, then a summary
+//   screen "preview": ranked matches with scores; pick what goes in
 function SeedPanel({ load, loadSources, runScan, describeError, onDone }: SeedPanelProps) {
   const [data, setData] = React.useState<SeedData | null>(null);
   const [error, setError] = React.useState<string | null>(null);
-  const [screen, setScreen] = React.useState<"seed" | "sources" | "scan">("seed");
+  const [screen, setScreen] = React.useState<"seed" | "sources" | "scan" | "preview">("seed");
+  const [scan, setScan] = React.useState<ScanOutcome | null>(null); // the finished scan
   const [offNames, setOffNames] = React.useState<string[]>([]); // chips switched off
   const [selectedSources, setSelectedSources] = React.useState<string[]>([]); // ticked playlist URIs
   const [picked, setPicked] = React.useState<SourceOption[]>([]); // the sources being scanned
@@ -122,7 +126,7 @@ function SeedPanel({ load, loadSources, runScan, describeError, onDone }: SeedPa
         />
       </div>
     );
-  } else {
+  } else if (screen === "scan") {
     body = (
       <div key="scan" className="prism-fade-in">
         <ScanScreen
@@ -131,7 +135,25 @@ function SeedPanel({ load, loadSources, runScan, describeError, onDone }: SeedPa
           describeError={describeError}
           // Back stops the scan (the screen closes) and returns to the picker.
           onBack={() => afterClick(() => setScreen("sources"))}
-          onNext={(scan) => onDone({ seed: data, kept: keptTags(data.tags, offNames), sources: picked, scan })}
+          onNext={(outcome) =>
+            afterClick(() => {
+              setScan(outcome);
+              setScreen("preview");
+            })
+          }
+        />
+      </div>
+    );
+  } else {
+    body = (
+      <div key="preview" className="prism-fade-in">
+        <PreviewScreen
+          seed={data}
+          kept={keptTags(data.tags, offNames)}
+          songs={scan?.songs ?? []}
+          // Back goes to the playlist picker (re-scanning is quick thanks to the cache).
+          onBack={() => afterClick(() => setScreen("sources"))}
+          onCreate={(songs) => onDone({ seed: data, kept: keptTags(data.tags, offNames), sources: picked, songs })}
         />
       </div>
     );

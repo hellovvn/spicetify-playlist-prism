@@ -185,14 +185,17 @@ function onStartPrism(uris: string[]) {
     loadSources: getSources,
     runScan,
     describeError: friendlyError,
-    // Scoring + preview come in step 8; for now, log what we have.
-    onDone: ({ seed, kept, sources, scan }) => {
+    // Creating the playlist is step 9; for now, log what would go in it.
+    onDone: ({ seed, kept, sources, songs }) => {
       console.log(`${LOG_PREFIX} seed: ${seed.track.name}`);
       console.log(`${LOG_PREFIX} kept tags: ${kept.map((tag) => tag.name).join(", ")}`);
       console.log(`${LOG_PREFIX} sources: ${sources.map((s) => s.name).join(", ")}`);
-      console.log(`${LOG_PREFIX} scanned songs:`, scan.songs);
+      console.log(
+        `${LOG_PREFIX} picked ${songs.length} songs: ` +
+          songs.map((s) => `${s.name} (${Math.round(s.match.score * 100)}%)`).join(", ")
+      );
       Spicetify.PopupModal.hide();
-      Spicetify.showNotification(`Scanned ${scan.songs.length} songs. Matching comes in step 8.`);
+      Spicetify.showNotification(`${songs.length + 1} songs picked. Creating the playlist comes in step 9.`);
     },
   });
 }

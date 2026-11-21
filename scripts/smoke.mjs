@@ -395,7 +395,74 @@ try {
   await cdp.evaluate("Spicetify.PopupModal.hide()");
   await sleep(500);
 
-  console.log("\n[8] Scan screen layout: the bar must not move when the text changes (fake scan)");
+  console.log("\n[8] Preview (screen 4): Often vs Liked Songs - nothing is created");
+  const PREVIEW = `document.querySelector('[data-prism-state="preview"]')`;
+  await cdp.evaluate(`window.__playlistPrism.startPrism("spotify:track:4PhsKqMdgMEUSstTDAmMpg")`); // Often
+  if (await waitFor(READY)) {
+    await cdp.evaluate(clickButton("Next"));
+    await waitFor(`!!${SOURCES} && ${rows}.length > 0`);
+    await cdp.evaluate(tick("Liked Songs"));
+    await sleep(200);
+    await cdp.evaluate(clickButton("scan"));
+    if (await waitFor(`!!document.querySelector('[data-prism-state="scan-done"]')`, 180000)) {
+      await cdp.evaluate(clickButton("see matches"));
+      const shown = await waitFor(`!!${PREVIEW}`);
+      check("Next: see matches opens the preview", shown);
+      if (shown) {
+        const seedRow = await cdp.evaluate(`${PREVIEW}.querySelector('[data-prism="preview-seed"]').textContent`);
+        check("seed song is shown first, locked", seedRow.includes("Often") && seedRow.includes("always first"), seedRow);
+        const scores = await cdp.evaluate(
+          `[...${PREVIEW}.querySelectorAll('[data-prism="preview-score"]')].map((s) => parseInt(s.textContent))`
+        );
+        check("there are matches", scores.length > 0, `${scores.length} matches`);
+        check("matches are sorted best first", scores.every((s, i) => i === 0 || s <= scores[i - 1]), scores.slice(0, 10).join(", "));
+        const top = await cdp.evaluate(
+          `[...${PREVIEW}.querySelectorAll('[data-prism="preview-list"] label')].slice(0, 5).map((r) => r.innerText.replace(/\\s+/g, " "))`
+        );
+        top.forEach((row) => info(`top: ${row}`));
+        const createLabel = () => cdp.evaluate(`[...${PREVIEW}.querySelectorAll("button")].find((b) => b.textContent.startsWith("Create")).textContent`);
+        const n = (label) => parseInt(label.match(/\((\d+)/)[1]);
+        const REC_BOXES = `[...${PREVIEW}.querySelectorAll('[data-prism="preview-recommended"] input')]`;
+        const recCount = await cdp.evaluate(`${REC_BOXES}.length`);
+        const allRecTicked = await cdp.evaluate(`${REC_BOXES}.every((b) => b.checked)`);
+        check("every recommended song starts ticked (up to 30)", recCount > 0 && recCount <= 30 && allRecTicked, `${recCount} recommended`);
+        const before = await createLabel();
+        check("Create button counts recommended + seed", n(before) === recCount + 1, before);
+
+        // Untick the first recommended song: the count drops by one.
+        await cdp.evaluate(`${PREVIEW}.querySelector('[data-prism="preview-recommended"] label').click()`);
+        await sleep(200);
+        const afterUntick = await createLabel();
+        check("unticking a song lowers the count", n(afterUntick) === n(before) - 1, `${before} -> ${afterUntick}`);
+
+        // "Show more" reveals the weaker matches, unticked; ticking one adds it.
+        const hasMore = await cdp.evaluate(`!!${PREVIEW}.querySelector('[data-prism="preview-more-toggle"]')`);
+        if (hasMore) {
+          await cdp.evaluate(`${PREVIEW}.querySelector('[data-prism="preview-more-toggle"]').click()`);
+          await sleep(200);
+          const moreBoxes = `[...${PREVIEW}.querySelectorAll('[data-prism="preview-more"] input')]`;
+          check("Show more reveals extra matches, all unticked", await cdp.evaluate(`${moreBoxes}.length > 0 && ${moreBoxes}.every((b) => !b.checked)`), `${await cdp.evaluate(`${moreBoxes}.length`)} more`);
+          await cdp.evaluate(`${PREVIEW}.querySelector('[data-prism="preview-more"] label').click()`);
+          await sleep(200);
+          const afterAdd = await createLabel();
+          check("ticking an extra match raises the count", n(afterAdd) === n(afterUntick) + 1, `${afterUntick} -> ${afterAdd}`);
+          await cdp.evaluate(`${PREVIEW}.querySelector('[data-prism="preview-more-toggle"]').click()`); // close again for the screenshot
+          await sleep(200);
+        } else {
+          info("no extra matches beyond the recommended ones");
+        }
+        const shot = await cdp.send("Page.captureScreenshot", { format: "png" });
+        await writeFile(new URL("preview.png", outputDir), Buffer.from(shot.result.data, "base64"));
+        info("screenshot: smoke-output/preview.png");
+      }
+    } else {
+      check("scan finished for the preview test", false);
+    }
+  }
+  await cdp.evaluate("Spicetify.PopupModal.hide()");
+  await sleep(500);
+
+  console.log("\n[9] Scan screen layout: the bar must not move when the text changes (fake scan)");
   await cdp.evaluate("window.__playlistPrism.previewScan()");
   await waitFor(`!!document.querySelector('[data-prism="scan-preview"] [role="progressbar"]')`);
   const barTop = `Math.round(document.querySelector('[data-prism="scan-preview"] [role="progressbar"]').getBoundingClientRect().top)`;
@@ -424,7 +491,7 @@ try {
   await cdp.evaluate("Spicetify.PopupModal.hide()");
   await sleep(500);
 
-  console.log("\n[9] Settings popup (screenshot)");
+  console.log("\n[10] Settings popup (screenshot)");
   await cdp.evaluate("window.__playlistPrism.openSettings()");
   await sleep(800); // let React draw it
   const visible = await cdp.evaluate(
