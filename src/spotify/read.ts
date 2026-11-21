@@ -2,6 +2,7 @@
 // Nothing in this file changes anything in the user's account.
 
 import { flattenRootlist, LIKED_SONGS_URI, type SourceOption } from "../sources/sources";
+import { toScanTracks, type ScanTrack } from "../scan/tracks";
 
 // The small set of song details we need. Spotify returns much more,
 // but keeping our own type makes the rest of the code simpler to read.
@@ -66,4 +67,14 @@ export async function getSources(): Promise<SourceOption[]> {
       ? [{ uri: LIKED_SONGS_URI, name: "Liked Songs", trackCount: liked.totalLength, folder: null, owner: "You" }]
       : [];
   return [...likedSongs, ...flattenRootlist(root?.items)];
+}
+
+// All songs in one source (a playlist or Liked Songs). READ-ONLY.
+// limit: 10000 gets everything in one go (checked: ~0.1 s for 227 songs).
+export async function getSourceTracks(uri: string): Promise<ScanTrack[]> {
+  const page =
+    uri === LIKED_SONGS_URI
+      ? await Spicetify.Platform.LibraryAPI.getTracks({ limit: 10000 })
+      : await Spicetify.Platform.PlaylistAPI.getContents(uri, { limit: 10000 });
+  return toScanTracks(page?.items);
 }

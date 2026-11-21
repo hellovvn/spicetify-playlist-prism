@@ -10,6 +10,10 @@
 
 const STYLE_ID = "playlist-prism-styles";
 
+// Height of the popup's later screens (sources, scan, ...), so the popup keeps
+// ONE size while you use it instead of jumping as content changes.
+export const SCREEN_HEIGHT = 560;
+
 const CSS = `
 @keyframes prism-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes prism-pop {

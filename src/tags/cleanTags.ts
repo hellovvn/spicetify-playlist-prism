@@ -19,6 +19,8 @@ export interface CleanTag {
 export interface CleanOptions {
   // Artist names of the song, so we can drop tags like "Drake".
   artistNames?: string[];
+  // The song's title, so we can drop tags that just repeat it (see below).
+  title?: string;
   // Tags weaker than this (after re-scaling) are dropped. Default 0.05.
   minWeight?: number;
   // Keep at most this many tags. Default 15.
@@ -163,12 +165,58 @@ export function normalizeTagName(name: string): string {
   return TAG_SYNONYMS[joined] ?? joined;
 }
 
-function isJunk(name: string, artistNames: Set<string>): boolean {
+// ----- Spelling and plural variants -----
+// Real case: "The Color Violet" was tagged color, colors, colour, colours.
+// baseForm() maps each word to a shared form so variants can be compared:
+//   colours -> colour -> color,   colors -> color
+// It's ONLY used for comparing; the tag keeps a real spelling for display.
+// Words ending in "s" that aren't plurals keep their s ("blues" is a genre, not many "blue").
+const NOT_PLURAL = new Set(["blues", "bass", "chorus", "lyrics", "news", "jazz", "yes", "this", "is", "us"]);
+
+export function baseForm(word: string): string {
+  let w = word.toLowerCase();
+  if (!NOT_PLURAL.has(w) && w.length > 3 && w.endsWith("s") && !w.endsWith("ss")) w = w.slice(0, -1);
+  if (w.endsWith("our") && w.length > 4) w = w.slice(0, -3) + "or"; // British -> American: colour, flavour
+  return w;
+}
+
+const baseOfTag = (name: string) => name.split(" ").map(baseForm).join(" ");
+
+// ----- Tags that just repeat the title -----
+// People tag songs with words from the title ("color" on "The Color Violet",
+// so it shows up in a "colours" playlist). That says nothing about the vibe.
+// BUT some title words ARE the vibe: a song called "Sad Girl" tagged "sad"
+// really is sad. So mood/genre words are kept even when they're in the title.
+const VIBE_WORDS = new Set([
+  "love", "sad", "happy", "dark", "chill", "sexy", "sex", "night", "summer", "rain", "party", "dance",
+  "romantic", "angry", "lonely", "heartbreak", "dream", "dreamy", "slow", "soft", "broken", "sleep",
+  "blues", "jazz", "soul", "rock", "pop", "rap", "disco", "country", "funk", "house", "trap", "gospel",
+  // Sound words: "Acoustic Love" tagged "acoustic" really is acoustic.
+  "acoustic", "piano", "instrumental", "orchestral", "lofi", "ballad",
+]);
+
+// The title's words, as base forms ("The Color Violet" -> the, color, violet).
+function titleWords(title: string | undefined): Set<string> {
+  if (!title) return new Set();
+  // Split on spaces and punctuation; works for any alphabet (e.g. Cyrillic titles).
+  const words = normalizeTagName(title).split(/[\s()[\].,!?:;"/]+/).filter(Boolean);
+  return new Set(words.map(baseForm));
+}
+
+// True when EVERY word of the tag is a title word (so "violet" goes, but
+// "violet hour" stays) and the tag isn't a vibe word.
+function repeatsTitle(name: string, title: Set<string>): boolean {
+  if (title.size === 0 || VIBE_WORDS.has(name)) return false;
+  return name.split(" ").every((word) => title.has(baseForm(word)));
+}
+
+function isJunk(name: string, artistNames: Set<string>, title: Set<string>): boolean {
   return (
     name === "" ||
     JUNK_TAGS.has(name) ||
     NATIONALITIES.has(name) ||
     artistNames.has(name) ||
+    repeatsTitle(name, title) ||
     JUNK_PATTERNS.some((pattern) => pattern.test(name))
   );
 }
@@ -177,24 +225,29 @@ export function cleanTags(tags: LastfmTag[], options: CleanOptions = {}): CleanT
   const minWeight = options.minWeight ?? 0.05;
   const maxTags = options.maxTags ?? 15;
   const artistNames = new Set((options.artistNames ?? []).map(normalizeTagName));
+  const title = titleWords(options.title);
 
   // 1. Normalize names, 2. drop junk, 3. merge duplicates (keep the HIGHER
   //    count: adding them up could go past 100 and over-reward duplicates).
-  const merged = new Map<string, number>();
+  //    Spelling/plural variants count as duplicates: they share a baseOfTag()
+  //    key, and the name shown is the strongest variant's.
+  const merged = new Map<string, { name: string; count: number }>();
   for (const tag of tags) {
     const name = normalizeTagName(tag.name);
-    if (isJunk(name, artistNames)) continue;
+    if (isJunk(name, artistNames, title)) continue;
     const count = Number.isFinite(tag.count) ? tag.count : 0;
-    merged.set(name, Math.max(merged.get(name) ?? 0, count));
+    const key = baseOfTag(name);
+    const existing = merged.get(key);
+    if (!existing || count > existing.count) merged.set(key, { name, count });
   }
 
   // 4. Re-scale so the strongest remaining tag is 1.0.
-  const maxCount = Math.max(0, ...merged.values());
+  const maxCount = Math.max(0, ...[...merged.values()].map((entry) => entry.count));
   if (maxCount <= 0) return [];
 
   // 5. Drop weak tags, 6. sort strongest first, 7. keep the top N.
-  return [...merged.entries()]
-    .map(([name, count]) => ({ name, weight: count / maxCount }))
+  return [...merged.values()]
+    .map(({ name, count }) => ({ name, weight: count / maxCount }))
     .filter((tag) => tag.weight >= minWeight)
     .sort((a, b) => b.weight - a.weight || a.name.localeCompare(b.name))
     .slice(0, maxTags);

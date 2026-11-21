@@ -60,6 +60,15 @@ describe("getSongTags", () => {
     expect(result.tags.map((t) => t.name)).toEqual(["acoustic", "r&b", "chill"]);
   });
 
+  test("drops tags repeating the title, but version words like '(Acoustic)' don't count as title", async () => {
+    const lastfm = fakeLastfm({
+      "The Color Violet (Live)": tags(["color", 100], ["live", 80], ["synthwave", 60], ["r&b", 50], ["violet", 40]),
+    });
+    const result = await getSongTags({ name: "The Color Violet (Live)", artists: ["Tory Lanez"] }, lastfm);
+    // "color"/"violet" repeat the core title -> dropped; "live" comes from the version marker -> kept.
+    expect(result.tags.map((t) => t.name)).toEqual(["live", "synthwave", "r&b"]);
+  });
+
   test("sends only the MAIN artist to Last.fm", async () => {
     const lastfm = fakeLastfm({});
     await getSongTags({ name: "Snooze", artists: ["SZA", "Justin Bieber"] }, lastfm);

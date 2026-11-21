@@ -29,7 +29,7 @@ describe("cleanTags on real Last.fm data (fixtures)", () => {
 
   // test.each runs the same test once per song; $title goes in the test name.
   test.each(fixtures.songs)("$title", (song) => {
-    const result = cleanTags(song.tags, { artistNames: song.artists });
+    const result = cleanTags(song.tags, { artistNames: song.artists, title: song.title });
     expect(names(result)).toEqual(expected[song.title]);
   });
 
@@ -109,6 +109,79 @@ describe("cleanTags rules", () => {
       { name: "korean r&b", count: 20 },
     ]);
     expect(names(result)).toEqual(["pop", "korean r&b"]);
+  });
+
+  test("real case 'The Color Violet': title-word tags and their variants go, genres stay", () => {
+    const result = cleanTags(
+      [
+        { name: "color", count: 100 },
+        { name: "colors", count: 80 },
+        { name: "colour", count: 60 },
+        { name: "colours", count: 50 },
+        { name: "synthwave", count: 40 },
+      ],
+      { title: "The Color Violet", artistNames: ["Tory Lanez"] }
+    );
+    expect(names(result)).toEqual(["synthwave"]);
+  });
+
+  test("keeps title words that ARE the vibe ('sad' on 'Sad Girl')", () => {
+    const result = cleanTags(
+      [
+        { name: "sad", count: 100 },
+        { name: "girl", count: 50 },
+        { name: "indie", count: 40 },
+      ],
+      { title: "Sad Girl" }
+    );
+    expect(names(result)).toEqual(["sad", "indie"]);
+  });
+
+  test("only drops a tag if ALL its words are in the title", () => {
+    const result = cleanTags(
+      [
+        { name: "violet", count: 100 },
+        { name: "violet hour", count: 50 },
+      ],
+      { title: "The Color Violet" }
+    );
+    expect(names(result)).toEqual(["violet hour"]);
+  });
+
+  test("title words in brackets and punctuation still count", () => {
+    const result = cleanTags(
+      [
+        { name: "stranger", count: 100 },
+        { name: "pop", count: 50 },
+      ],
+      { title: "Dancing With A Stranger (with Normani)" }
+    );
+    expect(names(result)).toEqual(["pop"]);
+  });
+
+  test("without a title, nothing is dropped for being a title word", () => {
+    expect(names(cleanTags([{ name: "color", count: 100 }]))).toEqual(["color"]);
+  });
+
+  test("merges spelling and plural variants into one tag (strongest name wins)", () => {
+    const result = cleanTags([
+      { name: "colours", count: 100 },
+      { name: "color", count: 60 },
+      { name: "love songs", count: 50 },
+      { name: "love song", count: 40 },
+    ]);
+    expect(result).toEqual([
+      { name: "colours", weight: 1 },
+      { name: "love songs", weight: 0.5 },
+    ]);
+  });
+
+  test("'blues' is a genre, not a plural: it doesn't merge with 'blue'", () => {
+    const result = cleanTags([
+      { name: "blues", count: 100 },
+      { name: "blue", count: 50 },
+    ]);
+    expect(names(result)).toEqual(["blues", "blue"]);
   });
 
   test("drops every credited artist's name, any capitalisation", () => {

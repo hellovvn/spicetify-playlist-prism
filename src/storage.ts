@@ -22,3 +22,22 @@ export function setLastfmKey(key: string): void {
 export function clearLastfmKey(): void {
   Spicetify.LocalStorage.remove(LASTFM_KEY);
 }
+
+// ----- Tag cache (see src/scan/tagCache.ts) -----
+// One JSON text for all songs. About 300 bytes per song, so 1,000 songs is
+// roughly 0.3 MB, well within LocalStorage's ~5 MB.
+
+const TAG_CACHE_KEY = "prism:tagCache";
+
+export function loadTagCacheText(): string | null {
+  return Spicetify.LocalStorage.get(TAG_CACHE_KEY);
+}
+
+export function saveTagCacheText(json: string): void {
+  try {
+    Spicetify.LocalStorage.set(TAG_CACHE_KEY, json);
+  } catch (error) {
+    // Storage full or blocked: the scan still works, it just won't be cached.
+    console.warn("[Playlist Prism] couldn't save the tag cache", error);
+  }
+}

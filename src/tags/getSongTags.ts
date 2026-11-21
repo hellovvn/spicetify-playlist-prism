@@ -14,7 +14,7 @@
 import type { LastfmTag } from "../lastfm/client";
 import { LastfmError } from "../lastfm/client";
 import { cleanTags, type CleanTag } from "./cleanTags";
-import { titleVariants } from "./titleVariants";
+import { removeFeatures, removeVersionMarkers, titleVariants } from "./titleVariants";
 import { combineTags, needsArtistTags, type SourcedTag } from "./combineTags";
 
 export interface TagFetchers {
@@ -51,12 +51,17 @@ export async function getSongTags(
   const titlesTried: string[] = [];
   let trackTags: CleanTag[] = [];
   let matchedTitle: string | null = null;
+  // "Snooze (Acoustic) (feat. Justin Bieber)" -> "Snooze"
+  const coreTitle = removeVersionMarkers(removeFeatures(song.name));
 
   // 1. Title variants, stopping at the first that gives usable tags.
   for (const title of titleVariants(song.name)) {
     titlesTried.push(title);
     const raw = await tagsOrEmpty(deps.fetchTrackTags(mainArtist, title));
-    trackTags = cleanTags(raw, { artistNames: song.artists });
+    // title: drops tags that just repeat the song's title ("color" on "The Color Violet").
+    // We pass the title WITHOUT version markers/feat.: "(Acoustic)" describes
+    // the sound, so an "acoustic" tag on "Snooze (Acoustic)" must stay.
+    trackTags = cleanTags(raw, { artistNames: song.artists, title: coreTitle });
     if (trackTags.length > 0) {
       matchedTitle = title;
       break;

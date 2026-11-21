@@ -11,6 +11,7 @@ import {
   type SourceOption,
 } from "../sources/sources";
 import { toggleTag as toggleInList } from "./tagSelection"; // same on/off logic, for URIs
+import { SCREEN_HEIGHT } from "./styles";
 
 export interface SourcePickerProps {
   loadSources: () => Promise<SourceOption[]>;
@@ -147,7 +148,7 @@ export function SourcePicker({ loadSources, describeError, selected, setSelected
 // The screen is ONE fixed height, whatever the search shows, so the popup
 // never resizes while typing (and the buttons stay put under the mouse).
 // The list takes whatever height is left (flex: 1) and scrolls inside it.
-const SCREEN_HEIGHT = 560;
+// SCREEN_HEIGHT is shared with the scan screen (src/ui/styles.ts).
 
 const styles: Record<string, React.CSSProperties> = {
   column: { display: "flex", flexDirection: "column", gap: 12, height: SCREEN_HEIGHT },

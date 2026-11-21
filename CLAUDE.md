@@ -120,3 +120,10 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   developer can test it before moving on.
 - Prefer simple, readable code over clever code. Add unit tests for pure logic.
 - Say clearly what was verified and what wasn't.
+
+## Git
+- "Commit" means commit AND push to `origin/main`.
+- No `Co-Authored-By` or other AI attribution lines in commit messages or PR descriptions.
+- On Windows PowerShell 5.1, write the message to a file and use `git commit -F <file>`:
+  double quotes inside `-m "..."` get mangled and the commit can fail silently.
+  Afterwards check that `git rev-parse HEAD` matches `origin/main`.

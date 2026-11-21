@@ -18,6 +18,7 @@ import type { SourcedTag } from "../tags/combineTags";
 import { canContinue, keptTags, seedStatus, splitBySource, toggleTag } from "./tagSelection";
 import type { SourceOption } from "../sources/sources";
 import { SourcePicker } from "./SourcePicker";
+import { ScanScreen, type ScanOutcome, type ScanScreenProps } from "./ScanScreen";
 
 export interface SeedData {
   track: TrackInfo;
@@ -30,10 +31,12 @@ export interface SeedPanelProps {
   load: () => Promise<SeedData>;
   // Loads the playlists the user can pick from (screen 2).
   loadSources: () => Promise<SourceOption[]>;
+  // Scans the picked sources (screen 3).
+  runScan: ScanScreenProps["runScan"];
   // Turns an error into a message the user can act on.
   describeError: (error: unknown) => string;
-  // Called when the user finishes screen 2 (step 7 will scan from here).
-  onDone: (choice: { seed: SeedData; kept: SourcedTag[]; sources: SourceOption[] }) => void;
+  // Called after the scan, with everything step 8 needs to score songs.
+  onDone: (choice: { seed: SeedData; kept: SourcedTag[]; sources: SourceOption[]; scan: ScanOutcome }) => void;
 }
 
 // Runs `action` just AFTER the current click finishes.
@@ -50,12 +53,14 @@ function afterClick(action: () => void) {
 // Back and Next keeps the user's choices ("lifting state up" in React terms).
 //   screen "seed":    loading -> tag chips   (or an error)
 //   screen "sources": playlist picker
-function SeedPanel({ load, loadSources, describeError, onDone }: SeedPanelProps) {
+//   screen "scan":    scanning progress, then a summary
+function SeedPanel({ load, loadSources, runScan, describeError, onDone }: SeedPanelProps) {
   const [data, setData] = React.useState<SeedData | null>(null);
   const [error, setError] = React.useState<string | null>(null);
-  const [screen, setScreen] = React.useState<"seed" | "sources">("seed");
+  const [screen, setScreen] = React.useState<"seed" | "sources" | "scan">("seed");
   const [offNames, setOffNames] = React.useState<string[]>([]); // chips switched off
   const [selectedSources, setSelectedSources] = React.useState<string[]>([]); // ticked playlist URIs
+  const [picked, setPicked] = React.useState<SourceOption[]>([]); // the sources being scanned
 
   // useEffect runs code AFTER the panel is on screen (so the popup can
   // appear first). The empty [] means "only once, when it opens".
@@ -97,7 +102,7 @@ function SeedPanel({ load, loadSources, describeError, onDone }: SeedPanelProps)
         onNext={() => afterClick(() => setScreen("sources"))}
       />
     );
-  } else {
+  } else if (screen === "sources") {
     body = (
       // The wrapper's `key` makes React treat each screen as new, so the
       // fade-in plays when switching screens.
@@ -108,7 +113,25 @@ function SeedPanel({ load, loadSources, describeError, onDone }: SeedPanelProps)
           selected={selectedSources}
           setSelected={setSelectedSources}
           onBack={() => afterClick(() => setScreen("seed"))}
-          onNext={(sources) => onDone({ seed: data, kept: keptTags(data.tags, offNames), sources })}
+          onNext={(sources) =>
+            afterClick(() => {
+              setPicked(sources);
+              setScreen("scan");
+            })
+          }
+        />
+      </div>
+    );
+  } else {
+    body = (
+      <div key="scan" className="prism-fade-in">
+        <ScanScreen
+          sources={picked}
+          runScan={runScan}
+          describeError={describeError}
+          // Back stops the scan (the screen closes) and returns to the picker.
+          onBack={() => afterClick(() => setScreen("sources"))}
+          onNext={(scan) => onDone({ seed: data, kept: keptTags(data.tags, offNames), sources: picked, scan })}
         />
       </div>
     );

@@ -2,9 +2,15 @@
 // Spicetify Creator bundles this file (and anything it imports) into
 // playlist-prism.js, which Spotify loads at startup.
 
-import { getSources, getTrackInfo } from "./spotify/read";
+import { getSources, getSourceTracks, getTrackInfo } from "./spotify/read";
 import { getArtistTopTags, getTrackTopTags, LastfmError } from "./lastfm/client";
-import { getLastfmKey } from "./storage";
+import { getLastfmKey, loadTagCacheText, saveTagCacheText } from "./storage";
+import { mergeTracks } from "./scan/tracks";
+import { scanSongs, shareArtistLookups, type ScanProgress } from "./scan/scan";
+import { createRateLimiter, realClock } from "./scan/limits";
+import { TagCache } from "./scan/tagCache";
+import type { SourceOption } from "./sources/sources";
+import { openScanPreview, type ScanOutcome } from "./ui/ScanScreen";
 import { openSettings } from "./ui/SettingsModal";
 import { cleanTags } from "./tags/cleanTags";
 import { titleVariants } from "./tags/titleVariants";
@@ -14,11 +20,65 @@ import { openSeedPanel, type SeedData } from "./ui/SeedPanel";
 import { injectStyles } from "./ui/styles";
 
 // The REAL Last.fm fetchers for getSongTags (unit tests pass fakes instead).
-function lastfmFetchers(apiKey: string): TagFetchers {
+// `wait` (optional) is a rate limiter: awaited before every request.
+function lastfmFetchers(apiKey: string, wait: () => Promise<void> = async () => {}): TagFetchers {
   return {
-    fetchTrackTags: async (artist, title) => (await getTrackTopTags(artist, title, apiKey)).tags,
-    fetchArtistTags: (artist) => getArtistTopTags(artist, apiKey),
+    fetchTrackTags: async (artist, title) => {
+      await wait();
+      return (await getTrackTopTags(artist, title, apiKey)).tags;
+    },
+    fetchArtistTags: async (artist) => {
+      await wait();
+      return getArtistTopTags(artist, apiKey);
+    },
   };
+}
+
+// Last.fm asks for about 5 requests per second at most; stay a bit under.
+const LASTFM_REQUESTS_PER_SECOND = 4;
+
+const isKeyProblem = (error: unknown) => error instanceof LastfmError && (error.code === 10 || error.code === 26);
+const isRateLimit = (error: unknown) => error instanceof LastfmError && error.code === 29;
+
+// Step 7: read every song in the chosen sources, then get tags + BPM/key.
+// READ-ONLY: the sources are only read.
+async function runScan(
+  sources: SourceOption[],
+  onProgress: (progress: ScanProgress) => void,
+  shouldStop: () => boolean
+): Promise<ScanOutcome> {
+  const apiKey = getLastfmKey();
+  if (!apiKey) throw new LastfmError(10, "No Last.fm key saved");
+
+  // All playlists at once; each is one fast Spotify request.
+  const lists = await Promise.all(sources.map((source) => getSourceTracks(source.uri)));
+  const { tracks, duplicates } = mergeTracks(lists);
+  console.log(`${LOG_PREFIX} scanning ${tracks.length} songs (${duplicates} duplicates removed)`);
+  onProgress({ done: 0, total: tracks.length, fromCache: 0, failed: 0 });
+
+  const fetchers = shareArtistLookups(lastfmFetchers(apiKey, createRateLimiter(LASTFM_REQUESTS_PER_SECOND)));
+  const cache = new TagCache(loadTagCacheText());
+  const started = Date.now();
+  const result = await scanSongs(
+    tracks,
+    {
+      getAudio: getAudioAttributes,
+      getTags: (song) => getSongTags(song, fetchers),
+      cache,
+      saveCache: () => saveTagCacheText(cache.toJSON(Date.now())),
+      clock: realClock,
+      isFatal: isKeyProblem,
+      isRateLimit,
+    },
+    onProgress,
+    shouldStop
+  );
+  console.log(
+    `${LOG_PREFIX} scan ${result.cancelled ? "cancelled" : "finished"}: ${result.songs.length} songs in ${Math.round(
+      (Date.now() - started) / 1000
+    )} s`
+  );
+  return { ...result, duplicates };
 }
 
 // A prefix for console logs, so ours are easy to filter in DevTools.
@@ -53,6 +113,11 @@ function exposeDebugHook() {
     openSettings,
     // Runs the same thing as clicking "Start a Prism playlist" (reads only, opens the panel).
     startPrism: (uri: string) => onStartPrism([uri]),
+    // Scan screen with a fake, hand-driven scan (layout tests). Nothing is scanned.
+    previewScan: () => {
+      const setProgress = openScanPreview();
+      (window as any).__playlistPrism.setPreviewProgress = setProgress;
+    },
     // BPM/key for some songs. Returns a plain object (a Map can't cross the debug port).
     getAudioAttributes: async (uris: string[]) => {
       const plain: Record<string, unknown> = {};
@@ -118,14 +183,16 @@ function onStartPrism(uris: string[]) {
   openSeedPanel({
     load: () => loadSeed(uri, apiKey),
     loadSources: getSources,
+    runScan,
     describeError: friendlyError,
-    // The scan comes in step 7; for now, log the choices.
-    onDone: ({ seed, kept, sources }) => {
+    // Scoring + preview come in step 8; for now, log what we have.
+    onDone: ({ seed, kept, sources, scan }) => {
       console.log(`${LOG_PREFIX} seed: ${seed.track.name}`);
       console.log(`${LOG_PREFIX} kept tags: ${kept.map((tag) => tag.name).join(", ")}`);
-      console.log(`${LOG_PREFIX} sources: ${sources.map((s) => `${s.name} (${s.trackCount})`).join(", ")}`);
+      console.log(`${LOG_PREFIX} sources: ${sources.map((s) => s.name).join(", ")}`);
+      console.log(`${LOG_PREFIX} scanned songs:`, scan.songs);
       Spicetify.PopupModal.hide();
-      Spicetify.showNotification(`Picked ${sources.length} source(s). Scanning comes in step 7.`);
+      Spicetify.showNotification(`Scanned ${scan.songs.length} songs. Matching comes in step 8.`);
     },
   });
 }
@@ -164,13 +231,13 @@ async function loadSeed(uri: string, apiKey: string): Promise<SeedData> {
 // Turns known errors into messages a user can act on (shown inside the panel).
 // (Last.fm error 6 "not found" never gets here: getSongTags treats it as "no tags".)
 function friendlyError(error: unknown): string {
-  if (error instanceof LastfmError && (error.code === 10 || error.code === 26)) {
+  if (isKeyProblem(error)) {
     return "Last.fm API key problem: check Playlist Prism settings (profile menu).";
   }
-  if (error instanceof LastfmError && error.code === 29) {
+  if (isRateLimit(error)) {
     return "Last.fm rate limit hit: wait a minute and try again.";
   }
-  return "Something went wrong reading this song. Details are in the console.";
+  return "Something went wrong. Details are in the console.";
 }
 
 export default main;

@@ -326,7 +326,105 @@ try {
   await cdp.evaluate("Spicetify.PopupModal.hide()");
   await sleep(500);
 
-  console.log("\n[7] Settings popup (screenshot)");
+  console.log("\n[7] Scan (screen 3) - reads playlists + Last.fm only, nothing in Spotify changes");
+  const SCAN_STATE = `document.querySelector('[data-prism-state^="scan"]')?.dataset.prismState`;
+  const SCAN_TITLE = `document.querySelector('[data-prism-state="scan-done"] div div')?.textContent`;
+  const clickButton = (label) =>
+    `[...document.querySelectorAll('[data-prism="seed-panel"] button')].find((b) => b.textContent.includes(${JSON.stringify(label)})).click()`;
+  const tick = (name) => `${rows}.find((r) => r.querySelector("span span").textContent === ${JSON.stringify(name)}).click()`;
+
+  await cdp.evaluate(`window.__playlistPrism.startPrism("spotify:track:4PhsKqMdgMEUSstTDAmMpg")`); // Often
+  if (await waitFor(READY)) {
+    await cdp.evaluate(clickButton("Next"));
+    await waitFor(`!!${SOURCES} && ${rows}.length > 0`);
+    await cdp.evaluate(tick("Dark Romance"));
+    await sleep(200);
+
+    // First scan: real Last.fm lookups (unless cached by an earlier smoke run).
+    let t0 = Date.now();
+    await cdp.evaluate(clickButton("scan"));
+    const scanning = await waitFor(`!!document.querySelector('[data-prism-state="scanning"] [role="progressbar"]')`, 5000);
+    check("scan screen shows a progress bar", scanning);
+    await sleep(1500);
+    const midShot = await cdp.send("Page.captureScreenshot", { format: "png" });
+    await writeFile(new URL("scan-progress.png", outputDir), Buffer.from(midShot.result.data, "base64"));
+    info("screenshot: smoke-output/scan-progress.png");
+    const done1 = await waitFor(`!!document.querySelector('[data-prism-state="scan-done"]')`, 120000);
+    const firstSeconds = ((Date.now() - t0) / 1000).toFixed(1);
+    check("scan of Dark Romance finishes", done1, `${firstSeconds} s`);
+    if (done1) {
+      const title = await cdp.evaluate(SCAN_TITLE);
+      check("summary says 25 songs scanned", title === "Scanned 25 songs", title);
+      info(`summary: ${await cdp.evaluate(`document.querySelector('[data-prism="scan-summary"]').innerText.replace(/\\s+/g, " ")`)}`);
+      const doneShot = await cdp.send("Page.captureScreenshot", { format: "png" });
+      await writeFile(new URL("scan-done.png", outputDir), Buffer.from(doneShot.result.data, "base64"));
+      info("screenshot: smoke-output/scan-done.png");
+
+      // Second scan of the same playlist: should come from the cache, fast.
+      await cdp.evaluate(clickButton("Back"));
+      await waitFor(`!!${SOURCES} && ${rows}.length > 0`);
+      t0 = Date.now();
+      await cdp.evaluate(clickButton("scan"));
+      const done2 = await waitFor(`!!document.querySelector('[data-prism-state="scan-done"]')`, 30000);
+      const secondSeconds = (Date.now() - t0) / 1000;
+      check("re-scan uses the cache (under 5 s)", done2 && secondSeconds < 5, `${secondSeconds.toFixed(1)} s vs ${firstSeconds} s first time`);
+
+      // Cancel: scan EVERYTHING (most songs not cached yet) and stop part-way.
+      // If every song is already cached, the scan can finish before we get to
+      // click Cancel; then this check is SKIPPED (reported), not passed.
+      await cdp.evaluate(clickButton("Back"));
+      await waitFor(`!!${SOURCES} && ${rows}.length > 0`);
+      await cdp.evaluate(`${SOURCES}.querySelector('[data-prism="select-all"]').click()`);
+      await sleep(200);
+      await cdp.evaluate(clickButton("scan"));
+      await waitFor(
+        `(() => { const n = parseInt(document.querySelector('[data-prism="scan-count"]')?.textContent ?? ""); return n >= 30 || !!document.querySelector('[data-prism-state="scan-done"]'); })()`,
+        60000
+      );
+      const finishedEarly = await cdp.evaluate(`!!document.querySelector('[data-prism-state="scan-done"]')`);
+      if (finishedEarly) {
+        info("SKIPPED Cancel check: every song was already cached, so the scan finished instantly");
+      } else {
+        await cdp.evaluate(clickButton("Cancel"));
+        const stopped = await waitFor(`!!document.querySelector('[data-prism-state="scan-done"]')`, 30000);
+        const stoppedTitle = stopped ? await cdp.evaluate(SCAN_TITLE) : "(never finished)";
+        check("Cancel stops the scan part-way", stopped && stoppedTitle.startsWith("Stopped after"), stoppedTitle);
+      }
+    }
+  }
+  await cdp.evaluate("Spicetify.PopupModal.hide()");
+  await sleep(500);
+
+  console.log("\n[8] Scan screen layout: the bar must not move when the text changes (fake scan)");
+  await cdp.evaluate("window.__playlistPrism.previewScan()");
+  await waitFor(`!!document.querySelector('[data-prism="scan-preview"] [role="progressbar"]')`);
+  const barTop = `Math.round(document.querySelector('[data-prism="scan-preview"] [role="progressbar"]').getBoundingClientRect().top)`;
+  const setProgress = (p) => cdp.evaluate(`window.__playlistPrism.setPreviewProgress(${JSON.stringify(p)})`);
+  const positions = {};
+  // Wait for the popup's open animation (slides up 8 px over 220 ms) to finish,
+  // or the first reading is taken mid-slide.
+  await sleep(500);
+  positions["before any progress"] = await cdp.evaluate(barTop);
+  await setProgress({ done: 3, total: 9, fromCache: 0, failed: 0 });
+  await sleep(150);
+  positions["short text"] = await cdp.evaluate(barTop);
+  // Long text: big numbers + "remembered" + (after 5 lookups) a time estimate.
+  await setProgress({ done: 575, total: 704, fromCache: 58, failed: 0 });
+  await sleep(150);
+  positions["long text"] = await cdp.evaluate(barTop);
+  info(`detail line: "${await cdp.evaluate(`document.querySelector('[data-prism="scan-detail"]').textContent`)}"`);
+  const longShot = await cdp.send("Page.captureScreenshot", { format: "png" });
+  await writeFile(new URL("scan-layout-long.png", outputDir), Buffer.from(longShot.result.data, "base64"));
+  info("screenshot: smoke-output/scan-layout-long.png");
+  // Cancel turns the 2-line note into one short line ("Stopping...").
+  await cdp.evaluate(`[...document.querySelectorAll('[data-prism="scan-preview"] button')].find((b) => b.textContent === "Cancel").click()`);
+  await sleep(150);
+  positions["after Cancel"] = await cdp.evaluate(barTop);
+  check("progress bar stays in one place", new Set(Object.values(positions)).size === 1, JSON.stringify(positions));
+  await cdp.evaluate("Spicetify.PopupModal.hide()");
+  await sleep(500);
+
+  console.log("\n[9] Settings popup (screenshot)");
   await cdp.evaluate("window.__playlistPrism.openSettings()");
   await sleep(800); // let React draw it
   const visible = await cdp.evaluate(
