@@ -80,7 +80,7 @@ export function SettingsPanel({ notice, onSaved }: SettingsPanelProps) {
         onChange={(event) => setKey(event.target.value)}
         style={{ padding: 8, borderRadius: 4, border: "1px solid #555", background: "#222", color: "#fff" }}
       />
-      <div style={{ display: "flex", gap: 8 }}>
+      <div className="prism-actions" style={{ display: "flex", gap: 8 }}>
         {/* Spotify's own buttons, so they match the rest of the app. */}
         <ButtonPrimary buttonSize="sm" onClick={onSave} disabled={busy}>
           {busy ? "Testing..." : "Test & save"}

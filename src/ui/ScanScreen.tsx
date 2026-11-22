@@ -31,9 +31,10 @@ export interface ScanScreenProps {
   // Told true while a scan is running, false when it ends or this screen goes.
   // (The page uses it to warn before "Start page" stops a scan.)
   onRunningChange?: (running: boolean) => void;
+  nextLabel?: string; // the button after the scan (default "Next: see matches")
 }
 
-export function ScanScreen({ sources, runScan, describeError, onBack, onNext, onRunningChange }: ScanScreenProps) {
+export function ScanScreen({ sources, runScan, describeError, onBack, onNext, onRunningChange, nextLabel }: ScanScreenProps) {
   const { ButtonPrimary, ButtonSecondary } = Spicetify.ReactComponent as any;
   const [progress, setProgress] = React.useState<ScanProgress | null>(null);
   const [outcome, setOutcome] = React.useState<ScanOutcome | null>(null);
@@ -81,7 +82,7 @@ export function ScanScreen({ sources, runScan, describeError, onBack, onNext, on
         <div style={styles.middle}>
           <p style={styles.text}>{error}</p>
         </div>
-        <div style={styles.buttons}>
+        <div className="prism-actions" style={styles.buttons}>
           <ButtonSecondary buttonSize="sm" onClick={onBack}>
             Back
           </ButtonSecondary>
@@ -125,12 +126,12 @@ export function ScanScreen({ sources, runScan, describeError, onBack, onNext, on
           </tbody>
         </table>
         <div style={styles.middle} />
-        <div style={styles.buttons}>
+        <div className="prism-actions" style={styles.buttons}>
           <ButtonSecondary buttonSize="sm" onClick={onBack}>
             Back
           </ButtonSecondary>
           <ButtonPrimary buttonSize="sm" disabled={s.total === 0} onClick={() => s.total > 0 && onNext(outcome)}>
-            Next: see matches
+            {nextLabel ?? "Next: see matches"}
           </ButtonPrimary>
         </div>
       </div>
@@ -178,7 +179,7 @@ export function ScanScreen({ sources, runScan, describeError, onBack, onNext, on
             : "Tags come from Last.fm, a few songs per second. Songs scanned before are remembered, so next time is faster."}
         </p>
       </div>
-      <div style={styles.buttons}>
+      <div className="prism-actions" style={styles.buttons}>
         <ButtonSecondary buttonSize="sm" onClick={cancel} disabled={stopping}>
           Cancel
         </ButtonSecondary>

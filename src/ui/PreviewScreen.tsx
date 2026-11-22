@@ -149,7 +149,7 @@ export function PreviewScreen({ seed, kept, songs, onBack, onCreate, describeErr
         Hover a song to see its score breakdown.
       </p>
 
-      <div style={styles.buttons}>
+      <div className="prism-actions" style={styles.buttons}>
         <ButtonSecondary buttonSize="sm" onClick={onBack}>
           Back
         </ButtonSecondary>
@@ -239,7 +239,7 @@ function NamePopup({ name, setName, songCount, seedName, creating, error, onCanc
             {error}
           </p>
         )}
-        <div style={styles.buttons}>
+        <div className="prism-actions" style={styles.buttons}>
           <ButtonSecondary buttonSize="sm" onClick={onCancel} disabled={creating} data-prism="name-cancel">
             Cancel
           </ButtonSecondary>

@@ -144,9 +144,49 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   - Fingerprint bubbles pop on click ("sparkle shower": soft fade + translucent sparkles drifting
     down), back after 3 s. Postponed (2026-11-22): cute hover doodles per playlist; two style rounds
     (faces, white scribbles) were rejected, so revisit with a better art direction.
+- 13 (decided 2026-11-22, before 12b): ORGANIZE PLAYLISTS mode. Pick several playlists and split
+  ALL their songs into N NEW playlists by genre + mood. Source playlists are never changed.
+  Decisions: groups are auto-suggested, then the user refines them, OR the user scraps the
+  suggestions ("Start from scratch") and defines groups by picking genres/moods per group;
+  overlap (a song in several groups) is the user's choice; songs with no tags are force-sorted
+  into the closest group using BPM/key + lyrics mood. The playlist picker is the SAME component
+  as the Prism flow's (consistency); Organize adds a settings panel (how many: 3/4/5/6/8/Auto,
+  overlap on/off). Review screen = option "A, album covers": one glass card per group with a 2x2
+  mosaic of its songs' album art, name, song count, genre/mood labels; click to see/edit songs.
+  - 13a: start page with two modes (Make a Prism playlist / Organize playlists); Organize setup
+    (shared picker + settings panel; how many: 2/3/4/5/6/8/Auto); scan (reuses runScan). Ends on a scan summary. DONE: tested and committed
+    2026-11-22. Code: `src/ui/OrganizeFlow.tsx`; SourcePicker and
+    ScanScreen got optional intro/extra/nextLabel props; page content minHeight SCREEN_HEIGHT + 80
+    so the header stays put on every screen (start page cards stack at 633px in a narrow window).
+  - 13b: grouping, PURE + unit-tested: song vectors from tags + mood + BPM; k-means with a fixed
+    start (same input = same groups); Auto picks N; group names from their top tags/moods;
+    untagged songs go to the closest group; overlap mode adds a song to every group it fits
+    well (similarity >= a share of its best fit).
+    Signals (decided 2026-11-22): genre tags (main), lyrics mood, BPM. Musical KEY is NOT used for
+    grouping, only SHOWN. Setup gets a "Group mostly by" choice: Genre / Mood / Energy (BPM) /
+    Balanced (default), which shifts the weights. Untagged songs: mood + BPM only.
+    Review screen shows a per-group SUMMARY (grouped by what; genre/mood/tempo/key mix) ON SCREEN
+    ONLY: nothing of it is written into the new playlists (no description).
+    DONE: tested by the developer and committed 2026-11-22.
+    `src/organize/grouping.ts` (+ tests/grouping.test.ts, 17 tests). Weights per focus in
+    FOCUS_WEIGHTS; OVERLAP_SHARE 0.8; Auto tries 3-8 with a silhouette-style score; names skip
+    tags of 4+ words. Real data (Liked Songs + Dark Romance, 250 songs): grouping ~0.15 s, Auto
+    chose 8. Groups screen in OrganizeFlow is a plain list until 13c's album-cover cards.
+    Improvements after testing "2 playlists into 2" (2026-11-22): count choice 2 added; seeds are
+    "different AND typical of a crowd" (plain farthest-first grew groups around lone outliers);
+    tags weighted by rarity in the selection (TF-IDF: "pop" everywhere counts less); personal
+    junk tags ("my top songs", "saw live"...) added to cleanTags and skipped by grouping via
+    isJunkTagName (old cached tags still contain them). Grouping can't recreate the original
+    playlists when they don't differ in sound (it only sees genre/mood/tempo).
+  - 13c: review screen (album-cover cards); rename, move/remove songs, merge groups; "Start from
+    scratch" builder (pick genres/moods per group, Prism sorts the songs into them).
+  - 13d: create the N playlists. write.ts must allow SEVERAL new playlists per session, each still
+    guarded (only URIs created in this session); confirm first; save stats records for each.
 - 11: Cleanup: remove the debug hook, README, release (after 12).
 
 ## Dev loop (Claude runs this, not the developer)
+- If Spotify is restarted normally (not by the watch tab), the debug port 9222 is closed and the
+  smoke test can't connect: run `spicetify watch -a` again (it restarts Spotify with the debugger).
 - Keep two terminal tabs running: `npm run watch` (rebuild on save) and `spicetify watch -e`
   (copies the build into Spotify and reloads Spotify automatically via the debugger).
 - Before handing a step over for testing, Claude makes sure the new build reached Spotify

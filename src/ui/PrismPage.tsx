@@ -4,6 +4,7 @@
 //   home       start screen: use the playing song, or paste a song link
 //   prism      the flow (tags -> sources -> scan -> preview) for one seed song
 //   stats      how a Prism playlist was made (right-click it > "Prism stats")
+//   organize   split several playlists into new ones by genre/mood (step 13)
 //   demo-scan  DEV/TEST: scan screen with a fake scan (smoke test)
 //   demo-stats DEV/TEST: stats page with sample numbers (smoke test)
 // Settings (the Last.fm key) open ON TOP of whichever of these is showing:
@@ -23,6 +24,7 @@ import { getSources } from "../spotify/read";
 import { getLastfmKey } from "../storage";
 import { SAMPLE_RECORD } from "../stats/playlistStats";
 import { StatsScreen } from "./StatsScreen";
+import { OrganizeFlow } from "./OrganizeFlow";
 import { createFromPreview, friendlyError, loadPlaylistStats, loadSeed, runScan } from "../flow";
 import { PAGE_PATH, parsePageRequest, parseTrackLink, type PageRequest } from "../nav";
 import { SeedPanel } from "./SeedPanel";
@@ -45,6 +47,7 @@ type View =
   | { kind: "home" }
   | { kind: "prism"; seed: string; id: string }
   | { kind: "stats"; playlist: string; id: string } // stats for a Prism playlist
+  | { kind: "organize"; id: string } // Organize playlists (step 13)
   | { kind: "demo-scan"; id: string }
   | { kind: "demo-stats"; id: string };
 
@@ -168,10 +171,21 @@ export function PrismPage() {
         onOpenPlaylist={(uri) => History.push(`/playlist/${uri.split(":")[2]}`)}
       />
     );
+  } else if (view.kind === "organize") {
+    body = (
+      <OrganizeFlow
+        key={view.id}
+        loadSources={getSources}
+        runScan={runScan}
+        describeError={friendlyError}
+        onCancel={goHome}
+        onScanningChange={setScanning}
+      />
+    );
   } else if (view.kind === "demo-stats") {
     body = <StatsScreen key={view.id} load={async () => SAMPLE_RECORD} />;
   } else {
-    body = <HomeScreen onStart={start} />;
+    body = <HomeScreen onStart={start} onOrganize={() => apply({ view: { kind: "organize", id: newId() } })} />;
   }
 
   return (
@@ -257,7 +271,7 @@ export function PrismPage() {
 
 // ----- Start screen -----
 
-function HomeScreen({ onStart }: { onStart: (seed: string) => void }) {
+function HomeScreen({ onStart, onOrganize }: { onStart: (seed: string) => void; onOrganize: () => void }) {
   const { ButtonPrimary, ButtonSecondary } = Spicetify.ReactComponent as any;
   const [link, setLink] = React.useState("");
   const [linkError, setLinkError] = React.useState<string | null>(null);
@@ -275,59 +289,79 @@ function HomeScreen({ onStart }: { onStart: (seed: string) => void }) {
   return (
     <div className="prism-fade-in" style={styles.column} data-prism-state="home">
       <div>
-        <h2 style={styles.heading}>Start a Prism playlist</h2>
-        <p style={styles.subtext}>
-          Pick a seed song. Prism finds songs with the same vibe in the playlists you choose, and makes a new
-          playlist from them. Your existing playlists are never changed.
-        </p>
+        <h2 style={styles.heading}>What would you like to do?</h2>
+        <p style={styles.subtext}>Your existing playlists are never changed: Prism only ever makes new ones.</p>
       </div>
 
-      <section style={styles.card}>
-        <h3 style={styles.cardTitle}>From anywhere in Spotify</h3>
-        <p style={styles.subtext}>Right-click any song and choose "Start a Prism playlist".</p>
-      </section>
+      {/* Two modes side by side, as glass cards. */}
+      <div style={styles.modes}>
+        <section className="prism-glass-panel" style={styles.mode} data-prism="mode-prism">
+          <h3 style={styles.cardTitle}>Make a Prism playlist</h3>
+          <p style={styles.subtext}>Start from one song and find its vibe in your playlists.</p>
 
-      <section style={styles.card}>
-        <h3 style={styles.cardTitle}>The song playing now</h3>
-        {playing ? (
-          <div style={styles.row}>
-            <span style={styles.text} data-prism="playing-song">
-              {playing.name} · {playing.artists}
-            </span>
-            <ButtonPrimary buttonSize="sm" onClick={() => onStart(playing.uri)} data-prism="start-playing">
-              Use this song
+          <div style={styles.option}>
+            <span style={styles.optionLabel}>The song playing now</span>
+            {playing ? (
+              <div style={styles.row}>
+                <span style={styles.text} data-prism="playing-song">
+                  {playing.name} · {playing.artists}
+                </span>
+                <ButtonPrimary buttonSize="sm" onClick={() => onStart(playing.uri)} data-prism="start-playing">
+                  Use this song
+                </ButtonPrimary>
+              </div>
+            ) : (
+              <p style={styles.subtext}>Nothing is playing (or it isn't a song).</p>
+            )}
+          </div>
+
+          <div style={styles.option}>
+            <span style={styles.optionLabel}>Or paste a song link</span>
+            <div style={styles.row}>
+              <input
+                value={link}
+                placeholder="https://open.spotify.com/track/..."
+                onChange={(event) => {
+                  setLink(event.target.value);
+                  setLinkError(null);
+                }}
+                onKeyDown={(event) => event.key === "Enter" && startFromLink()}
+                style={styles.input}
+                data-prism="link-input"
+                aria-label="Spotify song link"
+              />
+              <ButtonSecondary buttonSize="sm" onClick={startFromLink} disabled={!link.trim()}>
+                Start
+              </ButtonSecondary>
+            </div>
+            {linkError && (
+              <p role="alert" style={styles.error}>
+                {linkError}
+              </p>
+            )}
+          </div>
+
+          <p style={styles.hint}>Tip: right-click any song in Spotify and choose "Start a Prism playlist".</p>
+        </section>
+
+        <section className="prism-glass-panel" style={styles.mode} data-prism="mode-organize">
+          <h3 style={styles.cardTitle}>Organize playlists</h3>
+          <p style={styles.subtext}>
+            Pick some playlists and split all their songs into new playlists by genre and mood.
+          </p>
+          <ul style={styles.points}>
+            <li>Prism suggests the groups; you can rename, move songs or start from scratch</li>
+            <li>Choose how many new playlists, and whether a song can be in more than one</li>
+            <li>Songs without genre tags still find their closest group</li>
+          </ul>
+          <div style={{ flex: 1 }} />
+          <div>
+            <ButtonPrimary buttonSize="sm" onClick={onOrganize} data-prism="start-organize">
+              Organize playlists
             </ButtonPrimary>
           </div>
-        ) : (
-          <p style={styles.subtext}>Nothing is playing (or it isn't a song).</p>
-        )}
-      </section>
-
-      <section style={styles.card}>
-        <h3 style={styles.cardTitle}>Paste a song link</h3>
-        <div style={styles.row}>
-          <input
-            value={link}
-            placeholder="https://open.spotify.com/track/..."
-            onChange={(event) => {
-              setLink(event.target.value);
-              setLinkError(null);
-            }}
-            onKeyDown={(event) => event.key === "Enter" && startFromLink()}
-            style={styles.input}
-            data-prism="link-input"
-            aria-label="Spotify song link"
-          />
-          <ButtonSecondary buttonSize="sm" onClick={startFromLink} disabled={!link.trim()}>
-            Start
-          </ButtonSecondary>
-        </div>
-        {linkError && (
-          <p role="alert" style={styles.error}>
-            {linkError}
-          </p>
-        )}
-      </section>
+        </section>
+      </div>
     </div>
   );
 }
@@ -359,7 +393,10 @@ const styles: Record<string, React.CSSProperties> = {
   // squashing it; whiteSpace nowrap keeps "Playlist Prism" and button labels on one line.
   header: { display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 16 },
   // SCREEN_HEIGHT = the height of the tallest screens (picker, scan, preview).
-  content: { minHeight: SCREEN_HEIGHT, position: "relative" },
+  // SCREEN_HEIGHT + room for Organize's title (46px) and the start page's two
+  // mode cards when they're stacked in a narrow window (633px measured), so
+  // the header sits in the same place on every screen of both modes.
+  content: { minHeight: SCREEN_HEIGHT + 80, position: "relative" },
   // The leave warning floats over the top of the screen, so the screen
   // underneath (and its progress bar) doesn't move.
   confirm: { position: "absolute", top: 0, left: 0, right: 0, zIndex: 2, display: "flex", alignItems: "center", gap: 12, justifyContent: "space-between", background: "rgba(40, 20, 70, 0.92)" },
@@ -372,7 +409,14 @@ const styles: Record<string, React.CSSProperties> = {
   column: { display: "flex", flexDirection: "column", gap: 16 },
   heading: { margin: "0 0 6px", fontSize: 22, fontWeight: 700 },
   card: { background: "var(--spice-card)", borderRadius: 8, padding: 16, display: "flex", flexDirection: "column", gap: 8 },
-  cardTitle: { margin: 0, fontSize: 15, fontWeight: 700 },
+  // The two mode cards: side by side, wrapping to stacked in a narrow window.
+  modes: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 14, alignItems: "stretch" },
+  mode: { display: "flex", flexDirection: "column", gap: 12, padding: "18px 18px 16px" },
+  option: { display: "flex", flexDirection: "column", gap: 6 },
+  optionLabel: { color: "var(--spice-text)", fontSize: 13, fontWeight: 600 },
+  hint: { margin: 0, color: "var(--spice-subtext)", fontSize: 12 },
+  points: { margin: 0, paddingLeft: 18, color: "var(--spice-subtext)", fontSize: 13, display: "flex", flexDirection: "column", gap: 6 },
+  cardTitle: { margin: 0, fontSize: 17, fontWeight: 700 },
   row: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 },
   text: { color: "var(--spice-text)" },
   subtext: { color: "var(--spice-subtext)", margin: 0 },

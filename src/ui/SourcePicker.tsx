@@ -1,5 +1,8 @@
-// Source picker: screen 2 of the Prism popup. The user ticks the playlists
-// (and/or Liked Songs) that songs may come FROM. Those are only READ.
+// Source picker: the user ticks playlists (and/or Liked Songs). Those are only
+// READ. Shared by both modes so they look and work the same: the Prism flow
+// (where songs may come FROM) and Organize (which playlists to split up).
+// Each mode can set its own intro text, add its own settings (`extra`) and
+// name the Next button.
 
 import React from "react";
 import {
@@ -21,9 +24,12 @@ export interface SourcePickerProps {
   setSelected: (uris: string[]) => void;
   onBack: () => void;
   onNext: (sources: SourceOption[]) => void;
+  intro?: string; // text at the top (default: the Prism flow's)
+  extra?: React.ReactNode; // mode-specific settings, shown above the buttons
+  nextLabel?: string; // the Next button (default "Next: scan songs")
 }
 
-export function SourcePicker({ loadSources, describeError, selected, setSelected, onBack, onNext }: SourcePickerProps) {
+export function SourcePicker({ loadSources, describeError, selected, setSelected, onBack, onNext, intro, extra, nextLabel }: SourcePickerProps) {
   const { ButtonPrimary, ButtonSecondary } = Spicetify.ReactComponent as any;
   const [sources, setSources] = React.useState<SourceOption[] | null>(null);
   const [error, setError] = React.useState<string | null>(null);
@@ -68,8 +74,8 @@ export function SourcePicker({ loadSources, describeError, selected, setSelected
   return (
     <div style={styles.column} data-prism-state="sources">
       <p style={styles.subtext}>
-        Pick where songs can come from. Only songs in these will be considered, and nothing in them is
-        changed. A song in several playlists is only counted once.
+        {intro ??
+          "Pick where songs can come from. Only songs in these will be considered, and nothing in them is changed. A song in several playlists is only counted once."}
       </p>
 
       <input
@@ -133,12 +139,19 @@ export function SourcePicker({ loadSources, describeError, selected, setSelected
           : `${picked.length} picked · up to ${songCount} songs`}
       </p>
 
-      <div style={styles.buttons}>
+      {extra}
+
+      <div className="prism-actions" style={styles.buttons}>
         <ButtonSecondary buttonSize="sm" onClick={onBack}>
           Back
         </ButtonSecondary>
-        <ButtonPrimary buttonSize="sm" disabled={picked.length === 0} onClick={() => picked.length > 0 && onNext(picked)}>
-          Next: scan songs
+        <ButtonPrimary
+          buttonSize="sm"
+          disabled={picked.length === 0}
+          onClick={() => picked.length > 0 && onNext(picked)}
+          data-prism="sources-next"
+        >
+          {nextLabel ?? "Next: scan songs"}
         </ButtonPrimary>
       </div>
     </div>

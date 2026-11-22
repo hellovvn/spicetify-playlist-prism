@@ -198,7 +198,46 @@ const CSS = `
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 0 12px rgba(205, 184, 255, 0.35) !important;
 }
 .prism-cosmos [data-encore-id="buttonSecondary"]:active:not(:disabled) { transform: scale(0.97); }
+
+/* Button sizes, one rule for the whole page:
+   - ACTION buttons (the row at the bottom of a screen: Back, Cancel, Next,
+     Create...) are all 48px tall, alone or next to the lavender main button.
+     (Before, a glass button was 32px alone but got stretched to 48px when it
+     shared a row with a main button, so "Back" changed size between screens.)
+   - Small utility buttons (header Start page/Settings, "Start" by the link
+     box, Open playlist) keep Spotify's 32px.
+   Action rows have the class prism-actions. */
+.prism-cosmos .prism-actions { align-items: center; }
+.prism-cosmos .prism-actions [data-encore-id="buttonSecondary"] {
+  min-height: 48px;
+  padding-inline: 20px;
+}
 .prism-cosmos [data-encore-id="buttonSecondary"]:disabled { opacity: 0.45; }
+
+/* ----- Segmented control (Organize settings) -----
+   A row of glass buttons in one pill; the chosen one is lavender. */
+.prism-seg {
+  display: inline-flex;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  overflow: hidden;
+}
+.prism-seg button {
+  border: none;
+  background: transparent;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 5px 13px;
+  cursor: pointer;
+  transition: background 150ms ease-out, color 150ms ease-out;
+}
+.prism-seg button + button { border-left: 1px solid rgba(255, 255, 255, 0.15); }
+.prism-seg button:hover:not(.on) { background: rgba(255, 255, 255, 0.12); }
+.prism-seg button.on { background: #b794ff; color: #1b0b33; }
+.prism-seg button:focus-visible { outline: 2px solid #cdb8ff; outline-offset: -2px; }
 
 /* ----- Liquid-glass popup (e.g. "Name your playlist") -----
    .prism-overlay dims and blurs the screen behind; .prism-glass-card is the

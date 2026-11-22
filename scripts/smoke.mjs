@@ -645,6 +645,50 @@ try {
     )
   );
   await cdp.evaluate("window.__playlistPrism.goHome()");
+
+  console.log("\n[12] Organize playlists (step 13a, read-only: setup + scan, nothing is created)");
+  await sleep(600);
+  check(
+    "the start page shows both modes",
+    await waitFor(`!!document.querySelector('[data-prism="mode-prism"]') && !!document.querySelector('[data-prism="mode-organize"]')`, 5000)
+  );
+  await cdp.evaluate(`document.querySelector('[data-prism="start-organize"]').click()`);
+  const ORG = `document.querySelector('[data-prism="organize"]')`;
+  check(
+    "Organize opens on the shared playlist picker with its settings panel",
+    await waitFor(`!!${ORG}?.querySelector('[data-prism="source-list"] label') && !!${ORG}.querySelector('[data-prism="organize-settings"]')`, 15000)
+  );
+  // Settings: pick 3 playlists-to-make and overlap on; the chosen buttons say so.
+  await cdp.evaluate(`${ORG}.querySelector('[data-prism="count-3"]').click()`);
+  await cdp.evaluate(`${ORG}.querySelector('[data-prism="overlap-on"]').click()`);
+  await cdp.evaluate(`${ORG}.querySelector('[data-prism="focus-genre"]').click()`);
+  await sleep(200);
+  check(
+    "the settings buttons switch (3 playlists, overlap on, group by genre)",
+    await cdp.evaluate(
+      `${ORG}.querySelector('[data-prism="count-3"]').getAttribute("aria-pressed") === "true" && ${ORG}.querySelector('[data-prism="overlap-on"]').getAttribute("aria-pressed") === "true" && ${ORG}.querySelector('[data-prism="count-5"]').getAttribute("aria-pressed") === "false" && ${ORG}.querySelector('[data-prism="focus-genre"]').getAttribute("aria-pressed") === "true"`
+    )
+  );
+  await screenshot("organize-setup.png");
+  // Tick Dark Romance (cached, so the scan is quick) and scan.
+  await cdp.evaluate(`[...${ORG}.querySelectorAll('[data-prism="source-list"] label')].find((r) => r.textContent.includes("Dark Romance")).click()`);
+  await sleep(200);
+  await cdp.evaluate(`${ORG}.querySelector('[data-prism="sources-next"]').click()`);
+  const scanned = await waitFor(`!!document.querySelector('[data-prism-state="scan-done"]')`, 120000);
+  check("Organize scans the picked playlist", scanned);
+  if (scanned) {
+    await cdp.evaluate(`[...${ORG}.querySelectorAll("button")].find((b) => b.textContent.includes("group songs")).click()`);
+    const shown = await waitFor(`!!document.querySelector('[data-prism-state="organize-groups"]')`, 5000);
+    const groups = shown
+      ? await cdp.evaluate(`[...document.querySelectorAll('[data-prism="organize-group"]')].map((g) => g.innerText.replace(/\\s+/g, " ").slice(0, 70))`)
+      : [];
+    groups.forEach((g) => info(`group: ${g}`));
+    check("after the scan it suggests 3 groups (the number picked)", groups.length === 3, `${groups.length} groups`);
+    const intro = shown ? await cdp.evaluate(`document.querySelector('[data-prism-state="organize-groups"] p').innerText`) : "";
+    check("it says how the songs were grouped", /25 songs/.test(intro) && /mostly genre/.test(intro), intro);
+    await screenshot("organize-groups.png");
+  }
+  await cdp.evaluate("window.__playlistPrism.goHome()");
 } catch (error) {
   check("smoke test ran to the end", false, error.message);
 } finally {

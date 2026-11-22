@@ -250,7 +250,7 @@ function SeedContent({ data, offNames, setOffNames, onNext, onCancel }: SeedCont
         </p>
       )}
 
-      <div style={styles.buttons}>
+      <div className="prism-actions" style={styles.buttons}>
         <ButtonSecondary buttonSize="sm" onClick={onCancel}>
           Cancel
         </ButtonSecondary>

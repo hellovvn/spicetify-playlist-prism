@@ -71,6 +71,16 @@ const JUNK_TAGS = new Set([
   "great",
   "under 2000 listeners",
   "fip",
+  // Personal labels people put on their own library (seen in real data, 2026-11-22).
+  "saw live",
+  "my top songs",
+  "my music library",
+  "my songs",
+  "liked",
+  "loved",
+  "guilty pleasure",
+  "guilty pleasures",
+  "to listen",
 ]);
 
 // Nationalities and countries describe where the artist is from, not the vibe of a song.
@@ -208,6 +218,14 @@ function titleWords(title: string | undefined): Set<string> {
 function repeatsTitle(name: string, title: Set<string>): boolean {
   if (title.size === 0 || VIBE_WORDS.has(name)) return false;
   return name.split(" ").every((word) => title.has(baseForm(word)));
+}
+
+// True for tags that say nothing about the sound (personal labels, years,
+// ratings...). Exported so code using OLD cached tags (cleaned before a junk
+// word was added here) can still skip them, e.g. Organize's grouping.
+export function isJunkTagName(name: string): boolean {
+  const normal = normalizeTagName(name);
+  return JUNK_TAGS.has(normal) || JUNK_PATTERNS.some((pattern) => pattern.test(normal));
 }
 
 function isJunk(name: string, artistNames: Set<string>, title: Set<string>): boolean {
