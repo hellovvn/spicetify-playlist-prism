@@ -80,7 +80,9 @@ function StatsContent({ record, onOpenPlaylist }: { record: PrismPlaylistRecord;
           <p style={styles.subtext}>
             {record.seed
               ? `Made from "${record.seed.name}" by ${record.seed.artists.join(", ")}${date ? ` · ${date}` : ""}`
-              : `${record.songCount} songs`}
+              : record.organized
+                ? `Organized from ${record.organized.from.join(", ")}${date ? ` · ${date}` : ""}`
+                : `${record.songCount} songs`}
           </p>
         </div>
         <div style={styles.titleSide}>

@@ -20,9 +20,16 @@ import {
   saveTagCacheText,
 } from "./storage";
 import { RECORDS_CHANGED_EVENT } from "./ui/prismRows";
-import { addRecord, buildRecord, estimateRecord, parseRecords, type PrismPlaylistRecord } from "./stats/playlistStats";
+import {
+  addRecord,
+  buildOrganizeRecord,
+  buildRecord,
+  estimateRecord,
+  parseRecords,
+  type PrismPlaylistRecord,
+} from "./stats/playlistStats";
 import { mergeTracks } from "./scan/tracks";
-import { scanSongs, shareArtistLookups, type ScanProgress } from "./scan/scan";
+import { scanSongs, shareArtistLookups, type ScanProgress, type ScannedSong } from "./scan/scan";
 import { createRateLimiter, realClock } from "./scan/limits";
 import { TagCache } from "./scan/tagCache";
 import { MoodCache } from "./scan/moodCache";
@@ -179,13 +186,39 @@ function rememberPlaylist(uri: string, choice: { name: string; seed: SeedData; k
       keptTags: choice.kept,
       songs: choice.songs,
     });
-    savePlaylistRecordsText(JSON.stringify(addRecord(parseRecords(loadPlaylistRecordsText()), record)));
-    // Tell the always-on script (same window) so the new playlist's sidebar
-    // row gets its purple hover straight away (src/ui/prismRows.ts).
-    window.dispatchEvent(new Event(RECORDS_CHANGED_EVENT));
+    saveRecord(record);
   } catch (error) {
     console.warn(`${LOG_PREFIX} couldn't save the playlist record`, error);
   }
+}
+
+function saveRecord(record: PrismPlaylistRecord) {
+  savePlaylistRecordsText(JSON.stringify(addRecord(parseRecords(loadPlaylistRecordsText()), record)));
+  // Tell the always-on script (same window) so the new playlist's sidebar
+  // row gets its purple hover straight away (src/ui/prismRows.ts).
+  window.dispatchEvent(new Event(RECORDS_CHANGED_EVENT));
+}
+
+// Organize (step 13d): creates ONE new playlist for one group, then saves
+// its stats record. All writing happens in src/spotify/write.ts (which only
+// adds songs to a playlist it just created). Returns the new playlist's URI.
+export async function createOrganizedPlaylist(choice: {
+  name: string;
+  songs: ScannedSong[]; // in the group's order
+  labels: string[]; // "built from" on the stats page
+  from: string[]; // names of the playlists that were organized
+}): Promise<string> {
+  const { name, songs, labels, from } = choice;
+  console.log(`${LOG_PREFIX} organize: creating "${name}" with ${songs.length} songs (from: ${from.join(", ")})`);
+  const uri = await createPrismPlaylist(name, songs.map((s) => s.uri));
+  console.log(`${LOG_PREFIX} created ${uri}`);
+  try {
+    saveRecord(buildOrganizeRecord({ uri, name, createdAt: Date.now(), labels, from, songs }));
+  } catch (error) {
+    // The playlist is fine; the stats page just won't know how it was made.
+    console.warn(`${LOG_PREFIX} couldn't save the playlist record`, error);
+  }
+  return uri;
 }
 
 // Stats for a playlist (the stats page). Prism playlists made since records

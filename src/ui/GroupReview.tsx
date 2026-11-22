@@ -2,7 +2,8 @@
 // cards. Click a card to open it: rename it, move or remove songs, or merge
 // it into another group. Or "Start from scratch" (13c-2): make your own
 // groups in the builder (GroupBuilder.tsx), and the sorted result shows as
-// the same cards. Nothing is created in Spotify here (that's 13d).
+// the same cards. "Create playlists" (13d) opens the confirm screen
+// (CreatePlaylists.tsx), the only place that creates anything.
 //
 // The groups are kept as EditableGroup state (src/organize/editGroups.ts:
 // pure functions that return new groups), and each group's summary is worked
@@ -25,12 +26,19 @@ import { tagColour } from "./tagLabels";
 import { TagLabels } from "./GenreLabels";
 import { GlassMenu } from "./GlassMenu";
 import { GroupBuilder } from "./GroupBuilder";
+import { CoverMosaic } from "./CoverMosaic";
+import { CreatePlaylists, type CreateChoice } from "./CreatePlaylists";
 
 export interface GroupReviewProps {
   songs: ScannedSong[]; // every scanned song (for names, covers, summaries)
   suggested: SongGroup[]; // what the grouping suggested
   settings: { count: number | "auto"; overlap: boolean; focus: GroupFocus }; // chosen in Organize's setup
   intro: React.ReactNode; // e.g. "250 songs from 2 playlists into 8 groups..."
+  sourceNames: string[]; // the playlists being organized
+  create: (choice: CreateChoice) => Promise<string>; // makes ONE new playlist (flow.ts)
+  describeError: (error: unknown) => string;
+  onOpenPlaylist: (uri: string) => void;
+  onFinish: () => void; // after creating: to the start page
   onBack: () => void;
 }
 
@@ -38,8 +46,9 @@ export interface GroupReviewProps {
 // groups, or the "Start from scratch" builder.
 type View = "suggested" | "custom" | "builder";
 
-export function GroupReview({ songs, suggested, settings, intro, onBack }: GroupReviewProps) {
-  const { ButtonSecondary } = Spicetify.ReactComponent as any;
+export function GroupReview(props: GroupReviewProps) {
+  const { songs, suggested, settings, intro, onBack } = props;
+  const { ButtonPrimary, ButtonSecondary } = Spicetify.ReactComponent as any;
   // Two separate sets of groups, so switching between "Use suggestions" and
   // your own groups never loses the edits made to either one.
   const [suggestedGroups, setSuggestedGroups] = React.useState<EditableGroup[]>(() => editableGroups(suggested));
@@ -52,6 +61,7 @@ export function GroupReview({ songs, suggested, settings, intro, onBack }: Group
   const [pickedLabels, setPickedLabels] = React.useState<Map<string, string[]>>(new Map());
   const [view, setView] = React.useState<View>("suggested");
   const [openId, setOpenId] = React.useState<string | null>(null);
+  const [creating, setCreating] = React.useState(false); // the confirm/create screen is showing
   const groups = view === "custom" ? customGroups : suggestedGroups;
   const setGroups = view === "custom" ? setCustomGroups : setSuggestedGroups;
   // Look songs up by URI quickly (a Map), rebuilt only when the songs change.
@@ -83,6 +93,28 @@ export function GroupReview({ songs, suggested, settings, intro, onBack }: Group
           setForced(result.placedByMoodTempo.length);
           setView("custom");
         }}
+      />
+    );
+  }
+
+  // Step 13d: confirm and create the groups now on screen.
+  if (creating) {
+    // "Built from" for the stats page: the labels picked for your own groups,
+    // otherwise the group's most common tags.
+    const labelsOf = (group: EditableGroup) =>
+      (view === "custom" && pickedLabels.get(group.id)) || summarize(songsOf(group)).tags.slice(0, 3).map(([name]) => name);
+    return (
+      <CreatePlaylists
+        groups={groups}
+        songsOf={songsOf}
+        labelsOf={labelsOf}
+        sourceNames={props.sourceNames}
+        leftOut={left.length}
+        create={props.create}
+        describeError={props.describeError}
+        onBack={() => setCreating(false)}
+        onOpen={props.onOpenPlaylist}
+        onFinish={props.onFinish}
       />
     );
   }
@@ -133,8 +165,8 @@ export function GroupReview({ songs, suggested, settings, intro, onBack }: Group
         </p>
       )}
       <p className="prism-notice" style={{ fontSize: 13 }}>
-        Click a group to rename it, move or remove songs, or merge it. Creating the playlists comes in the next
-        step (13d). Nothing has been created.
+        Click a group to rename it, move or remove songs, or merge it. Nothing is created until you confirm on the
+        next screen.
       </p>
       <div className="prism-actions" style={styles.buttons}>
         <ButtonSecondary buttonSize="sm" onClick={onBack}>
@@ -149,6 +181,9 @@ export function GroupReview({ songs, suggested, settings, intro, onBack }: Group
         <ButtonSecondary buttonSize="sm" onClick={() => setView("builder")} data-prism="start-from-scratch">
           {view === "custom" ? "Edit my groups" : customGroups.length ? "My own groups" : "Start from scratch"}
         </ButtonSecondary>
+        <ButtonPrimary buttonSize="sm" onClick={() => setCreating(true)} data-prism="open-create">
+          Create playlists
+        </ButtonPrimary>
       </div>
     </div>
   );
@@ -193,30 +228,6 @@ function summaryLine(summary: GroupSummary): string {
   const moods = summary.moods.slice(0, 2).map(([m]) => m).join(", ");
   const bpm = summary.tempo.averageBpm !== null ? `${summary.tempo.averageBpm} BPM` : "";
   return [moods, bpm].filter(Boolean).join(" · ");
-}
-
-// A 2x2 mosaic of the group's first 4 different album covers, like Spotify's
-// own playlist covers. Missing covers become tiles in the group's genre colour.
-function CoverMosaic({ songs, summary, size }: { songs: ScannedSong[]; summary: GroupSummary; size: number }) {
-  const covers: string[] = [];
-  for (const song of songs) {
-    if (song.cover && !covers.includes(song.cover)) covers.push(song.cover);
-    if (covers.length === 4) break;
-  }
-  const colour = tagColour(summary.tags[0]?.[0] ?? "prism");
-  return (
-    <span style={{ ...styles.mosaic, width: size, height: size }} aria-hidden="true">
-      {[0, 1, 2, 3].map((i) =>
-        covers.length >= 4 || (covers.length > 0 && i < covers.length) ? (
-          <img key={i} src={covers[i]} alt="" style={styles.tile} loading="lazy" />
-        ) : covers.length > 0 && covers.length < 4 && i >= covers.length ? (
-          <img key={i} src={covers[i % covers.length]} alt="" style={styles.tile} loading="lazy" />
-        ) : (
-          <span key={i} style={{ ...styles.tile, background: `linear-gradient(${135 + i * 40}deg, ${colour}, #2a1748 75%)` }} />
-        )
-      )}
-    </span>
-  );
 }
 
 // ----- One group opened: rename, move/remove songs, combine -----
@@ -362,8 +373,6 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 5, padding: 11, textAlign: "left",
     cursor: "pointer", color: "inherit", font: "inherit", minWidth: 0,
   },
-  mosaic: { display: "grid", gridTemplateColumns: "1fr 1fr", borderRadius: 10, overflow: "hidden", flexShrink: 0, alignSelf: "center" },
-  tile: { width: "100%", height: "100%", objectFit: "cover", display: "block", aspectRatio: "1" },
   cardName: { color: "#ffffff", fontSize: 14, fontWeight: 700, marginTop: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%" },
   cardCount: { color: "var(--spice-subtext)", fontSize: 12 },
   cardLine: { color: "var(--spice-subtext)", fontSize: 12 },

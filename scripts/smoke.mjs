@@ -147,6 +147,24 @@ try {
     if (!homeShown) await sleep(250);
   }
   check("clicking it opens the page's start screen", homeShown, await cdp.evaluate("Spicetify.Platform.History.location.pathname"));
+  // Start page tiles (flip cards): the details are on the back, hidden until clicked.
+  const faceShown = (sel) => cdp.evaluate(`getComputedStyle(document.querySelector('${sel}')).visibility === "visible"`);
+  check(
+    "start page shows two icon tiles with their details hidden",
+    (await faceShown('[data-prism="flip-prism"]')) && (await faceShown('[data-prism="flip-organize"]')) &&
+      !(await faceShown('[data-prism="mode-prism"] .prism-flip-back')) && !(await faceShown('[data-prism="mode-organize"] .prism-flip-back'))
+  );
+  await cdp.evaluate(`document.querySelector('[data-prism="flip-prism"]').click()`);
+  await sleep(450);
+  check(
+    "clicking the Prism tile flips it to its details (the other tile stays)",
+    (await faceShown('[data-prism="mode-prism"] .prism-flip-back')) && !(await faceShown('[data-prism="flip-prism"]')) && (await faceShown('[data-prism="flip-organize"]'))
+  );
+  await cdp.evaluate(`document.querySelector('[data-prism="unflip-prism"]').click()`);
+  await sleep(450);
+  check("its Back link flips it back to the icon", (await faceShown('[data-prism="flip-prism"]')) && !(await faceShown('[data-prism="mode-prism"] .prism-flip-back')));
+  await cdp.evaluate(`document.querySelector('[data-prism="flip-prism"]').click()`);
+  await sleep(450);
   info(`playing song shown: ${await cdp.evaluate(`document.querySelector('[data-prism="playing-song"]')?.textContent ?? "(nothing playing)"`)}`);
   const typeLink = (text) => cdp.evaluate(`(() => {
     const input = document.querySelector('[data-prism="link-input"]');
@@ -652,6 +670,9 @@ try {
     "the start page shows both modes",
     await waitFor(`!!document.querySelector('[data-prism="mode-prism"]') && !!document.querySelector('[data-prism="mode-organize"]')`, 5000)
   );
+  await cdp.evaluate(`document.querySelector('[data-prism="flip-organize"]').click()`);
+  await sleep(450);
+  check("the Organize tile flips to its details", await faceShown('[data-prism="mode-organize"] .prism-flip-back'));
   await cdp.evaluate(`document.querySelector('[data-prism="start-organize"]').click()`);
   const ORG = `document.querySelector('[data-prism="organize"]')`;
   check(
@@ -815,6 +836,31 @@ try {
       await cdp.evaluate(`document.querySelector('[data-prism="start-from-scratch"]').click()`);
       await sleep(300);
       check("the builder keeps your groups while you switch", (await cdp.evaluate(`${BUILDER}?.querySelectorAll('[aria-pressed="true"][data-prism^="pick-"]').length ?? 0`)) >= 1);
+
+      // 13d: the confirm screen. READ-ONLY: this test NEVER clicks
+      // "Create playlists" (data-prism="create-go"); it only looks and goes Back.
+      console.log("\n[14] Organize: confirm screen (step 13d, read-only: nothing is created)");
+      await cdp.evaluate(`${BUILDER}.querySelector('[data-prism="builder-use-suggestions"]').click()`);
+      await sleep(300);
+      const cardsNow = await cdp.evaluate(`${CARDS}.filter((c) => !/\\b0 songs/.test(c.innerText)).length`);
+      await cdp.evaluate(`document.querySelector('[data-prism="open-create"]').click()`);
+      const CONFIRM = `document.querySelector('[data-prism-state="organize-create-confirm"]')`;
+      check("\"Create playlists\" opens a confirm screen first", await waitFor(`!!${CONFIRM}`, 3000));
+      const rowNames = await cdp.evaluate(`[...${CONFIRM}.querySelectorAll('[data-prism="create-name"]')].map((n) => n.textContent)`);
+      info(`will create: ${rowNames.join(" | ")}`);
+      check("it lists one new playlist per group with songs", rowNames.length === cardsNow, `${rowNames.length} rows, ${cardsNow} groups`);
+      check("names start with \"Prism · \" by default", rowNames.length > 0 && rowNames.every((n) => n.startsWith("Prism · ")));
+      check("every row is still \"ready\" (nothing created)", await cdp.evaluate(`[...${CONFIRM}.querySelectorAll('[data-prism="create-row"]')].every((r) => r.dataset.status === "ready")`));
+      await screenshot("organize-create-confirm.png");
+      await cdp.evaluate(`${CONFIRM}.querySelector('[data-prism="prefix-off"]').click()`);
+      await sleep(200);
+      check(
+        "turning the prefix off shows the plain names",
+        await cdp.evaluate(`[...${CONFIRM}.querySelectorAll('[data-prism="create-name"]')].every((n) => !n.textContent.startsWith("Prism · "))`)
+      );
+      await cdp.evaluate(`${CONFIRM}.querySelector('[data-prism="create-back"]').click()`);
+      await sleep(300);
+      check("Back returns to the group cards", (await cdp.evaluate(`${CARDS}.length`)) > 0);
     }
   }
   await cdp.evaluate("window.__playlistPrism.goHome()");

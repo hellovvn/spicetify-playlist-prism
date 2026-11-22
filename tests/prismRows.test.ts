@@ -15,7 +15,16 @@ describe("prismRowCss", () => {
     const css = prismRowCss([A, B]);
     expect(css).toContain(`[role="row"]:has([aria-labelledby^="listrow-title-${A}"]):hover`);
     expect(css).toContain(`[role="row"]:has([aria-labelledby^="listrow-title-${B}"]):hover`);
-    expect(css.match(/\{/g)).toHaveLength(2); // the purple layer + the rim, each covering every playlist
+    // One purple + rays layer and one rim rule, each covering every playlist (no rule per playlist).
+    expect(css.split("::after {")).toHaveLength(3); // the glow, plus its "animations off" version
+    expect(css).toContain("box-shadow");
+  });
+
+  test("the rainbow rays drift, except for people who turn animations off", () => {
+    const css = prismRowCss([A]);
+    expect(css).toContain("animation: prism-row-rays");
+    expect(css).toContain("@keyframes prism-row-rays");
+    expect(css).toMatch(/prefers-reduced-motion: reduce\)[\s\S]*animation: none/);
   });
 
   test("a duplicate URI makes no difference", () => {

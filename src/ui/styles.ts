@@ -489,6 +489,172 @@ const CSS = `
   animation: prism-scan-breathe 2.4s ease-in-out infinite;
 }
 
+/* ----- Start page: flip tiles (FlipTile.tsx, icons in HomeIcons.tsx) -----
+   perspective: how "deep" the 3D turn looks (smaller = more dramatic).
+   preserve-3d: the two faces turn together as one card.
+   The hidden face also gets visibility: hidden (after the turn is half done)
+   so Tab and screen readers skip it. */
+.prism-flip { perspective: 1100px; height: 370px; }
+.prism-flip-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 650ms cubic-bezier(0.2, 0.75, 0.25, 1);
+}
+.prism-flip.is-flipped .prism-flip-inner { transform: rotateY(180deg); }
+.prism-flip-face {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.prism-flip-front { visibility: visible; transition: visibility 0s 0s; }
+.prism-flip.is-flipped .prism-flip-front { visibility: hidden; transition: visibility 0s 320ms; }
+.prism-flip-back {
+  transform: rotateY(180deg);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 18px 14px;
+  overflow-y: auto;
+  visibility: hidden;
+  transition: visibility 0s 320ms;
+}
+.prism-flip.is-flipped .prism-flip-back { visibility: visible; transition: visibility 0s 0s; }
+.prism-flip-close {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  padding: 2px 0;
+  color: #cdb8ff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.prism-flip-close:hover { color: #ffffff; }
+.prism-flip-close:focus-visible { outline: 2px solid #cdb8ff; outline-offset: 2px; border-radius: 4px; }
+
+/* The front: a glass button with the icon and label in the very centre. */
+.prism-mode-tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.04));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+  cursor: pointer;
+  transition: border-color 250ms, box-shadow 250ms;
+}
+/* The hover background: a pastel rainbow, blurred into a soft glow, slowly
+   turning. It is a ::before layer (a pretend extra element made by CSS) so
+   it can spin without spinning the icon. It waits, paused and invisible,
+   until hover. */
+.prism-mode-tile::before {
+  content: "";
+  position: absolute;
+  inset: -45%;
+  background: conic-gradient(from 0deg, #ffb3d1, #ffd6a5, #fdffb6, #caffbf, #9bf6ff, #bdb2ff, #ffc6ff, #ffb3d1);
+  filter: blur(34px);
+  opacity: 0;
+  transition: opacity 400ms ease;
+  animation: prism-tile-swirl 9s linear infinite;
+  animation-play-state: paused;
+}
+.prism-mode-tile:hover, .prism-mode-tile:focus-visible {
+  border-color: rgba(222, 205, 255, 0.85);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 0 26px rgba(205, 184, 255, 0.5);
+  outline: none;
+}
+.prism-mode-tile:hover::before, .prism-mode-tile:focus-visible::before { opacity: 0.45; animation-play-state: running; }
+@keyframes prism-tile-swirl { to { transform: rotate(360deg); } }
+.prism-mode-tile .prism-star { visibility: hidden; z-index: 1; }
+.prism-mode-tile:hover .prism-star, .prism-mode-tile:focus-visible .prism-star { visibility: visible; }
+.prism-mode-center {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.prism-mode-icon { transition: transform 350ms cubic-bezier(0.3, 1.5, 0.5, 1); overflow: visible; }
+.prism-mode-tile:hover .prism-mode-icon, .prism-mode-tile:focus-visible .prism-mode-icon { transform: translateY(-4px) scale(1.07); }
+/* Soft lavender with a faint lavender glow, to match the twilight theme. */
+.prism-mode-label {
+  font-family: "Segoe UI Variable Display", "Segoe UI", sans-serif;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #e9dcff;
+  text-shadow: 0 0 14px rgba(205, 184, 255, 0.55);
+}
+/* The short line: under the label, fading up on hover. Positioned at the
+   bottom so it never pushes the icon and label off centre. */
+.prism-mode-tip {
+  position: absolute;
+  z-index: 1;
+  left: 0;
+  right: 0;
+  bottom: 30px;
+  padding: 0 20px;
+  text-align: center;
+  font-size: 13px;
+  color: #f3e8ff;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 250ms, transform 250ms;
+}
+.prism-mode-tile:hover .prism-mode-tip, .prism-mode-tile:focus-visible .prism-mode-tip { opacity: 1; transform: none; }
+
+/* The icons' little moving parts: paused until the tile is hovered. */
+.prism-ic-anim { transform-box: fill-box; transform-origin: center; animation-play-state: paused; }
+.prism-mode-tile:hover .prism-ic-anim, .prism-mode-tile:focus-visible .prism-ic-anim { animation-play-state: running; }
+/* Boombox + tapes. Speakers: the cone pulses and a ring ripples out on each
+   beat. The ring capsules (prism-ic-ringpulse) slide out and back. Notes fly
+   out along their own --dx/--dy (CSS variables set per note
+   in HomeIcons.tsx) and fade. Reels spin. The tapes shuffle and notes drop into the top one. */
+.prism-ic-pulse { animation: prism-ic-pulse 0.6s ease-in-out infinite; animation-play-state: paused; }
+.prism-ic-ripple { opacity: 0; animation: prism-ic-ripple 0.6s ease-out infinite; animation-play-state: paused; }
+/* Tape shuffle (3.2 s loop): hold, move, hold swapped (40-75%), move back.
+   a = left tape -> right spot, b = right tape -> top, c = top tape -> left. */
+.prism-ic-shuffle-a { animation: prism-ic-shuffle-a 3.2s ease-in-out infinite; animation-play-state: paused; }
+.prism-ic-shuffle-b { animation: prism-ic-shuffle-b 3.2s ease-in-out infinite; animation-play-state: paused; }
+.prism-ic-shuffle-c { animation: prism-ic-shuffle-c 3.2s ease-in-out infinite; animation-play-state: paused; }
+@keyframes prism-ic-shuffle-a { 0%, 25%, 90%, 100% { transform: translate(0, 0); } 40%, 75% { transform: translate(46px, 0); } }
+@keyframes prism-ic-shuffle-b { 0%, 25%, 90%, 100% { transform: translate(0, 0); } 40%, 75% { transform: translate(-23px, -32px); } }
+@keyframes prism-ic-shuffle-c { 0%, 25%, 90%, 100% { transform: translate(0, 0); } 40%, 75% { transform: translate(-23px, 32px); } }
+/* Notes dropping into the top tape (1.6 s loop = half the shuffle). */
+.prism-ic-drop { opacity: 0; animation: prism-ic-drop 1.6s ease-in infinite; animation-play-state: paused; }
+@keyframes prism-ic-drop {
+  0%        { transform: translateY(-14px) rotate(-12deg); opacity: 0; }
+  10%       { opacity: 1; }
+  32%       { transform: translateY(11px) rotate(0deg) scale(0.9); opacity: 1; }
+  42%, 100% { transform: translateY(16px) scale(0.3); opacity: 0; }
+}
+.prism-ic-ringpulse { animation: prism-ic-ringpulse 0.8s ease-in-out infinite; animation-play-state: paused; }
+@keyframes prism-ic-ringpulse { 0%, 100% { transform: translateY(2px); opacity: 0.55; } 50% { transform: translateY(-5px); opacity: 1; } }
+.prism-ic-fly { opacity: 0; animation: prism-ic-fly 1.6s ease-out infinite; animation-play-state: paused; }
+.prism-ic-spin { animation: prism-ic-spin 2.4s linear infinite; animation-play-state: paused; }
+@keyframes prism-ic-pulse { 0%, 100% { transform: scale(0.62); } 45% { transform: scale(1.12); } }
+@keyframes prism-ic-ripple { 0% { transform: scale(1); opacity: 0.9; } 100% { transform: scale(1.9); opacity: 0; } }
+@keyframes prism-ic-fly {
+  0%   { transform: translate(0, 0) scale(0.5); opacity: 0; }
+  20%  { opacity: 1; }
+  100% { transform: translate(var(--dx), var(--dy)) scale(1.05) rotate(12deg); opacity: 0; }
+}
+@keyframes prism-ic-spin { to { transform: rotate(360deg); } }
+  0%   { transform: translateY(6px) scale(0.6); opacity: 0; }
+  25%  { opacity: 1; }
+  50%  { transform: translateY(-8px) scale(1) rotate(-10deg); opacity: 1; }
+  80%  { opacity: 0; }
+  100% { transform: translateY(6px) scale(0.6); opacity: 0; }
+}
+
 /* The page content sits above the background layer. */
 .prism-cosmos > .prism-page { position: relative; z-index: 1; }
 
@@ -501,6 +667,9 @@ const CSS = `
   /* Popping still works, just without the swell: the bubble disappears at once. */
   .prism-bubble-body.is-popping { animation: none; opacity: 0; }
   .prism-sparkle-bit { display: none; }
+  /* Start page tiles: swap faces without the turn, and keep the hover glow still. */
+  .prism-flip-inner, .prism-mode-icon { transition: none; }
+  .prism-mode-tile::before, .prism-ic-anim { animation: none !important; }
   .prism-spinner { animation-duration: 2400ms; }
 }
 `;

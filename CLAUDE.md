@@ -201,6 +201,45 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
       picked labels first.
   - 13d: create the N playlists. write.ts must allow SEVERAL new playlists per session, each still
     guarded (only URIs created in this session); confirm first; save stats records for each.
+    COMMITTED 2026-11-22 at the developer's request, BEFORE a real "Create playlists" run (still
+    untested with real playlists: do that run next). write.ts needed no
+    change (createdThisSession was already a Set). Layout "B" (developer's pick): "Create playlists"
+    on the cards screen opens a confirm screen (`src/ui/CreatePlaylists.tsx`) listing each playlist
+    (empty groups skipped), a "Prism · " prefix switch (ON by default, developer's wish), then
+    creates them ONE AT A TIME (`createAll` in `src/organize/createPlaylists.ts`, pure + tested):
+    stops at the first failure and says which exist / weren't tried. Done = rows with Open +
+    "Start page". flow.ts `createOrganizedPlaylist` writes via createPrismPlaylist, then saves
+    `buildOrganizeRecord` (seed null, keptTags = picked labels or top 3 tags,
+    `organized.from` = source playlist names; stats page says "Organized from ...").
+    The smoke test opens the confirm screen only and NEVER clicks Create.
+  - Start page redesign: DONE, committed 2026-11-22 with 13d. Mockup
+    "D" flip tiles (`src/ui/FlipTile.tsx`). The front shows a centered whimsical SVG icon and a
+    label (`src/ui/HomeIcons.tsx`, the developer's picks after many mockup rounds). Tile 1,
+    "Grow a playlist": a see-through matte pink boombox. Its speakers pulse with two ripple
+    rings (no centre dot), it has a small pill in the middle and a ring of 20 round rainbow
+    capsules that slide out on the beat, and notes fly out from behind it (hidden by an SVG
+    mask). Tile 2, "Remix into moods": three see-through tapes with hearts on a shelf. On
+    hover they shuffle places (3.2 s loop), and music notes drop into whichever tape is on top
+    (1.6 s loop, so the notes land during each pause). On hover there's a swirling pastel conic glow, sparkles, the icon
+    animates, and a short line appears. Click flips the tile to the old card content plus
+    "← Back". The hidden face is visibility:hidden, so Tab skips it. Reduced motion means no
+    turn or swirl. Smoke: `flip-prism`/`flip-organize` buttons, `unflip-*` Back.
+- 14 (to-do, asked 2026-11-22; not designed yet, so show mockups first):
+  - 14a THEMES: the user can switch the page's background away from purple twilight. Options:
+    sunset, twilight (current), dusk, and a few more (for example dawn, aurora, ocean). Pick in
+    Settings; saved in Spicetify.LocalStorage. The colours should be CSS variables, so a theme
+    only swaps the variables.
+  - 14b PER-PLAYLIST THEME: a theme can be set on one playlist. Opening that playlist in Spotify
+    changes the background to its theme. This is a local setting only (LocalStorage keyed by
+    playlist URI) and must NEVER write to the playlist itself (hard rule).
+  - 14c The LYRICS view follows the active theme (the playlist's theme if it has one).
+  - 14d NEW VIEW: the playlist and its lyrics side by side, so the user can see the playlist
+    while singing along. Never store or log lyrics text.
+  - 14e DISCOVER in Prism playlists: besides songs from the user's own sources, also recommend
+    similar songs that are NOT in their library ("discover + comfort songs"). Show them in the
+    preview, marked as new finds, and let the user choose how many / turn them off. Candidate
+    source to investigate (read-only spike first): Last.fm `track.getSimilar` / `artist.getSimilar`,
+    then search Spotify for each match. These songs are only added to the NEW playlist.
 - 11: Cleanup: remove the debug hook, README, release (after 12).
 
 ## Dev loop (Claude runs this, not the developer)

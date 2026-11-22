@@ -1,4 +1,4 @@
-// Purple hover for playlists Prism made, in Spotify's sidebar ("Your Library").
+// Purple hover with drifting rainbow rays for playlists Prism made, in Spotify's sidebar ("Your Library").
 //
 // Spotify draws the sidebar, so we can't change its React code. Instead this
 // adds a <style> tag with one rule per Prism playlist. Each sidebar row
@@ -13,9 +13,10 @@
 import { isPlaylistUri } from "../nav";
 import { loadPlaylistRecordsText } from "../storage";
 import { parseRecords } from "../stats/playlistStats";
+import { NAME_PREFIX } from "../organize/createPlaylists";
 
 const STYLE_ID = "playlist-prism-sidebar-rows";
-export const DEFAULT_NAME_PREFIX = "Prism · ";
+export const DEFAULT_NAME_PREFIX = NAME_PREFIX; // one copy, shared with Organize
 
 // The CSS for these playlists' sidebar rows (empty if none).
 export function prismRowCss(uris: string[]): string {
@@ -26,13 +27,29 @@ export function prismRowCss(uris: string[]): string {
     valid.map((uri) => `[role="row"]:has([aria-labelledby^="listrow-title-${uri}"]):hover [data-encore-id="listRow"]${after}`).join(",\n");
   // Spotify paints its grey hover on the row's ::after layer (on top of the
   // row), so the purple goes on that same layer, plus a light rim on the row.
+  // On top of the purple: two soft rainbow "rays" (like the light bands on
+  // Prism's own page) that sway across the row. They are extra background
+  // layers (the first one listed is drawn on top), wider than the row
+  // (background-size 260% / 340%), and the animation slides their
+  // background-position, so the bands drift across at two different speeds.
   return `
-/* Prism playlists: a purple twilight glow on hover (see src/ui/prismRows.ts). */
+/* Prism playlists: a purple twilight glow with rainbow rays on hover (see src/ui/prismRows.ts). */
 ${rows("::after")} {
-  background: linear-gradient(100deg, rgba(123, 63, 228, 0.6), rgba(77, 34, 112, 0.55) 55%, rgba(192, 79, 216, 0.45)) !important;
+  background:
+    linear-gradient(105deg, transparent 32%, rgba(255, 150, 200, 0.4) 39%, rgba(255, 205, 150, 0.36) 44%, rgba(255, 240, 150, 0.32) 49%, rgba(150, 240, 190, 0.32) 54%, rgba(140, 200, 255, 0.36) 59%, rgba(190, 160, 255, 0.4) 64%, transparent 71%) 0 0 / 260% 100% no-repeat,
+    linear-gradient(125deg, transparent 40%, rgba(190, 160, 255, 0.28) 46%, rgba(140, 200, 255, 0.26) 50%, rgba(150, 240, 190, 0.24) 54%, rgba(255, 150, 200, 0.26) 58%, transparent 64%) 0 0 / 340% 100% no-repeat,
+    linear-gradient(100deg, rgba(123, 63, 228, 0.6), rgba(77, 34, 112, 0.55) 55%, rgba(192, 79, 216, 0.45)) !important;
+  animation: prism-row-rays 3.2s ease-in-out infinite alternate;
 }
 ${rows("")} {
   box-shadow: inset 0 0 0 1px rgba(205, 184, 255, 0.35);
+}
+@keyframes prism-row-rays {
+  from { background-position: 100% 0, 0% 0, 0 0; }
+  to { background-position: 0% 0, 100% 0, 0 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+${rows("::after")} { animation: none; }
 }
 `;
 }

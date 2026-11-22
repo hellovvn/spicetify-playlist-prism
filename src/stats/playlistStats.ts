@@ -30,6 +30,9 @@ export interface PrismPlaylistRecord {
   // Set when this was worked out from scans instead of saved at creation:
   // how many of the songs Prism has tags for (the counts only cover those).
   estimate?: { scanned: number };
+  // Set for playlists made by Organize (step 13d): the playlists its songs
+  // were sorted out of. Organize playlists have no seed song (seed = null).
+  organized?: { from: string[] };
 }
 
 export interface NamedValue {
@@ -174,6 +177,31 @@ export function buildRecord(input: {
     match: matchSpread(
       input.songs.filter((song) => song.match).map((song) => ({ name: song.name, score: song.match!.score }))
     ),
+  };
+}
+
+// The record for a playlist made by Organize (step 13d). No seed song: the
+// "built from" labels are the genres/moods picked for the group (Start from
+// scratch) or the group's most common tags (suggested groups).
+export function buildOrganizeRecord(input: {
+  uri: string;
+  name: string;
+  createdAt: number;
+  labels: string[];
+  from: string[]; // names of the playlists that were organized
+  songs: SongLike[];
+}): PrismPlaylistRecord {
+  return {
+    uri: input.uri,
+    name: input.name.trim(),
+    createdAt: input.createdAt,
+    seed: null,
+    keptTags: [...input.labels],
+    songCount: input.songs.length,
+    ...summarize(input.songs),
+    tempo: tempoSpread(input.songs),
+    length: lengthSummary(input.songs),
+    organized: { from: [...input.from] },
   };
 }
 

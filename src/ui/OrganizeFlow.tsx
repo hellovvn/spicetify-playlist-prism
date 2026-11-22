@@ -14,7 +14,7 @@ import React from "react";
 import type { SourceOption } from "../sources/sources";
 import { summarize } from "../scan/scan";
 import { groupSongs, type GroupFocus } from "../organize/grouping";
-import { GroupReview } from "./GroupReview";
+import { GroupReview, type GroupReviewProps } from "./GroupReview";
 import { SourcePicker } from "./SourcePicker";
 import { ScanScreen, type ScanOutcome, type ScanScreenProps } from "./ScanScreen";
 import { SCREEN_HEIGHT } from "./styles";
@@ -38,13 +38,16 @@ const FOCUS_CHOICES: [GroupFocus, string][] = [
 
 export interface OrganizeFlowProps {
   loadSources: () => Promise<SourceOption[]>;
+  createPlaylist: GroupReviewProps["create"]; // flow.ts createOrganizedPlaylist (the only write)
+  onOpenPlaylist: (uri: string) => void;
   runScan: ScanScreenProps["runScan"];
   describeError: (error: unknown) => string;
   onCancel: () => void; // Back on the first screen: to the start page
   onScanningChange?: (running: boolean) => void;
 }
 
-export function OrganizeFlow({ loadSources, runScan, describeError, onCancel, onScanningChange }: OrganizeFlowProps) {
+export function OrganizeFlow(props: OrganizeFlowProps) {
+  const { loadSources, runScan, describeError, onCancel, onScanningChange } = props;
   const [screen, setScreen] = React.useState<"setup" | "scan" | "groups">("setup");
   // Kept here (not in the screens) so going Back keeps the user's choices.
   const [selected, setSelected] = React.useState<string[]>([]);
@@ -86,7 +89,18 @@ export function OrganizeFlow({ loadSources, runScan, describeError, onCancel, on
       />
     );
   } else {
-    body = <Groups scan={scan} sources={picked} settings={settings} onBack={() => setScreen("setup")} />;
+    body = (
+      <Groups
+        scan={scan}
+        sources={picked}
+        settings={settings}
+        onBack={() => setScreen("setup")}
+        create={props.createPlaylist}
+        describeError={describeError}
+        onOpenPlaylist={props.onOpenPlaylist}
+        onFinish={onCancel}
+      />
+    );
   }
 
   return (
@@ -186,12 +200,13 @@ function Groups({
   sources,
   settings,
   onBack,
+  ...creating
 }: {
   scan: ScanOutcome | null;
   sources: SourceOption[];
   settings: OrganizeSettings;
   onBack: () => void;
-}) {
+} & Pick<GroupReviewProps, "create" | "describeError" | "onOpenPlaylist" | "onFinish">) {
   const songs = scan?.songs ?? [];
   const s = summarize(songs);
   // useMemo: group once, not again on every re-render (it's real work).
@@ -207,6 +222,8 @@ function Groups({
       suggested={grouping.groups}
       settings={settings}
       onBack={onBack}
+      sourceNames={sources.map((source) => source.name)}
+      {...creating}
       intro={
         <>
           {s.total} songs from {sources.length} playlist{sources.length === 1 ? "" : "s"} into{" "}

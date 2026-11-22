@@ -20,12 +20,14 @@
 // Step 12b adds tabs and scans that keep running while you browse.
 
 import React from "react";
+import { FlipTile } from "./FlipTile";
+import { OrganizeIcon, PrismIcon as PrismTileIcon } from "./HomeIcons";
 import { getSources } from "../spotify/read";
 import { getLastfmKey } from "../storage";
 import { SAMPLE_RECORD } from "../stats/playlistStats";
 import { StatsScreen } from "./StatsScreen";
 import { OrganizeFlow } from "./OrganizeFlow";
-import { createFromPreview, friendlyError, loadPlaylistStats, loadSeed, runScan } from "../flow";
+import { createFromPreview, createOrganizedPlaylist, friendlyError, loadPlaylistStats, loadSeed, runScan } from "../flow";
 import { PAGE_PATH, parsePageRequest, parseTrackLink, type PageRequest } from "../nav";
 import { SeedPanel } from "./SeedPanel";
 import { SettingsPanel } from "./SettingsPanel";
@@ -176,6 +178,9 @@ export function PrismPage() {
       <OrganizeFlow
         key={view.id}
         loadSources={getSources}
+        createPlaylist={createOrganizedPlaylist}
+        // Just navigation, like clicking the playlist in the sidebar.
+        onOpenPlaylist={(uri) => History.push(`/playlist/${uri.split(":")[2]}`)}
         runScan={runScan}
         describeError={friendlyError}
         onCancel={goHome}
@@ -293,9 +298,10 @@ function HomeScreen({ onStart, onOrganize }: { onStart: (seed: string) => void; 
         <p style={styles.subtext}>Your existing playlists are never changed: Prism only ever makes new ones.</p>
       </div>
 
-      {/* Two modes side by side, as glass cards. */}
+      {/* Two modes side by side, as flip tiles: an icon on the front, the
+          details and buttons on the back (FlipTile.tsx). */}
       <div style={styles.modes}>
-        <section className="prism-glass-panel" style={styles.mode} data-prism="mode-prism">
+        <FlipTile id="mode-prism" icon={<PrismTileIcon />} label="Grow a playlist" tip="Turn one favourite song into a whole playlist">
           <h3 style={styles.cardTitle}>Make a Prism playlist</h3>
           <p style={styles.subtext}>Start from one song and find its vibe in your playlists.</p>
 
@@ -306,9 +312,12 @@ function HomeScreen({ onStart, onOrganize }: { onStart: (seed: string) => void; 
                 <span style={styles.text} data-prism="playing-song">
                   {playing.name} · {playing.artists}
                 </span>
-                <ButtonPrimary buttonSize="sm" onClick={() => onStart(playing.uri)} data-prism="start-playing">
-                  Use this song
-                </ButtonPrimary>
+                {/* nowrap + no shrinking: the button keeps its pill shape and the song name wraps instead. */}
+                <span style={styles.keepWhole}>
+                  <ButtonPrimary buttonSize="sm" onClick={() => onStart(playing.uri)} data-prism="start-playing">
+                    Use this song
+                  </ButtonPrimary>
+                </span>
               </div>
             ) : (
               <p style={styles.subtext}>Nothing is playing (or it isn't a song).</p>
@@ -342,9 +351,9 @@ function HomeScreen({ onStart, onOrganize }: { onStart: (seed: string) => void; 
           </div>
 
           <p style={styles.hint}>Tip: right-click any song in Spotify and choose "Start a Prism playlist".</p>
-        </section>
+        </FlipTile>
 
-        <section className="prism-glass-panel" style={styles.mode} data-prism="mode-organize">
+        <FlipTile id="mode-organize" icon={<OrganizeIcon />} label="Remix into moods" tip="Split playlists by genre and mood">
           <h3 style={styles.cardTitle}>Organize playlists</h3>
           <p style={styles.subtext}>
             Pick some playlists and split all their songs into new playlists by genre and mood.
@@ -360,7 +369,7 @@ function HomeScreen({ onStart, onOrganize }: { onStart: (seed: string) => void; 
               Organize playlists
             </ButtonPrimary>
           </div>
-        </section>
+        </FlipTile>
       </div>
     </div>
   );
@@ -409,9 +418,8 @@ const styles: Record<string, React.CSSProperties> = {
   column: { display: "flex", flexDirection: "column", gap: 16 },
   heading: { margin: "0 0 6px", fontSize: 22, fontWeight: 700 },
   card: { background: "var(--spice-card)", borderRadius: 8, padding: 16, display: "flex", flexDirection: "column", gap: 8 },
-  // The two mode cards: side by side, wrapping to stacked in a narrow window.
+  // The two mode tiles: side by side, wrapping to stacked in a narrow window.
   modes: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 14, alignItems: "stretch" },
-  mode: { display: "flex", flexDirection: "column", gap: 12, padding: "18px 18px 16px" },
   option: { display: "flex", flexDirection: "column", gap: 6 },
   optionLabel: { color: "var(--spice-text)", fontSize: 13, fontWeight: 600 },
   hint: { margin: 0, color: "var(--spice-subtext)", fontSize: 12 },
@@ -419,6 +427,7 @@ const styles: Record<string, React.CSSProperties> = {
   cardTitle: { margin: 0, fontSize: 17, fontWeight: 700 },
   row: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 },
   text: { color: "var(--spice-text)" },
+  keepWhole: { flexShrink: 0, whiteSpace: "nowrap" },
   subtext: { color: "var(--spice-subtext)", margin: 0 },
   input: { flex: 1, padding: 8, borderRadius: 4, border: "1px solid var(--spice-subtext)", background: "transparent", color: "var(--spice-text)" },
   // Soft pink instead of Spotify's red, which clashes with the purple theme.
