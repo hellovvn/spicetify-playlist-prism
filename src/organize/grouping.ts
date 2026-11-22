@@ -34,6 +34,7 @@ export interface GroupingSettings {
 export interface SongToGroup {
   uri: string;
   name: string;
+  artists?: string[]; // used so a group isn't named after one artist's odd tag
   tags: SourcedTag[];
   audio: AudioAttributes | null;
   mood: MoodProfile | null;
@@ -339,7 +340,8 @@ function moodCounts(songs: SongToGroup[]): [string, number][] {
   );
 }
 
-function summarize(songs: SongToGroup[]): GroupSummary {
+// Exported so the review screen can refresh a group's summary after edits.
+export function summarize(songs: SongToGroup[]): GroupSummary {
   const bpms = songs.map((s) => s.audio?.bpm).filter((b): b is number => typeof b === "number");
   return {
     tags: countUp(
@@ -381,9 +383,15 @@ function typicalTags(group: SongToGroup[], all: SongToGroup[]): string[] {
     Math.max(songs.length, 1);
   // Long descriptive tags ("a vocal centric aesthetic") make poor names: only
   // tags of up to 3 words can name a group (they still count for grouping).
+  // And a tag only ONE artist in the group has (an odd fan tag like
+  // "lestappencore") can't name it either, when the group has several artists.
+  const artistsWith = (tag: string) =>
+    new Set(group.filter((s) => s.tags.some((t) => t.name.toLowerCase() === tag)).map((s) => (s.artists ?? [s.uri])[0])).size;
+  const groupArtists = new Set(group.map((s) => (s.artists ?? [s.uri])[0])).size;
   const candidates = summarize(group)
     .tags.map(([tag]) => tag)
-    .filter((tag) => tag.split(" ").length <= 3);
+    .filter((tag) => tag.split(" ").length <= 3)
+    .filter((tag) => groupArtists < 2 || artistsWith(tag) >= 2);
   return candidates
     .map((tag) => {
       const here = share(group, tag);

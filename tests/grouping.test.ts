@@ -135,3 +135,17 @@ describe("titleCase", () => {
     ["heartbreak", "Heartbreak"],
   ])("%s -> %s", (input, output) => expect(titleCase(input)).toBe(output));
 });
+
+describe("naming with artists", () => {
+  test("a tag only one artist in the group has doesn't name the group", () => {
+    const songs = [
+      { ...song("a1", [t("alternative"), t("oddfantag", 1)], 70, { heartbreak: 1 }), artists: ["Artist One"] },
+      { ...song("a2", [t("alternative"), t("oddfantag", 1)], 72, { heartbreak: 1 }), artists: ["Artist One"] },
+      { ...song("a3", [t("alternative"), t("indie", 0.5)], 71, { heartbreak: 1 }), artists: ["Artist Two"] },
+      { ...song("a4", [t("alternative"), t("indie", 0.5)], 73, { heartbreak: 1 }), artists: ["Artist Three"] },
+    ];
+    const [group] = groupSongs(songs, { count: 1, overlap: false, focus: "genre" }).groups;
+    expect(group.name).not.toMatch(/Oddfantag/);
+    expect(group.name).toMatch(/Alternative/);
+  });
+});

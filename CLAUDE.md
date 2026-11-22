@@ -178,8 +178,19 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
     junk tags ("my top songs", "saw live"...) added to cleanTags and skipped by grouping via
     isJunkTagName (old cached tags still contain them). Grouping can't recreate the original
     playlists when they don't differ in sound (it only sees genre/mood/tempo).
-  - 13c: review screen (album-cover cards); rename, move/remove songs, merge groups; "Start from
-    scratch" builder (pick genres/moods per group, Prism sorts the songs into them).
+  - 13c, split in two:
+    - 13c-1: review screen (album-cover cards) + editing: rename, move/remove songs, merge.
+      DONE: tested and committed 2026-11-22. `src/ui/GroupReview.tsx`;
+      pure edits in `src/organize/editGroups.ts` (+ tests). Covers: ScanTrack.cover/coverSmall
+      from album.images ("spotify:image:<id>" -> https://i.scdn.co/image/<id>). Groups are only
+      named after tags shared by 2+ artists in the group. Smoke note: when Spotify isn't the
+      active window, element.focus()/blur() fire no events; the smoke test sends "focusout".
+      Dropdowns are `src/ui/GlassMenu.tsx` (a <select>'s open list is drawn by Windows, can't be
+      glass). Its list is a React PORTAL into <body>: Spotify's main view has will-change:
+      transform, which makes position:fixed measure from the view (list showed ~300px off).
+      Merge is "Combine with another group…" and asks first, saying what will happen.
+    - 13c-2: "Start from scratch" builder (pick genres/moods per group, Prism sorts the songs
+      into them).
   - 13d: create the N playlists. write.ts must allow SEVERAL new playlists per session, each still
     guarded (only URIs created in this session); confirm first; save stats records for each.
 - 11: Cleanup: remove the debug hook, README, release (after 12).

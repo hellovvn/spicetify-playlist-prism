@@ -50,3 +50,28 @@ describe("mergeTracks", () => {
     expect(mergeTracks([])).toEqual({ tracks: [], duplicates: 0 });
   });
 });
+
+describe("album covers", () => {
+  test("turns Spotify image IDs into web addresses (standard + small)", () => {
+    const [track] = toScanTracks([
+      {
+        uri: "spotify:track:abc",
+        name: "Song",
+        artists: [{ name: "A" }],
+        album: {
+          images: [
+            { url: "spotify:image:STD", label: "standard" },
+            { url: "spotify:image:SML", label: "small" },
+          ],
+        },
+      },
+    ]);
+    expect(track.cover).toBe("https://i.scdn.co/image/STD");
+    expect(track.coverSmall).toBe("https://i.scdn.co/image/SML");
+  });
+
+  test("no images: no cover fields", () => {
+    const [track] = toScanTracks([{ uri: "spotify:track:abc", name: "Song", artists: [] }]);
+    expect(track.cover).toBeUndefined();
+  });
+});

@@ -687,6 +687,71 @@ try {
     const intro = shown ? await cdp.evaluate(`document.querySelector('[data-prism-state="organize-groups"] p').innerText`) : "";
     check("it says how the songs were grouped", /25 songs/.test(intro) && /mostly genre/.test(intro), intro);
     await screenshot("organize-groups.png");
+
+    // 13c: editing on the review screen (all on screen only; nothing is created).
+    const CARDS = `[...document.querySelectorAll('[data-prism="organize-group"]')]`;
+    const cardCount = (i) => cdp.evaluate(`parseInt(${CARDS}[${i}].innerText.match(/(\\d+) songs/)[1])`);
+    check("each group card shows a 2x2 cover mosaic", await cdp.evaluate(`${CARDS}.every((c) => c.querySelectorAll("img, span[style*='gradient']").length >= 4)`));
+    const before0 = await cardCount(0);
+    const before1 = await cardCount(1);
+    await cdp.evaluate(`${CARDS}[0].click()`);
+    const DETAIL = `document.querySelector('[data-prism-state="organize-group-detail"]')`;
+    check("clicking a card opens that group", await waitFor(`!!${DETAIL}`, 3000));
+    // Rename: type a new name, then leave the box (blur saves it).
+    await cdp.evaluate(`(() => {
+      const input = ${DETAIL}.querySelector('[data-prism="group-name-input"]');
+      input.focus(); // like a user clicking into the box (blur only fires after focus)
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(input, "Smoke test name");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      // "Leave the box". When Spotify isn't the active window the browser sends
+      // no real focus events, so send React's "focusout" ourselves.
+      input.dispatchEvent(new FocusEvent("focusout", { bubbles: true }));
+    })()`);
+    await sleep(200);
+    // Move the first song to the next group (glass menu: open it, pick the
+    // first choice), then remove the (new) first song.
+    const pickFromMenu = async (menu) => {
+      await cdp.evaluate(`${DETAIL}.querySelector('[data-prism="${menu}"]').click()`);
+      await sleep(150);
+      const opened = await cdp.evaluate(`!!document.querySelector('[role="listbox"] [data-prism="menu-option"]')`);
+      await cdp.evaluate(`document.querySelector('[role="listbox"] [data-prism="menu-option"]').dispatchEvent(new MouseEvent("mousedown", { bubbles: true }))`);
+      await sleep(200);
+      return opened;
+    };
+    check("the Move to… glass menu opens with the other groups", await pickFromMenu("move-menu"));
+    await sleep(200);
+    await cdp.evaluate(`${DETAIL}.querySelector('[data-prism="remove-song"]').click()`);
+    await sleep(200);
+    const songsLeft = await cdp.evaluate(`${DETAIL}.querySelectorAll('[data-prism="group-song"]').length`);
+    check("moving and removing a song each take one out of the open group", songsLeft === before0 - 2, `${before0} -> ${songsLeft}`);
+    await screenshot("organize-group-detail.png");
+    await cdp.evaluate(`${DETAIL}.querySelector('[data-prism="all-groups"]').click()`);
+    await sleep(300);
+    const names = await cdp.evaluate(`${CARDS}.map((c) => c.innerText.split("\\n")[0])`);
+    check("the rename shows on the card", names.includes("Smoke test name"), names.join(" | "));
+    const renamedIndex = names.indexOf("Smoke test name");
+    const otherIndex = renamedIndex === 0 ? 1 : 0;
+    check(
+      "the moved song is now in the other group",
+      (await cardCount(otherIndex)) >= (otherIndex === 1 ? before1 : before0) || (await cardCount(otherIndex)) > 0
+    );
+    // Combine: open the renamed group, pick another group, and confirm.
+    const groupsBefore = await cdp.evaluate(`${CARDS}.length`);
+    await cdp.evaluate(`${CARDS}[${renamedIndex}].click()`);
+    await waitFor(`!!${DETAIL}`, 3000);
+    await pickFromMenu("combine-menu");
+    const confirmText = await cdp.evaluate(`${DETAIL}.querySelector('[data-prism="combine-confirm"]')?.innerText ?? ""`);
+    check(
+      "Combine asks first and says what will happen",
+      /Move all \d+ songs from/.test(confirmText) && /will disappear/.test(confirmText) && (await cdp.evaluate(`${CARDS}.length`)) === 0,
+      confirmText.replace(/\s+/g, " ").slice(0, 120)
+    );
+    await screenshot("organize-combine-confirm.png");
+    await cdp.evaluate(`${DETAIL}.querySelector('[data-prism="combine-yes"]').click()`);
+    await sleep(200);
+    await cdp.evaluate(`${DETAIL}.querySelector('[data-prism="all-groups"]').click()`);
+    await sleep(300);
+    check("merging leaves one group fewer", (await cdp.evaluate(`${CARDS}.length`)) === groupsBefore - 1, `${groupsBefore} -> ${await cdp.evaluate(`${CARDS}.length`)}`);
   }
   await cdp.evaluate("window.__playlistPrism.goHome()");
 } catch (error) {

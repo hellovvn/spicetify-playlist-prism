@@ -239,6 +239,58 @@ const CSS = `
 .prism-seg button.on { background: #b794ff; color: #1b0b33; }
 .prism-seg button:focus-visible { outline: 2px solid #cdb8ff; outline-offset: -2px; }
 
+/* ----- Organize review (step 13c) -----
+   Group cards lift a little on hover; the x button is glass. */
+.prism-group-card { transition: transform 150ms ease-out, border-color 150ms ease-out, box-shadow 150ms ease-out; }
+.prism-group-card:hover { transform: translateY(-2px); border-color: rgba(205, 184, 255, 0.6); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 8px 24px rgba(10, 0, 30, 0.35); }
+.prism-group-card:focus-visible { outline: 2px solid #cdb8ff; outline-offset: 2px; }
+/* Glass drop-down menu (src/ui/GlassMenu.tsx). */
+.prism-menu-button {
+  display: inline-flex; align-items: center; gap: 6px;
+  max-width: 260px; padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 12px; font-weight: 600; color: #ffffff;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.05));
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  cursor: pointer; white-space: nowrap;
+  transition: border-color 150ms ease-out, background 150ms ease-out;
+}
+.prism-menu-button span:first-child { overflow: hidden; text-overflow: ellipsis; }
+.prism-menu-button:hover, .prism-menu-button[aria-expanded="true"] { border-color: rgba(205, 184, 255, 0.7); background: linear-gradient(180deg, rgba(255, 255, 255, 0.24), rgba(205, 184, 255, 0.1)); }
+.prism-menu-button:focus-visible { outline: 2px solid #cdb8ff; outline-offset: 2px; }
+.prism-menu-chevron { font-size: 10px; opacity: 0.8; }
+.prism-menu-list {
+  max-height: 240px; overflow-y: auto;
+  padding: 6px;
+  border-radius: 14px;
+  background: linear-gradient(145deg, rgba(70, 40, 120, 0.82), rgba(40, 20, 70, 0.88));
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 14px 34px rgba(10, 0, 30, 0.55);
+  backdrop-filter: blur(16px) saturate(140%);
+  animation: prism-fade 120ms ease-out;
+}
+.prism-menu-option {
+  padding: 7px 12px; border-radius: 9px;
+  font-size: 13px; color: #ffffff;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  cursor: pointer;
+}
+.prism-menu-option.active { background: rgba(205, 184, 255, 0.28); }
+
+.prism-icon-button {
+  width: 28px; height: 28px; flex-shrink: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffffff;
+  font-size: 16px; line-height: 1;
+  cursor: pointer;
+}
+.prism-icon-button:hover { border-color: rgba(255, 179, 209, 0.8); background: rgba(255, 179, 209, 0.15); }
+
+@media (prefers-reduced-motion: reduce) { .prism-group-card, .prism-group-card:hover { transition: none; transform: none; } }
+
 /* ----- Liquid-glass popup (e.g. "Name your playlist") -----
    .prism-overlay dims and blurs the screen behind; .prism-glass-card is the
    floating glass card: see-through white gradient, strong blur of what's

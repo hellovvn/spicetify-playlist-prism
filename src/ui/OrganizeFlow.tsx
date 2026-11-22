@@ -6,15 +6,14 @@
 //            settings panel: how many new playlists, overlap on/off, and
 //            "Group mostly by" (Balanced / Genre / Mood / Energy)
 //   scan     the same scan screen as the Prism flow (tags, BPM/key, mood)
-//   groups   the suggested groups with an on-screen summary each (13b).
-//            Step 13c turns this into album-cover cards you can edit.
+//   groups   the suggested groups as album-cover cards you can open and
+//            edit: rename, move/remove songs, merge (src/ui/GroupReview.tsx)
 
 import React from "react";
 import type { SourceOption } from "../sources/sources";
 import { summarize } from "../scan/scan";
-import { groupSongs, type GroupFocus, type SongGroup } from "../organize/grouping";
-import { tagColour } from "./tagLabels";
-import { TagLabels } from "./GenreLabels";
+import { groupSongs, type GroupFocus } from "../organize/grouping";
+import { GroupReview } from "./GroupReview";
 import { SourcePicker } from "./SourcePicker";
 import { ScanScreen, type ScanOutcome, type ScanScreenProps } from "./ScanScreen";
 import { SCREEN_HEIGHT } from "./styles";
@@ -192,7 +191,6 @@ function Groups({
   settings: OrganizeSettings;
   onBack: () => void;
 }) {
-  const { ButtonSecondary } = Spicetify.ReactComponent as any;
   const songs = scan?.songs ?? [];
   const s = summarize(songs);
   // useMemo: group once, not again on every re-render (it's real work).
@@ -201,51 +199,20 @@ function Groups({
     [scan, settings]
   );
   const placed = grouping.groups.reduce((n, g) => n + g.songs.length, 0);
+  // The album-cover cards and editing live in GroupReview (step 13c).
   return (
-    <div style={styles.screen} data-prism-state="organize-groups">
-      <p style={styles.sub}>
-        {s.total} songs from {sources.length} playlist{sources.length === 1 ? "" : "s"} into{" "}
-        <b style={{ color: "#fff" }}>{grouping.groups.length} groups</b>, grouped by {FOCUS_WORDS[settings.focus]}
-        {settings.overlap && placed > s.total ? ` · ${placed - s.total} songs are in more than one` : ""}.
-      </p>
-      <div style={styles.groupList} data-prism="organize-group-list">
-        {grouping.groups.map((group) => (
-          <GroupRow key={group.name} group={group} />
-        ))}
-      </div>
-      <p className="prism-notice" style={{ fontSize: 13 }}>
-        A first look at the groups. Next step (13c): album-cover cards where you can rename, move songs or start
-        from scratch. Nothing has been created.
-      </p>
-      <div className="prism-actions" style={styles.buttons}>
-        <ButtonSecondary buttonSize="sm" onClick={onBack}>
-          Back
-        </ButtonSecondary>
-      </div>
-    </div>
-  );
-}
-
-// One group: name, song count, its typical genres, and the on-screen summary
-// (moods, tempo, keys). Key is only SHOWN; it doesn't affect grouping.
-function GroupRow({ group }: { group: SongGroup }) {
-  const { summary } = group;
-  const t = summary.tempo;
-  return (
-    <div className="prism-glass-panel" style={styles.groupRow} data-prism="organize-group">
-      <div style={styles.groupHead}>
-        <span style={styles.groupName}>{group.name}</span>
-        <span style={styles.groupCount}>{group.songs.length} songs</span>
-      </div>
-      <TagLabels labels={summary.tags.slice(0, 4).map(([name]) => ({ name, colour: tagColour(name), shared: true }))} />
-      <p style={styles.line}>
-        {summary.moods.length ? `Mood: ${summary.moods.map(([m]) => m).join(", ")}` : "Mood: unknown"}
-        {" · "}
-        {t.averageBpm !== null ? `${t.averageBpm} BPM avg (${t.slow} slow, ${t.mid} mid, ${t.fast} fast)` : "no BPM"}
-        {summary.keys.length ? ` · Keys: ${summary.keys.map(([k, n]) => `${k} ×${n}`).join(", ")}` : ""}
-        {summary.untagged ? ` · ${summary.untagged} without tags` : ""}
-      </p>
-    </div>
+    <GroupReview
+      songs={songs}
+      suggested={grouping.groups}
+      onBack={onBack}
+      intro={
+        <>
+          {s.total} songs from {sources.length} playlist{sources.length === 1 ? "" : "s"} into{" "}
+          <b style={{ color: "#fff" }}>{grouping.groups.length} groups</b>, grouped by {FOCUS_WORDS[settings.focus]}
+          {settings.overlap && placed > s.total ? ` · ${placed - s.total} songs are in more than one` : ""}.
+        </>
+      }
+    />
   );
 }
 
@@ -260,11 +227,5 @@ const styles: Record<string, React.CSSProperties> = {
   screen: { display: "flex", flexDirection: "column", gap: 12, height: SCREEN_HEIGHT },
   sub: { margin: 0, color: "var(--spice-subtext)", fontSize: 13 },
   middle: { flex: 1 },
-  groupList: { flex: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8, paddingRight: 4 },
-  groupRow: { display: "flex", flexDirection: "column", gap: 6, padding: "12px 14px", flexShrink: 0 },
-  groupHead: { display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 },
-  groupName: { color: "#ffffff", fontSize: 16, fontWeight: 700 },
-  groupCount: { color: "var(--spice-subtext)", fontSize: 13, flexShrink: 0 },
-  line: { margin: 0, color: "var(--spice-subtext)", fontSize: 12 },
   buttons: { display: "flex", justifyContent: "flex-end", gap: 8 },
 };

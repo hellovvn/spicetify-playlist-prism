@@ -6,6 +6,17 @@ export interface ScanTrack {
   name: string;
   artists: string[];
   durationMs?: number; // song length, when Spotify says (for the stats page)
+  // Album cover web addresses, when Spotify says (Organize's cards and lists):
+  cover?: string; // ~300px, for the 2x2 mosaics
+  coverSmall?: string; // ~64px, for song rows
+}
+
+// Spotify gives covers as "spotify:image:<id>" in several sizes (label
+// "small" ~64px, "standard" ~300px). The web address is i.scdn.co/image/<id>.
+function coverUrl(images: any[] | undefined, label: string): string | undefined {
+  const image = (images ?? []).find((i: any) => i?.label === label) ?? (images ?? [])[0];
+  const id = typeof image?.url === "string" && image.url.startsWith("spotify:image:") ? image.url.slice(14) : null;
+  return id ? `https://i.scdn.co/image/${id}` : undefined;
 }
 
 // Spotify's raw playlist / Liked Songs items -> ScanTrack.
@@ -19,7 +30,16 @@ export function toScanTracks(items: any[]): ScanTrack[] {
     if (item.isLocal || typeof item.name !== "string") continue;
     const artists = (item.artists ?? []).map((a: any) => a?.name).filter(Boolean);
     const durationMs = item.duration?.milliseconds;
-    result.push({ uri: item.uri, name: item.name, artists, ...(typeof durationMs === "number" ? { durationMs } : {}) });
+    const cover = coverUrl(item.album?.images, "standard");
+    const coverSmall = coverUrl(item.album?.images, "small");
+    result.push({
+      uri: item.uri,
+      name: item.name,
+      artists,
+      ...(typeof durationMs === "number" ? { durationMs } : {}),
+      ...(cover ? { cover } : {}),
+      ...(coverSmall ? { coverSmall } : {}),
+    });
   }
   return result;
 }
