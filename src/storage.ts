@@ -58,3 +58,21 @@ export function saveMoodCacheText(json: string): void {
     console.warn("[Playlist Prism] couldn't save the mood cache", error);
   }
 }
+
+// ----- Prism playlist records (see src/stats/playlistStats.ts) -----
+// How each Prism playlist was made (tags, counts), for the stats page.
+// A few hundred bytes per playlist; never sent anywhere.
+
+const PLAYLISTS_KEY = "prism:playlists";
+
+export function loadPlaylistRecordsText(): string | null {
+  return Spicetify.LocalStorage.get(PLAYLISTS_KEY);
+}
+
+export function savePlaylistRecordsText(json: string): void {
+  try {
+    Spicetify.LocalStorage.set(PLAYLISTS_KEY, json);
+  } catch (error) {
+    console.warn("[Playlist Prism] couldn't save the playlist record", error);
+  }
+}

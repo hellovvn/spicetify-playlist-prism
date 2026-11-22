@@ -12,6 +12,7 @@ export interface TrackInfo {
   name: string; // song title, e.g. "Never Gonna Give You Up"
   artists: string[]; // all credited artists, main artist first
   album: string;
+  durationMs?: number; // song length, when Spotify says
 }
 
 // Get a song's details from its Spotify URI.
@@ -48,6 +49,7 @@ export async function getTrackInfo(uri: string): Promise<TrackInfo> {
     name: track.name,
     artists,
     album: track.albumOfTrack?.name ?? "",
+    durationMs: typeof track.duration?.totalMilliseconds === "number" ? track.duration.totalMilliseconds : undefined,
   };
 }
 
@@ -71,6 +73,12 @@ export async function getSources(): Promise<SourceOption[]> {
 
 // All songs in one source (a playlist or Liked Songs). READ-ONLY.
 // limit: 10000 gets everything in one go (checked: ~0.1 s for 227 songs).
+// A playlist's current name (read-only). null if Spotify can't tell us.
+export async function getPlaylistName(uri: string): Promise<string | null> {
+  const metadata = await Spicetify.Platform.PlaylistAPI.getMetadata(uri);
+  return typeof metadata?.name === "string" ? metadata.name : null;
+}
+
 export async function getSourceTracks(uri: string): Promise<ScanTrack[]> {
   const page =
     uri === LIKED_SONGS_URI

@@ -1,14 +1,15 @@
-// Scan screen: screen 3 of the Prism popup. Starts the scan as soon as it
+// Scan screen: screen 3 of the Prism flow. Starts the scan as soon as it
 // opens, shows a progress bar, and ends with a summary of what was found.
 //
-// Closing the popup (or Cancel / Back) STOPS the scan: nothing keeps running
-// in the background. Everything already looked up is saved in the cache, so
+// Leaving the page (or Cancel / Back) STOPS the scan: nothing keeps running
+// in the background yet (step 12b changes that). Everything already looked up is saved in the cache, so
 // scanning again later picks up where it stopped.
 
 import React from "react";
 import type { SourceOption } from "../sources/sources";
 import { summarize, timeLeftText, type ScanProgress, type ScannedSong } from "../scan/scan";
 import { SCREEN_HEIGHT } from "./styles";
+import { ScanningPrism } from "./PrismIcon";
 
 export interface ScanOutcome {
   songs: ScannedSong[];
@@ -27,9 +28,12 @@ export interface ScanScreenProps {
   describeError: (error: unknown) => string;
   onBack: () => void;
   onNext: (scan: ScanOutcome) => void;
+  // Told true while a scan is running, false when it ends or this screen goes.
+  // (The page uses it to warn before "Start page" stops a scan.)
+  onRunningChange?: (running: boolean) => void;
 }
 
-export function ScanScreen({ sources, runScan, describeError, onBack, onNext }: ScanScreenProps) {
+export function ScanScreen({ sources, runScan, describeError, onBack, onNext, onRunningChange }: ScanScreenProps) {
   const { ButtonPrimary, ButtonSecondary } = Spicetify.ReactComponent as any;
   const [progress, setProgress] = React.useState<ScanProgress | null>(null);
   const [outcome, setOutcome] = React.useState<ScanOutcome | null>(null);
@@ -56,6 +60,14 @@ export function ScanScreen({ sources, runScan, describeError, onBack, onNext }: 
       stopRef.current = true;
     };
   }, []);
+
+  // Report running / not running whenever that changes, and "not running"
+  // when this screen goes away.
+  const running = !outcome && !error;
+  React.useEffect(() => {
+    onRunningChange?.(running);
+  }, [running]);
+  React.useEffect(() => () => onRunningChange?.(false), []);
 
   function cancel() {
     stopRef.current = true;
@@ -131,6 +143,10 @@ export function ScanScreen({ sources, runScan, describeError, onBack, onNext }: 
   return (
     <div style={styles.screen} data-prism-state="scanning">
       <div style={styles.middle}>
+        {/* Big diamond with shimmering rainbow rays: shows the scan is working. */}
+        <div style={styles.prism}>
+          <ScanningPrism size={168} />
+        </div>
         <div style={{ ...styles.title, ...styles.titleSlot }}>
           {progress ? `Scanning ${progress.total} songs` : "Reading your playlists..."}
         </div>
@@ -171,25 +187,32 @@ export function ScanScreen({ sources, runScan, describeError, onBack, onNext }: 
   );
 }
 
-// DEV/TEST ONLY (used by the smoke test via the debug hook): opens the scan
-// screen with a FAKE scan that never finishes, and returns a function to set
-// its progress by hand. That lets a test check the layout for any numbers,
-// even when every song is cached and a real scan ends in a split second.
-export function openScanPreview(): (progress: ScanProgress) => void {
-  let push: (progress: ScanProgress) => void = () => {};
-  const fakeScan: ScanScreenProps["runScan"] = (_sources, onProgress) => {
-    push = onProgress;
-    return new Promise(() => {}); // never resolves: stays on the progress view
-  };
-  Spicetify.PopupModal.display({
-    title: "Start a Prism playlist",
-    content: (
-      <div data-prism="scan-preview" style={{ minWidth: 420 }}>
-        <ScanScreen sources={[]} runScan={fakeScan} describeError={String} onBack={() => {}} onNext={() => {}} />
-      </div>
-    ),
-  });
-  return (progress) => push(progress);
+// DEV/TEST ONLY (used by the smoke test via the debug hook): the scan screen
+// with a FAKE scan that never finishes. It puts setPreviewProgress on the
+// debug hook so a test can set the progress by hand and check the layout for
+// any numbers, even when every song is cached and a real scan ends at once.
+export function ScanDemo({ onRunningChange }: { onRunningChange?: (running: boolean) => void }) {
+  const pushRef = React.useRef<(progress: ScanProgress) => void>(() => {});
+  // useMemo with []: create the fake scan once, so re-renders don't restart it.
+  const fakeScan = React.useMemo<ScanScreenProps["runScan"]>(
+    () => (_sources, onProgress) => {
+      pushRef.current = onProgress;
+      return new Promise(() => {}); // never resolves: stays on the progress view
+    },
+    []
+  );
+  React.useEffect(() => {
+    const hook = ((window as any).__playlistPrism ??= {});
+    hook.setPreviewProgress = (progress: ScanProgress) => pushRef.current(progress);
+    return () => {
+      delete hook.setPreviewProgress;
+    };
+  }, []);
+  return (
+    <div data-prism="scan-preview">
+      <ScanScreen sources={[]} runScan={fakeScan} describeError={String} onBack={() => {}} onNext={() => {}} onRunningChange={onRunningChange} />
+    </div>
+  );
 }
 
 const styles: Record<string, React.CSSProperties> = {
@@ -211,6 +234,7 @@ const styles: Record<string, React.CSSProperties> = {
   barTrack: { height: 8, borderRadius: 4, background: "var(--spice-card)", overflow: "hidden" },
   // The width animates smoothly between updates instead of jumping.
   barFill: { height: "100%", background: "var(--spice-button)", borderRadius: 4, transition: "width 300ms ease-out" },
+  prism: { display: "flex", justifyContent: "center", marginBottom: 8 },
   table: { borderCollapse: "collapse", width: "100%" },
   count: { color: "var(--spice-text)", fontWeight: 700, padding: "6px 12px 6px 0", textAlign: "right", width: 48 },
   buttons: { display: "flex", justifyContent: "flex-end", gap: 8 },

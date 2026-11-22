@@ -1,8 +1,8 @@
-// Seed panel: the popup that opens after "Start a Prism playlist".
+// Seed panel: the Prism flow shown on the Playlist Prism page after
+// "Start a Prism playlist" (it was a popup before step 12a).
 //
-// It opens IMMEDIATELY with a loading spinner, then loads the song's details,
-// tags, and BPM/key itself, and fades the content in. (Before, the popup only
-// appeared after a ~1 s wait, which felt abrupt.)
+// It shows a loading spinner at once, then loads the song's details, tags,
+// BPM/key and mood itself, and fades the content in.
 //
 // The user switches off tags they don't want; "Next" hands the kept tags on
 // (to step 6's playlist picker). Tag rules (see tagSelection.ts): zero tags =
@@ -39,8 +39,12 @@ export interface SeedPanelProps {
   runScan: ScanScreenProps["runScan"];
   // Turns an error into a message the user can act on.
   describeError: (error: unknown) => string;
+  // "Cancel" on the first screen: leave this Prism.
+  onCancel: () => void;
+  // Told true while a scan is running (see ScanScreen's onRunningChange).
+  onScanningChange?: (running: boolean) => void;
   // Creates the new playlist from the preview's picks. Rejects with an error
-  // the preview shows (the popup stays open so the user can retry).
+  // the preview shows (the screen stays so the user can retry).
   onCreate: (choice: {
     name: string;
     seed: SeedData;
@@ -50,23 +54,13 @@ export interface SeedPanelProps {
   }) => Promise<void>;
 }
 
-// Runs `action` just AFTER the current click finishes.
-// Why: Spotify's popup closes on clicks "outside" it, and decides that by
-// checking whether the clicked element is inside the popup. If a click swaps
-// the screen immediately, the clicked button is already gone from the page
-// when Spotify checks, so Spotify thinks it was outside and closes the popup.
-// (Found by the smoke test: clicking Next closed the popup.)
-function afterClick(action: () => void) {
-  setTimeout(action, 0);
-}
-
 // The outer component. It owns the state BOTH screens need, so going
 // Back and Next keeps the user's choices ("lifting state up" in React terms).
 //   screen "seed":    loading -> tag chips   (or an error)
 //   screen "sources": playlist picker
 //   screen "scan":    scanning progress, then a summary
 //   screen "preview": ranked matches with scores; pick what goes in
-function SeedPanel({ load, loadSources, runScan, describeError, onCreate }: SeedPanelProps) {
+export function SeedPanel({ load, loadSources, runScan, describeError, onCancel, onScanningChange, onCreate }: SeedPanelProps) {
   const [data, setData] = React.useState<SeedData | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [screen, setScreen] = React.useState<"seed" | "sources" | "scan" | "preview">("seed");
@@ -75,11 +69,11 @@ function SeedPanel({ load, loadSources, runScan, describeError, onCreate }: Seed
   const [selectedSources, setSelectedSources] = React.useState<string[]>([]); // ticked playlist URIs
   const [picked, setPicked] = React.useState<SourceOption[]>([]); // the sources being scanned
 
-  // useEffect runs code AFTER the panel is on screen (so the popup can
+  // useEffect runs code AFTER the panel is on screen (so the spinner can
   // appear first). The empty [] means "only once, when it opens".
   React.useEffect(() => {
-    // If the popup is closed before loading finishes, don't update a
-    // component that's gone. The function we return runs on close.
+    // If the panel goes away before loading finishes, don't update a
+    // component that's gone. The function we return runs when it goes.
     let closed = false;
     load()
       .then((loaded) => !closed && setData(loaded))
@@ -112,7 +106,8 @@ function SeedPanel({ load, loadSources, runScan, describeError, onCreate }: Seed
         data={data}
         offNames={offNames}
         setOffNames={setOffNames}
-        onNext={() => afterClick(() => setScreen("sources"))}
+        onNext={() => setScreen("sources")}
+        onCancel={onCancel}
       />
     );
   } else if (screen === "sources") {
@@ -125,13 +120,11 @@ function SeedPanel({ load, loadSources, runScan, describeError, onCreate }: Seed
           describeError={describeError}
           selected={selectedSources}
           setSelected={setSelectedSources}
-          onBack={() => afterClick(() => setScreen("seed"))}
-          onNext={(sources) =>
-            afterClick(() => {
-              setPicked(sources);
-              setScreen("scan");
-            })
-          }
+          onBack={() => setScreen("seed")}
+          onNext={(sources) => {
+            setPicked(sources);
+            setScreen("scan");
+          }}
         />
       </div>
     );
@@ -142,14 +135,13 @@ function SeedPanel({ load, loadSources, runScan, describeError, onCreate }: Seed
           sources={picked}
           runScan={runScan}
           describeError={describeError}
+          onRunningChange={onScanningChange}
           // Back stops the scan (the screen closes) and returns to the picker.
-          onBack={() => afterClick(() => setScreen("sources"))}
-          onNext={(outcome) =>
-            afterClick(() => {
-              setScan(outcome);
-              setScreen("preview");
-            })
-          }
+          onBack={() => setScreen("sources")}
+          onNext={(outcome) => {
+            setScan(outcome);
+            setScreen("preview");
+          }}
         />
       </div>
     );
@@ -161,7 +153,7 @@ function SeedPanel({ load, loadSources, runScan, describeError, onCreate }: Seed
           kept={keptTags(data.tags, offNames)}
           songs={scan?.songs ?? []}
           // Back goes to the playlist picker (re-scanning is quick thanks to the cache).
-          onBack={() => afterClick(() => setScreen("sources"))}
+          onBack={() => setScreen("sources")}
           describeError={describeError}
           onCreate={(name, songs) => onCreate({ name, seed: data, kept: keptTags(data.tags, offNames), sources: picked, songs })}
         />
@@ -169,7 +161,6 @@ function SeedPanel({ load, loadSources, runScan, describeError, onCreate }: Seed
     );
   }
 
-  // data-prism marks this as Prism content (the open animation looks for it).
   return (
     <div style={styles.panel} data-prism="seed-panel">
       {body}
@@ -183,13 +174,15 @@ interface SeedContentProps {
   // The names of the tags the user switched off (empty = all on). Owned by
   // the parent so it survives going to the next screen and back.
   offNames: string[];
-  setOffNames: (names: string[]) => void;
+  // React's own setter type: it also accepts a function (previous) => next.
+  setOffNames: React.Dispatch<React.SetStateAction<string[]>>;
   onNext: () => void;
+  onCancel: () => void;
 }
 
-function SeedContent({ data, offNames, setOffNames, onNext }: SeedContentProps) {
-  // Read Spotify's components here, not at the top of the file: the file is
-  // loaded before Spicetify is ready, but this runs only when the panel opens.
+function SeedContent({ data, offNames, setOffNames, onNext, onCancel }: SeedContentProps) {
+  // Read Spotify's components here, not at the top of the file: the file can
+  // load before Spicetify is ready, but this runs only when the panel shows.
   // `as any`: Chip exists in Spotify (checked in the running app) but is
   // missing from Spicetify's type definitions file.
   const { Chip, ButtonPrimary, ButtonSecondary } = Spicetify.ReactComponent as any;
@@ -207,7 +200,9 @@ function SeedContent({ data, offNames, setOffNames, onNext }: SeedContentProps) 
         <Chip
           key={tag.name}
           selected={!offNames.includes(tag.name)}
-          onClick={() => setOffNames(toggleTag(offNames, tag.name))}
+          // A "functional update": React passes the LATEST list, so quick clicks
+          // in a row all count (offNames from this render could be out of date).
+          onClick={() => setOffNames((previous) => toggleTag(previous, tag.name))}
         >
           {tag.name}
         </Chip>
@@ -247,21 +242,16 @@ function SeedContent({ data, offNames, setOffNames, onNext }: SeedContentProps) 
         </>
       )}
 
-      {/* Blocked = red-ish, warning = yellow-ish. role="status" makes screen
-          readers announce the message when it appears. */}
+      {/* prism-notice: see-through box with a rainbow edge (styles.ts).
+          role="status" makes screen readers announce the message when it appears. */}
       {"message" in status && (
-        <p
-          role="status"
-          data-prism="status"
-          data-prism-kind={status.kind}
-          style={{ ...styles.notice, borderColor: allowed ? "#f5c542" : "#f15e6c" }}
-        >
+        <p role="status" data-prism="status" data-prism-kind={status.kind} className="prism-notice">
           {status.message}
         </p>
       )}
 
       <div style={styles.buttons}>
-        <ButtonSecondary buttonSize="sm" onClick={() => Spicetify.PopupModal.hide()}>
+        <ButtonSecondary buttonSize="sm" onClick={onCancel}>
           Cancel
         </ButtonSecondary>
         <ButtonPrimary buttonSize="sm" disabled={!allowed} onClick={() => allowed && onNext()}>
@@ -275,22 +265,12 @@ function SeedContent({ data, offNames, setOffNames, onNext }: SeedContentProps) 
 // Inline styles, using Spotify's theme colours (CSS variables), so the panel
 // follows whatever Spicetify theme the user has.
 const styles: Record<string, React.CSSProperties> = {
-  panel: { display: "flex", flexDirection: "column", gap: 16, minWidth: 420 },
+  panel: { display: "flex", flexDirection: "column", gap: 16 },
   centered: { display: "flex", flexDirection: "column", alignItems: "center", gap: 12, padding: "32px 0" },
   songName: { fontSize: 20, fontWeight: 700, color: "var(--spice-text)" },
   text: { color: "var(--spice-text)", margin: 0, textAlign: "center" },
   subtext: { color: "var(--spice-subtext)", margin: 0 },
   heading: { fontSize: 14, fontWeight: 700, margin: "0 0 8px", color: "var(--spice-text)" },
   chipRow: { display: "flex", flexWrap: "wrap", gap: 8 },
-  notice: { margin: 0, padding: "8px 12px", borderLeft: "3px solid", color: "var(--spice-text)", background: "var(--spice-card)", borderRadius: 4 },
   buttons: { display: "flex", justifyContent: "flex-end", gap: 8 },
 };
-
-export function openSeedPanel(props: SeedPanelProps) {
-  Spicetify.PopupModal.display({
-    title: "Start a Prism playlist",
-    // key={Date.now()}: a fresh panel every time, so chips from the last song
-    // never carry over (React reuses a component if nothing tells it otherwise).
-    content: <SeedPanel key={Date.now()} {...props} />,
-  });
-}

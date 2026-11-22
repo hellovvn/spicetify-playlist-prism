@@ -78,9 +78,28 @@ function info(text) {
 }
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// Saves a screenshot to smoke-output/. While Spotify's window is minimized the
+// page draws no frames and a screenshot request NEVER returns (that hung the
+// whole test), so give up after 5 s and say so.
+let cdpForShots;
+async function screenshot(name) {
+  const shot = await Promise.race([
+    cdpForShots.send("Page.captureScreenshot", { format: "png" }),
+    sleep(5000).then(() => null),
+  ]);
+  if (!shot?.result?.data) {
+    info(`screenshot skipped (${name}): Spotify's window is probably minimized`);
+    return;
+  }
+  await mkdir(outputDir, { recursive: true });
+  await writeFile(new URL(name, outputDir), Buffer.from(shot.result.data, "base64"));
+  info(`screenshot: smoke-output/${name}`);
+}
+
 // ---------- the checks ----------
 
 const cdp = await connect();
+cdpForShots = cdp;
 try {
   console.log("\n[1] Extension loaded");
   // After a reload the hook can take a moment to appear, so wait up to 10 s.
@@ -94,6 +113,66 @@ try {
 
   const hasKey = await cdp.evaluate("window.__playlistPrism.hasLastfmKey()");
   check("a Last.fm key is saved", hasKey);
+
+  console.log("\n[1b] The Playlist Prism page (step 12a)");
+  // Spicetify adds a header button for every custom app, labelled with its name.
+  const HEADER_ICON = `document.querySelector('button[aria-label="Playlist Prism"]')`;
+  // Known starting point: the page's start screen, then away to Spotify's
+  // Home, so clicking the icon must bring us BACK to the page.
+  await cdp.evaluate("window.__playlistPrism.goHome()");
+  await sleep(500);
+  await cdp.evaluate(`Spicetify.Platform.History.push("/")`);
+  await sleep(1000);
+  // Spicetify draws it a moment after Spotify loads, so wait up to 10 s.
+  let iconFound = false;
+  for (let i = 0; i < 40 && !iconFound; i++) {
+    iconFound = await cdp.evaluate(`!!${HEADER_ICON}`);
+    if (!iconFound) await sleep(250);
+  }
+  // While Spotify's window is minimized/hidden, Spicetify doesn't draw ANY
+  // header links (even Marketplace's), so then the icon can't be checked:
+  // reported as SKIPPED (not passed), and the page is opened the other way.
+  const hidden = await cdp.evaluate(`document.visibilityState === "hidden"`);
+  if (!iconFound && hidden) {
+    info("SKIPPED header icon check: Spotify's window is hidden, so Spicetify hasn't drawn the header links");
+    await cdp.evaluate("window.__playlistPrism.goHome()");
+  } else {
+    check("header has the Playlist Prism icon", iconFound);
+    if (!iconFound) throw new Error("No header icon; stopping.");
+    await cdp.evaluate(`${HEADER_ICON}.click()`);
+  }
+  let homeShown = false;
+  for (let i = 0; i < 40 && !homeShown; i++) {
+    homeShown = await cdp.evaluate(`!!document.querySelector('[data-prism-state="home"]')`);
+    if (!homeShown) await sleep(250);
+  }
+  check("clicking it opens the page's start screen", homeShown, await cdp.evaluate("Spicetify.Platform.History.location.pathname"));
+  info(`playing song shown: ${await cdp.evaluate(`document.querySelector('[data-prism="playing-song"]')?.textContent ?? "(nothing playing)"`)}`);
+  const typeLink = (text) => cdp.evaluate(`(() => {
+    const input = document.querySelector('[data-prism="link-input"]');
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(input, ${JSON.stringify(text)});
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  })()`);
+  const pressStart = () => cdp.evaluate(`[...document.querySelectorAll('[data-prism-state="home"] button')].find((b) => b.textContent === "Start").click()`);
+  await typeLink("https://open.spotify.com/album/4EByBr42E22IoEcQyGOsj9");
+  await sleep(150);
+  await pressStart();
+  await sleep(200);
+  check("pasting a non-song link shows an error", await cdp.evaluate(`!!document.querySelector('[data-prism-state="home"] [role="alert"]')`));
+  await typeLink("https://open.spotify.com/track/4PhsKqMdgMEUSstTDAmMpg?si=x");
+  await sleep(150);
+  await pressStart();
+  let started = false;
+  for (let i = 0; i < 40 && !started; i++) {
+    started = await cdp.evaluate(`!!document.querySelector('[data-prism-state="ready"]')`);
+    if (!started) await sleep(250);
+  }
+  check("pasting a song link starts a Prism for it", started && (await cdp.evaluate(`document.querySelector('[data-prism="seed-panel"]').textContent.includes("Often")`)));
+  await mkdir(outputDir, { recursive: true });
+  await screenshot("page-seed.png");
+  await cdp.evaluate(`[...document.querySelectorAll('[data-prism="seed-panel"] button')].find((b) => b.textContent === "Cancel").click()`);
+  await sleep(300);
+  check("Cancel goes back to the start screen", await cdp.evaluate(`!!document.querySelector('[data-prism-state="home"]')`));
 
   console.log("\n[2] Right-click menu: when should 'Start a Prism playlist' appear?");
   const menuCases = [
@@ -174,11 +253,11 @@ try {
   const statusKind = `${PANEL}.querySelector('[data-prism="status"]')?.dataset.prismKind ?? "none"`;
 
   await cdp.evaluate(`window.__playlistPrism.startPrism("spotify:track:4PhsKqMdgMEUSstTDAmMpg")`); // Often
-  // The popup should appear at once, showing the spinner while it loads.
+  // The page should open at once, showing the spinner while it loads.
   const loadingShown = await waitFor(`!!document.querySelector('[data-prism-state="loading"]')`, 1000);
-  check("popup opens immediately with a loading spinner", loadingShown);
-  const anim = await cdp.evaluate(`getComputedStyle(document.querySelector(".GenericModal")).animationName`);
-  check("open animation is applied to the popup", anim === "prism-pop", `animation: ${anim}`);
+  check("Prism page opens immediately with a loading spinner", loadingShown);
+  const path = await cdp.evaluate("Spicetify.Platform.History.location.pathname");
+  check("it's the Playlist Prism page (not a popup)", path === "/playlist-prism" && !(await cdp.evaluate(`!!document.querySelector(".GenericModal")`)), path);
   const opened = await waitFor(READY);
   check("seed panel finishes loading for Often", opened);
   if (opened) {
@@ -201,19 +280,15 @@ try {
     check("clicking again switches it back on", (await cdp.evaluate(chipStates))[0] === "true");
     check("all tags on: no warning, Next enabled", (await cdp.evaluate(statusKind)) === "none" && !(await cdp.evaluate(`${NEXT}.disabled`)));
 
-    const shot = await cdp.send("Page.captureScreenshot", { format: "png" });
-    await writeFile(new URL("seed-panel.png", outputDir), Buffer.from(shot.result.data, "base64"));
-    info("screenshot: smoke-output/seed-panel.png");
+    await screenshot("seed-panel.png");
 
     // Switch EVERY chip off: Next must be blocked, with an explanation.
     await cdp.evaluate(`${PANEL}.querySelectorAll('[role="checkbox"]').forEach((c) => c.click())`);
     await sleep(300);
     check("all tags off: blocked message shown", (await cdp.evaluate(statusKind)) === "all-off", await cdp.evaluate(statusKind));
     check("all tags off: Next is disabled", await cdp.evaluate(`${NEXT}.disabled`));
-    const blockedShot = await cdp.send("Page.captureScreenshot", { format: "png" });
-    await writeFile(new URL("seed-panel-blocked.png", outputDir), Buffer.from(blockedShot.result.data, "base64"));
-    info("screenshot: smoke-output/seed-panel-blocked.png");
-    await cdp.evaluate("Spicetify.PopupModal.hide()");
+    await screenshot("seed-panel-blocked.png");
+    await cdp.evaluate("window.__playlistPrism.goHome()");
   }
 
   // A song with no song-level tags: artist row + "broader matches" warning, still allowed.
@@ -224,11 +299,9 @@ try {
   if (rescuerReady) {
     check("RESCUER: artist-only warning shown", (await cdp.evaluate(statusKind)) === "artist-only", await cdp.evaluate(statusKind));
     check("RESCUER: Next still enabled (warning, not a block)", !(await cdp.evaluate(`${NEXT}.disabled`)));
-    const warnShot = await cdp.send("Page.captureScreenshot", { format: "png" });
-    await writeFile(new URL("seed-panel-artist-only.png", outputDir), Buffer.from(warnShot.result.data, "base64"));
-    info("screenshot: smoke-output/seed-panel-artist-only.png");
+    await screenshot("seed-panel-artist-only.png");
   }
-  await cdp.evaluate("Spicetify.PopupModal.hide()");
+  await cdp.evaluate("window.__playlistPrism.goHome()");
   await sleep(500);
 
   console.log("\n[6] Source picker (screen 2) - UI clicks only, playlists are only read");
@@ -269,9 +342,7 @@ try {
       await sleep(200);
       const filtered = await cdp.evaluate(rowNames);
       check("search 'kpop' filters the list (name or folder)", filtered.length > 0 && filtered.length < names.length, filtered.join(", "));
-      const pickerShot = await cdp.send("Page.captureScreenshot", { format: "png" });
-      await writeFile(new URL("source-picker.png", outputDir), Buffer.from(pickerShot.result.data, "base64"));
-      info("screenshot: smoke-output/source-picker.png");
+      await screenshot("source-picker.png");
 
       // Back keeps the chips as they were; Next keeps the ticks.
       await cdp.evaluate(`[...${SOURCES}.querySelectorAll("button")].find((b) => b.textContent === "Back").click()`);
@@ -288,9 +359,7 @@ try {
       await cdp.evaluate(`${SELECT_ALL}.click()`);
       await sleep(200);
       check("Select all ticks every playlist", (await cdp.evaluate(tickedNames)).length === total, await cdp.evaluate(summary));
-      const allShot = await cdp.send("Page.captureScreenshot", { format: "png" });
-      await writeFile(new URL("source-picker-all.png", outputDir), Buffer.from(allShot.result.data, "base64"));
-      info("screenshot: smoke-output/source-picker-all.png");
+      await screenshot("source-picker-all.png");
       await cdp.evaluate(`${SELECT_ALL}.click()`);
       await sleep(200);
       check("clicking it again clears everything", (await cdp.evaluate(tickedNames)).length === 0 && (await cdp.evaluate(`${SCAN}.disabled`)));
@@ -308,13 +377,13 @@ try {
       const sumKpop = await cdp.evaluate(summary);
       check("with search 'kpop', Select all picks only the 2 matches", sumKpop.startsWith("2 picked"), sumKpop);
 
-      // The popup must keep ONE size whatever the search shows.
+      // The flow must keep ONE size whatever the search shows.
       const SET_QUERY = (q) => `(() => {
         const input = ${SOURCES}.querySelector('input[type="search"]');
         Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(input, ${JSON.stringify(q)});
         input.dispatchEvent(new Event("input", { bubbles: true }));
       })()`;
-      const modalHeight = `Math.round(document.querySelector(".GenericModal").getBoundingClientRect().height)`;
+      const modalHeight = `Math.round(${PANEL}.getBoundingClientRect().height)`;
       const heights = {};
       for (const q of ["", "kpop", "zzz-no-match"]) {
         await cdp.evaluate(SET_QUERY(q));
@@ -322,11 +391,11 @@ try {
         heights[q || "(empty)"] = await cdp.evaluate(modalHeight);
       }
       const sizes = new Set(Object.values(heights));
-      check("popup height stays the same while searching", sizes.size === 1, JSON.stringify(heights));
+      check("screen height stays the same while searching", sizes.size === 1, JSON.stringify(heights));
       check("no matches: 'Select all' stays visible but disabled", await cdp.evaluate(`${SELECT_ALL}.querySelector("input").disabled`));
     }
   }
-  await cdp.evaluate("Spicetify.PopupModal.hide()");
+  await cdp.evaluate("window.__playlistPrism.goHome()");
   await sleep(500);
 
   console.log("\n[7] Scan (screen 3) - reads playlists + Last.fm only, nothing in Spotify changes");
@@ -349,9 +418,7 @@ try {
     const scanning = await waitFor(`!!document.querySelector('[data-prism-state="scanning"] [role="progressbar"]')`, 5000);
     check("scan screen shows a progress bar", scanning);
     await sleep(1500);
-    const midShot = await cdp.send("Page.captureScreenshot", { format: "png" });
-    await writeFile(new URL("scan-progress.png", outputDir), Buffer.from(midShot.result.data, "base64"));
-    info("screenshot: smoke-output/scan-progress.png");
+    await screenshot("scan-progress.png");
     const done1 = await waitFor(`!!document.querySelector('[data-prism-state="scan-done"]')`, 120000);
     const firstSeconds = ((Date.now() - t0) / 1000).toFixed(1);
     check("scan of Dark Romance finishes", done1, `${firstSeconds} s`);
@@ -362,9 +429,7 @@ try {
       const moodCount = Number(/lyrics mood for (\d+)/.exec(subline)?.[1] ?? -1);
       check("lyrics mood found for most Dark Romance songs", moodCount >= 15, `${moodCount} of 25`);
       info(`summary: ${await cdp.evaluate(`document.querySelector('[data-prism="scan-summary"]').innerText.replace(/\\s+/g, " ")`)}`);
-      const doneShot = await cdp.send("Page.captureScreenshot", { format: "png" });
-      await writeFile(new URL("scan-done.png", outputDir), Buffer.from(doneShot.result.data, "base64"));
-      info("screenshot: smoke-output/scan-done.png");
+      await screenshot("scan-done.png");
 
       // Second scan of the same playlist: should come from the cache, fast.
       await cdp.evaluate(clickButton("Back"));
@@ -398,7 +463,7 @@ try {
       }
     }
   }
-  await cdp.evaluate("Spicetify.PopupModal.hide()");
+  await cdp.evaluate("window.__playlistPrism.goHome()");
   await sleep(500);
 
   console.log("\n[8] Preview (screen 4): Often vs Liked Songs - nothing is created");
@@ -459,9 +524,18 @@ try {
         } else {
           info("no extra matches beyond the recommended ones");
         }
-        // Playlist name (step 9). Create is NEVER clicked here: the smoke test stays read-only.
+        // Playlist name (step 9), asked in a popup. The popup's Create is NEVER
+        // clicked here: the smoke test stays read-only (Cancel closes it).
+        await cdp.evaluate(`${PREVIEW}.querySelector('[data-prism="open-naming"]').click()`);
+        await sleep(300);
+        check("Create playlist opens the naming popup", await cdp.evaluate(`!!${PREVIEW}.querySelector('[data-prism="name-popup"]')`));
+        check(
+          "the name box has the cursor in it",
+          await cdp.evaluate(`document.activeElement === ${PREVIEW}.querySelector('[data-prism="playlist-name"]')`)
+        );
+        await screenshot("name-popup.png");
         const NAME = `${PREVIEW}.querySelector('[data-prism="playlist-name"]')`;
-        const CREATE = `[...${PREVIEW}.querySelectorAll("button")].find((b) => b.textContent.startsWith("Create"))`;
+        const CREATE = `${PREVIEW}.querySelector('[data-prism="name-create"]')`;
         const defaultName = await cdp.evaluate(`${NAME}.value`);
         check("playlist name defaults to 'Prism · <seed>'", defaultName === "Prism · Often", defaultName);
         const typeName = (text) => cdp.evaluate(`(() => {
@@ -475,16 +549,17 @@ try {
         await typeName("Prism · Often");
         await sleep(200);
         check("a name enables Create again", !(await cdp.evaluate(`${CREATE}.disabled`)));
+        await cdp.evaluate(`${PREVIEW}.querySelector('[data-prism="name-cancel"]').click()`);
+        await sleep(300);
+        check("Cancel closes the naming popup", await cdp.evaluate(`!${PREVIEW}.querySelector('[data-prism="name-popup"]')`));
 
-        const shot = await cdp.send("Page.captureScreenshot", { format: "png" });
-        await writeFile(new URL("preview.png", outputDir), Buffer.from(shot.result.data, "base64"));
-        info("screenshot: smoke-output/preview.png");
+        await screenshot("preview.png");
       }
     } else {
       check("scan finished for the preview test", false);
     }
   }
-  await cdp.evaluate("Spicetify.PopupModal.hide()");
+  await cdp.evaluate("window.__playlistPrism.goHome()");
   await sleep(500);
 
   console.log("\n[9] Scan screen layout: the bar must not move when the text changes (fake scan)");
@@ -493,7 +568,7 @@ try {
   const barTop = `Math.round(document.querySelector('[data-prism="scan-preview"] [role="progressbar"]').getBoundingClientRect().top)`;
   const setProgress = (p) => cdp.evaluate(`window.__playlistPrism.setPreviewProgress(${JSON.stringify(p)})`);
   const positions = {};
-  // Wait for the popup's open animation (slides up 8 px over 220 ms) to finish,
+  // Wait for the page's open animation (rises 8 px over 220 ms) to finish,
   // or the first reading is taken mid-slide.
   // A fixed wait isn't enough when Spotify's window is hidden (animations run
   // slower), so wait until the browser says every animation has finished.
@@ -508,29 +583,68 @@ try {
   await sleep(150);
   positions["long text"] = await cdp.evaluate(barTop);
   info(`detail line: "${await cdp.evaluate(`document.querySelector('[data-prism="scan-detail"]').textContent`)}"`);
-  const longShot = await cdp.send("Page.captureScreenshot", { format: "png" });
-  await writeFile(new URL("scan-layout-long.png", outputDir), Buffer.from(longShot.result.data, "base64"));
-  info("screenshot: smoke-output/scan-layout-long.png");
+  await screenshot("scan-layout-long.png");
   // Cancel turns the 2-line note into one short line ("Stopping...").
   await cdp.evaluate(`[...document.querySelectorAll('[data-prism="scan-preview"] button')].find((b) => b.textContent === "Cancel").click()`);
   await sleep(150);
   positions["after Cancel"] = await cdp.evaluate(barTop);
   check("progress bar stays in one place", new Set(Object.values(positions)).size === 1, JSON.stringify(positions));
-  await cdp.evaluate("Spicetify.PopupModal.hide()");
+  await cdp.evaluate("window.__playlistPrism.goHome()");
   await sleep(500);
 
-  console.log("\n[10] Settings popup (screenshot)");
+  console.log("\n[10] Settings on the page (screenshot)");
   await cdp.evaluate("window.__playlistPrism.openSettings()");
   await sleep(800); // let React draw it
   const visible = await cdp.evaluate(
     `[...document.querySelectorAll("h1, h2")].some((el) => el.textContent.includes("Playlist Prism settings"))`
   );
-  check("settings popup opens with its title", visible);
-  const shot = await cdp.send("Page.captureScreenshot", { format: "png" });
-  const shotPath = new URL("settings.png", outputDir);
-  await writeFile(shotPath, Buffer.from(shot.result.data, "base64"));
-  info(`screenshot: smoke-output/settings.png`);
-  await cdp.evaluate("Spicetify.PopupModal.hide()");
+  check("settings open on the page with their title", visible);
+  await screenshot("settings.png");
+  await cdp.evaluate("window.__playlistPrism.goHome()");
+
+  console.log("\n[11] Playlist stats page (sample numbers, read-only)");
+  await cdp.evaluate("window.__playlistPrism.previewStats()");
+  const statsShown = await waitFor(`!!document.querySelector('[data-prism-state="stats"]')`, 5000);
+  check("stats page opens", statsShown);
+  if (statsShown) {
+    const statsName = await cdp.evaluate(`document.querySelector('[data-prism="stats-name"]').textContent`);
+    check("it shows the playlist's name", statsName === "Prism · Sample", statsName);
+    const bars = await cdp.evaluate(`document.querySelectorAll('[data-prism="stats-chart"] .prism-bar-fill').length`);
+    check("the genre mix has one bar per top genre (8)", bars === 8, `${bars} bars`);
+    const panels = await cdp.evaluate(
+      `["stats-fingerprint", "stats-moods", "stats-tempo", "stats-match", "stats-length"].filter((p) => !document.querySelector('[data-prism="' + p + '"]'))`
+    );
+    check("fingerprint, mood, tempo, match and length panels are all shown", panels.length === 0, panels.length ? `missing: ${panels.join(", ")}` : "");
+    await sleep(900); // let the bars finish growing
+    await screenshot("stats.png");
+  }
+  // A playlist that doesn't exist: a friendly message, not an error.
+  await cdp.evaluate(`window.__playlistPrism.openStats("spotify:playlist:0000000000000000000001")`);
+  check(
+    "a playlist that can't be read shows a message",
+    await waitFor(`!!document.querySelector('[data-prism-state="stats-missing"]')`, 10000)
+  );
+  // A real playlist from the library (read-only): stats or an estimate appear.
+  const firstPlaylist = await cdp.evaluate(`(async () => {
+    const root = await Spicetify.Platform.RootlistAPI.getContents();
+    const find = (items) => { for (const i of items || []) { if (i.type === "folder") { const f = find(i.items); if (f) return f; } else if (i.type === "playlist") return i.uri; } return null; };
+    return find(root.items);
+  })()`);
+  if (firstPlaylist) {
+    await cdp.evaluate(`window.__playlistPrism.openStats(${JSON.stringify(firstPlaylist)})`);
+    check(
+      "a real playlist's stats page loads (saved stats or an estimate)",
+      await waitFor(`!!document.querySelector('[data-prism-state="stats"]')`, 30000)
+    );
+  }
+  // The right-click item is offered for one playlist, not for songs.
+  check(
+    "\"Prism stats\" is offered for a playlist, not a song",
+    await cdp.evaluate(
+      `!window.__playlistPrism.isSinglePlaylist(["spotify:track:4PhsKqMdgMEUSstTDAmMpg"]) && window.__playlistPrism.isSinglePlaylist(["spotify:playlist:0000000000000000000001"])`
+    )
+  );
+  await cdp.evaluate("window.__playlistPrism.goHome()");
 } catch (error) {
   check("smoke test ran to the end", false, error.message);
 } finally {

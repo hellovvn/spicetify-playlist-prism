@@ -1,3 +1,6 @@
 {
-  "nameId": "playlist-prism"
+  "displayName": "Playlist Prism",
+  "nameId": "playlist-prism",
+  "icon": "assets/prism.svg",
+  "activeIcon": "assets/prism-active.svg"
 }

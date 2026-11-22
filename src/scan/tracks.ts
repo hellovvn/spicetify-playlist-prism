@@ -5,6 +5,7 @@ export interface ScanTrack {
   uri: string;
   name: string;
   artists: string[];
+  durationMs?: number; // song length, when Spotify says (for the stats page)
 }
 
 // Spotify's raw playlist / Liked Songs items -> ScanTrack.
@@ -17,7 +18,8 @@ export function toScanTracks(items: any[]): ScanTrack[] {
     if (typeof item?.uri !== "string" || !item.uri.startsWith("spotify:track:")) continue;
     if (item.isLocal || typeof item.name !== "string") continue;
     const artists = (item.artists ?? []).map((a: any) => a?.name).filter(Boolean);
-    result.push({ uri: item.uri, name: item.name, artists });
+    const durationMs = item.duration?.milliseconds;
+    result.push({ uri: item.uri, name: item.name, artists, ...(typeof durationMs === "number" ? { durationMs } : {}) });
   }
   return result;
 }

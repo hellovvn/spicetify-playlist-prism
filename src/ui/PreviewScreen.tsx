@@ -1,6 +1,10 @@
-// Preview screen: screen 4 of the Prism popup. Shows every matching song,
+// Preview screen: screen 4 of the Prism flow. Shows every matching song,
 // best first, with its score and WHY it matched. The best ones start ticked;
 // the user can change any tick. The seed song is always first.
+//
+// Each row: tick box, a score ring, the song, its genre labels (frosted glass
+// with a colour dot; bright = shared with the seed, faint = extra), and on
+// the right its BPM/key and lyrics mood.
 //
 // Nothing is created here: "Create playlist" hands the picks to step 9.
 
@@ -9,7 +13,10 @@ import type { ScannedSong } from "../scan/scan";
 import { defaultPicks, rankSongs, type RankedSong } from "../scoring/rank";
 import type { SourcedTag } from "../tags/combineTags";
 import { formatAudio } from "../spotify/audio";
-import { formatMood } from "../mood/lyricsMood";
+import { formatMood, topMoods, type MoodProfile } from "../mood/lyricsMood";
+import type { AudioAttributes } from "../spotify/audio";
+import { labelsFor, tagColour } from "./tagLabels";
+import { TagLabels } from "./GenreLabels";
 import { allShownSelected, clearShown, selectShown } from "../sources/sources";
 import type { SeedData } from "./SeedPanel";
 import { SCREEN_HEIGHT } from "./styles";
@@ -33,6 +40,8 @@ export function PreviewScreen({ seed, kept, songs, onBack, onCreate, describeErr
   // "creating" blocks a second click, which would otherwise make TWO playlists.
   const [creating, setCreating] = React.useState(false);
   const [createError, setCreateError] = React.useState<string | null>(null);
+  // Is the "name your playlist" popup open?
+  const [naming, setNaming] = React.useState(false);
 
   // useMemo: remember the ranking and only recompute it if its inputs change,
   // not on every tick of a checkbox (ranking 900 songs is wasted work to repeat).
@@ -68,16 +77,14 @@ export function PreviewScreen({ seed, kept, songs, onBack, onCreate, describeErr
         onChange={() => setPicked(toggleInList(picked, song.uri))}
         style={styles.checkbox}
       />
+      <ScoreRing score={song.match.score} />
       <span style={styles.rowText}>
-        <span style={styles.name}>{song.name}</span>
-        <span style={styles.meta}>
-          {song.artists.join(", ")} · {song.match.matchedTags.join(", ")}
-          {song.tagStatus === "artist" ? " (artist tags)" : ""}
+        <span style={styles.name}>
+          {song.name} <span style={styles.artist}>· {song.artists.join(", ")}</span>
         </span>
+        <TagLabels labels={labelsFor(song.match.matchedTags, song.tags)} artistTags={song.tagStatus === "artist"} />
       </span>
-      <span style={styles.score} data-prism="preview-score">
-        {percent(song.match.score)}
-      </span>
+      <SideInfo audio={song.audio} mood={song.mood} />
     </label>
   );
 
@@ -93,9 +100,12 @@ export function PreviewScreen({ seed, kept, songs, onBack, onCreate, describeErr
       <div style={{ ...styles.row, ...styles.seedRow }} data-prism="preview-seed">
         <span style={styles.lockedTick}>✓</span>
         <span style={styles.rowText}>
-          <span style={styles.name}>{seed.track.name}</span>
-          <span style={styles.meta}>{seed.track.artists.join(", ")} · seed song, always first</span>
+          <span style={styles.name}>
+            {seed.track.name} <span style={styles.artist}>· {seed.track.artists.join(", ")} · seed song, always first</span>
+          </span>
+          <TagLabels labels={kept.slice(0, 4).map((tag) => ({ name: tag.name, colour: tagColour(tag.name), shared: true }))} />
         </span>
+        <SideInfo audio={seed.audio} mood={seed.mood} />
       </div>
 
       {recommended.length > 0 && (
@@ -139,49 +149,149 @@ export function PreviewScreen({ seed, kept, songs, onBack, onCreate, describeErr
         Hover a song to see its score breakdown.
       </p>
 
-      <label style={styles.nameRow}>
-        <span style={styles.nameLabel}>Playlist name</span>
-        <input
-          type="text"
-          value={name}
-          maxLength={100}
-          disabled={creating}
-          onChange={(event) => setName(event.target.value)}
-          style={styles.nameInput}
-          data-prism="playlist-name"
-        />
-      </label>
-
-      {createError && (
-        <p role="alert" style={styles.error} data-prism="create-error">
-          {createError}
-        </p>
-      )}
-
       <div style={styles.buttons}>
-        <ButtonSecondary buttonSize="sm" onClick={onBack} disabled={creating}>
+        <ButtonSecondary buttonSize="sm" onClick={onBack}>
           Back
         </ButtonSecondary>
-        <ButtonPrimary
-          buttonSize="sm"
-          disabled={creating || !name.trim()}
-          onClick={async () => {
+        {/* Opens the naming popup; nothing is created until "Create" in there. */}
+        <ButtonPrimary buttonSize="sm" onClick={() => setNaming(true)} data-prism="open-naming">
+          {`Create playlist (${pickedSongs.length + 1} songs)`}
+        </ButtonPrimary>
+      </div>
+
+      {naming && (
+        <NamePopup
+          name={name}
+          setName={setName}
+          songCount={pickedSongs.length + 1}
+          seedName={seed.track.name}
+          creating={creating}
+          error={createError}
+          onCancel={() => {
+            setNaming(false);
+            setCreateError(null);
+          }}
+          onCreate={async () => {
             if (creating || !name.trim()) return;
             setCreating(true);
             setCreateError(null);
             try {
-              await onCreate(name, pickedSongs); // on success the popup closes
+              await onCreate(name, pickedSongs); // on success the page moves on
             } catch (error) {
               console.error("[Playlist Prism] creating the playlist failed", error);
               setCreateError(describeError(error));
               setCreating(false);
             }
           }}
-        >
-          {creating ? "Creating..." : `Create playlist (${pickedSongs.length + 1} songs)`}
-        </ButtonPrimary>
+        />
+      )}
+    </div>
+  );
+}
+
+// ----- The "name your playlist" popup -----
+// A liquid-glass card floating over the preview (the preview stays behind
+// it, blurred). Enter = Create, Escape = Cancel. The name box starts with
+// the suggested name selected, so typing replaces it.
+interface NamePopupProps {
+  name: string;
+  setName: (name: string) => void;
+  songCount: number;
+  seedName: string;
+  creating: boolean;
+  error: string | null;
+  onCancel: () => void;
+  onCreate: () => void;
+}
+
+function NamePopup({ name, setName, songCount, seedName, creating, error, onCancel, onCreate }: NamePopupProps) {
+  const { ButtonPrimary, ButtonSecondary } = Spicetify.ReactComponent as any;
+  const blank = !name.trim();
+  return (
+    <div
+      className="prism-overlay"
+      // A click on the dim area outside the card cancels (not while creating).
+      onClick={(event) => event.target === event.currentTarget && !creating && onCancel()}
+      onKeyDown={(event) => event.key === "Escape" && !creating && onCancel()}
+      data-prism="name-popup"
+    >
+      <div className="prism-glass-card" role="dialog" aria-modal="true" aria-labelledby="prism-name-title">
+        <h2 id="prism-name-title" style={styles.popupTitle}>Name your playlist</h2>
+        <p style={styles.popupSub}>
+          {songCount} songs, starting with {seedName}
+        </p>
+        <input
+          type="text"
+          value={name}
+          maxLength={100}
+          disabled={creating}
+          // autoFocus + select: the cursor is in the box with the text selected.
+          autoFocus
+          onFocus={(event) => event.target.select()}
+          onChange={(event) => setName(event.target.value)}
+          onKeyDown={(event) => event.key === "Enter" && !blank && onCreate()}
+          className="prism-glass-input"
+          aria-label="Playlist name"
+          data-prism="playlist-name"
+        />
+        {error && (
+          <p role="alert" className="prism-notice" style={styles.error} data-prism="create-error">
+            {error}
+          </p>
+        )}
+        <div style={styles.buttons}>
+          <ButtonSecondary buttonSize="sm" onClick={onCancel} disabled={creating} data-prism="name-cancel">
+            Cancel
+          </ButtonSecondary>
+          <ButtonPrimary buttonSize="sm" onClick={onCreate} disabled={creating || blank} data-prism="name-create">
+            {creating ? "Creating..." : "Create"}
+          </ButtonPrimary>
+        </div>
       </div>
     </div>
+  );
+}
+
+// ----- Row pieces -----
+
+// The score as a ring that fills up (76% = three quarters round), with the
+// number in the middle. strokeDasharray draws the ring as one dash as long as
+// the score's share of the circle; rotate(-90) starts it at the top.
+// The fill is a lavender-to-pink gradient. Every ring defines the same
+// gradient id; they're identical, so it doesn't matter which one is used.
+function ScoreRing({ score }: { score: number }) {
+  const r = 20;
+  const round = 2 * Math.PI * r;
+  const pct = Math.round(score * 100);
+  return (
+    <svg width={52} height={52} viewBox="0 0 52 52" style={{ flexShrink: 0 }} data-prism="preview-score" role="img" aria-label={`${pct}% match`}>
+      <defs>
+        <linearGradient id="prism-score-fill" x1="0" x2="1">
+          <stop offset="0" stopColor="#cdb8ff" />
+          <stop offset="1" stopColor="#ffb3c7" />
+        </linearGradient>
+      </defs>
+      <circle cx={26} cy={26} r={r} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth={4} />
+      <circle
+        cx={26} cy={26} r={r} fill="none" stroke="url(#prism-score-fill)" strokeWidth={4} strokeLinecap="round"
+        strokeDasharray={`${(round * pct) / 100} ${round}`} transform="rotate(-90 26 26)"
+      />
+      <text x={26} y={31} textAnchor="middle" fontSize={15} fontWeight={700} fill="#ffffff">
+        {pct}
+        <tspan fontSize={10}>%</tspan>
+      </text>
+    </svg>
+  );
+}
+
+// Right side: "102 BPM · 8A" and the main lyrics moods.
+function SideInfo({ audio, mood }: { audio: AudioAttributes | null; mood: MoodProfile | null }) {
+  const moods = mood ? topMoods(mood) : [];
+  return (
+    <span style={styles.side}>
+      <span>{audio ? `${Math.round(audio.bpm)} BPM · ${audio.camelot}` : ""}</span>
+      <span>{moods.join(", ")}</span>
+    </span>
   );
 }
 
@@ -196,30 +306,25 @@ function breakdown(song: RankedSong): string {
 }
 
 const styles: Record<string, React.CSSProperties> = {
-  screen: { display: "flex", flexDirection: "column", gap: 10, height: SCREEN_HEIGHT },
+  // position: relative so the naming popup can cover exactly this screen.
+  screen: { display: "flex", flexDirection: "column", gap: 10, height: SCREEN_HEIGHT, position: "relative" },
+  popupTitle: { margin: 0, fontSize: 22, fontWeight: 300, letterSpacing: "0.02em", fontFamily: '"Segoe UI Variable Display", "Segoe UI", sans-serif', color: "#ffffff" },
+  popupSub: { margin: "0 0 4px", color: "var(--spice-subtext)", fontSize: 13 },
   subtext: { color: "var(--spice-subtext)", margin: 0 },
   note: { color: "var(--spice-subtext)", margin: 0, fontSize: 13, height: "3em", overflow: "hidden" },
   list: { flex: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 2 },
-  row: { display: "flex", alignItems: "center", gap: 12, padding: "6px 4px", borderRadius: 4, cursor: "pointer" },
+  row: { display: "flex", alignItems: "center", gap: 12, padding: "6px 4px", borderRadius: 6, cursor: "pointer", borderTop: "1px solid rgba(255,255,255,0.06)" },
   seedRow: { background: "var(--spice-card)", cursor: "default" },
   selectAllRow: { borderBottom: "1px solid var(--spice-card)", borderRadius: 0 },
   lockedTick: { width: 18, textAlign: "center", color: "var(--spice-button)", fontWeight: 700, flexShrink: 0 },
   checkbox: { width: 18, height: 18, accentColor: "var(--spice-button)", cursor: "pointer", flexShrink: 0 },
-  rowText: { display: "flex", flexDirection: "column", minWidth: 0, flex: 1 },
+  rowText: { display: "flex", flexDirection: "column", gap: 4, minWidth: 0, flex: 1 },
+  artist: { color: "var(--spice-subtext)", fontWeight: 400, fontSize: 13 },
+  side: { display: "flex", flexDirection: "column", alignItems: "flex-end", color: "var(--spice-subtext)", fontSize: 12, flexShrink: 0, whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" },
   name: { color: "var(--spice-text)", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
-  meta: { color: "var(--spice-subtext)", fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
-  score: {
-    color: "var(--spice-text)", fontWeight: 700, fontVariantNumeric: "tabular-nums",
-    minWidth: 44, textAlign: "right", flexShrink: 0,
-  },
   buttons: { display: "flex", justifyContent: "flex-end", gap: 8 },
-  nameRow: { display: "flex", alignItems: "center", gap: 12 },
-  nameLabel: { color: "var(--spice-subtext)", fontSize: 13, flexShrink: 0 },
-  nameInput: {
-    flex: 1, padding: "6px 10px", borderRadius: 4, border: "1px solid var(--spice-subtext)",
-    background: "var(--spice-main)", color: "var(--spice-text)",
-  },
-  error: { margin: 0, padding: "6px 10px", borderLeft: "3px solid #f15e6c", background: "var(--spice-card)", color: "var(--spice-text)", fontSize: 13 },
+  // Box + rainbow edge come from the prism-notice class (styles.ts).
+  error: { fontSize: 13, padding: "6px 10px 6px 14px" },
   moreToggle: {
     background: "none", border: "none", padding: "10px 4px", textAlign: "left", cursor: "pointer",
     color: "var(--spice-subtext)", fontWeight: 600, fontSize: 14,

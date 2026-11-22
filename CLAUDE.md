@@ -54,22 +54,20 @@ scored on **song-level** signals (see "Scoring signals"), not Spotify's artist-l
 ```powershell
 npm install            # first time
 npm run watch          # rebuild on save (keep running while developing)
-spicetify watch -e     # in a 2nd terminal: reload Spotify when the extension changes
-npm run build          # one-off build, writes to the Spicetify Extensions folder
-spicetify refresh -e   # copy rebuilt extensions into Spotify, then Ctrl+Shift+R in Spotify
+spicetify watch -a     # in a 2nd terminal: reload Spotify when the custom app changes
+npm run build          # one-off build, writes to %APPDATA%\spicetify\CustomApps\playlist-prism
 spicetify apply        # apply after first build or config changes
 npm test               # unit tests (Vitest, tests/*.test.ts, no Spotify needed)
 npm run smoke          # in-Spotify smoke test via debug port 9222 (needs spicetify watch -e)
 ```
-Gotcha: Spotify runs a COPY of the extension (in `%APPDATA%\Spotify\Apps\xpui\extensions`).
-`npm run build` alone does not update that copy, so run `spicetify refresh -e` (or keep
-`spicetify watch -e` running) before reloading Spotify.
-
-Gotcha: `Spicetify.PopupModal` closes on "outside" clicks. A click handler that removes the
-clicked button (e.g. switching screens) makes Spotify think the click was outside and close the
-popup. Delay such changes with `afterClick()` in `src/ui/SeedPanel.tsx`.
-
-First-time registration: `spicetify config extensions playlist-prism.js` and then `spicetify apply`.
+Since step 12a this is a Spicetify CUSTOM APP (src/settings.json has an "icon"), not an extension:
+- `src/app.tsx` = the page at `/playlist-prism`. Spicetify adds its header icon automatically
+  (`button[aria-label="Playlist Prism"]`, picture from `src/assets/prism.svg`), no sidebar entry.
+- `src/extensions/*.tsx` = always-on scripts (right-click item, profile menu, debug hook). They are
+  a SEPARATE bundle from the page (no shared variables) and run as plain scripts: call main()
+  yourself. They talk to the page only by navigating to it (`src/nav.ts`, `?go=...&r=...`).
+- First-time registration: `spicetify config custom_apps playlist-prism`, then `spicetify apply`.
+  (Done 2026-11-21; the old `extensions playlist-prism.js` entry was removed.)
 
 ## Spicetify.Platform APIs (confirmed present 2026-11-20, Spotify via Spicetify 2.46.4)
 - Reads we plan to use: `RootlistAPI.getContents` (user's playlists), `PlaylistAPI.getContents`
@@ -87,7 +85,9 @@ First-time registration: `spicetify config extensions playlist-prism.js` and the
 - The Last.fm API key is entered by the user in a settings field and stored in
   `Spicetify.LocalStorage` (key `prism:lastfmKey`). Never hardcode it or commit it.
 
-## Code layout (planned)
+## Code layout
+- `src/app.tsx` (page entry), `src/ui/PrismPage.tsx` (the page), `src/extensions/prism.tsx`
+  (always-on), `src/nav.ts` (page requests), `src/flow.ts` (load seed / scan / create)
 - `src/lastfm/`: API client, throttle, cache
 - `src/tags/`: cleanup and normalization (pure, unit-tested)
 - `src/scoring/`: match scoring (pure, unit-tested)
@@ -104,7 +104,47 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   playlists came out Private. The smoke test never creates playlists.
 - 9b (from the original spec, not built yet): optional second seed song.
 - 10: Lyrics mood (word list) as an extra score. Done (tested by the developer 2026-11-21).
-- 11: Cleanup: remove the debug hook, README, release.
+- 12 (redesign, decided 2026-11-21): Playlist Prism becomes ONE page (Spicetify custom app,
+  `/playlist-prism`) instead of popups. Header (top bar) icon only, no sidebar entry. Inside the
+  page, each Prism being generated is a TAB. Right-click "Start a Prism playlist" opens the page
+  with a new tab for that song. Scans keep running while the user browses Spotify.
+  - 12a: switch to a custom app; the 4 screens + settings live on the page (one Prism at a time,
+    leaving the page ends it); start screen: playing song or pasted link. Page content is
+    centred both ways; header icon = faceted pyramid diamond on a purple circle, hover: spin, star
+    halo, rainbow ring (`src/ui/headerIcon.ts`, CSS injected by the always-on script; icon SVG in
+    `src/assets/prism.svg`). DONE: tested by the developer and committed 2026-11-22.
+  - 12b: tabs + background jobs: a job store outside React so scans survive navigation; parallel
+    scans share the one Last.fm rate limiter.
+  - 12c: purple "cosmic" theme scoped to the page; translucent spinning diamond while scanning
+    (respect reduced motion). DONE early with 12a (committed 2026-11-22): twilight background with
+    wavy rainbow light bands + sparkles, glass header/buttons/popup, star-halo scanning diamond.
+  - 12d: result rows: tag chips with the shared tags highlighted, mood and BPM/key labels, score badge.
+    Built early with 12a's polish (developer picked mockup "C" + "frosted glass with colour dot"):
+    score ring, labels from `src/ui/tagLabels.ts` (colour = hash of the tag name), BPM/key + mood.
+    DONE (committed 2026-11-22).
+  - 12e (decided and built 2026-11-22, committed 2026-11-22): playlist stats page. Right-click a Prism playlist ->
+    "Prism stats" opens the page (`?go=stats&playlist=...`): name, seed, date, "built from" tag
+    labels, stat cards (songs, average BPM, top mood) and the genre mix as frosted GLASS BARS
+    (developer picked bars over donut/bubbles). Data: records saved at creation in
+    `prism:playlists` (`src/stats/playlistStats.ts`, saved since 2026-11-22; older Prism playlists
+    have no record). Developer's choice: "Prism stats" shows on ANY playlist; without a record
+    the page shows an ESTIMATE from the scan caches (read-only: playlist songs + cached tags/moods
+    + BPM/key; nothing sent to Last.fm), saying how many songs were scanned.
+    Code: `src/ui/StatsScreen.tsx`, `src/ui/GenreLabels.tsx` (shared labels; NOT "TagLabels.tsx":
+    Windows treats it as the same file as `tagLabels.ts`). Debug hook: previewStats (sample
+    numbers), openStats(uri), isSinglePlaylist.
+    Extra stats (developer picked 2026-11-22; fingerprint = glass bubbles): mood mix, tempo spread (slow <90, fast 120+, slowest/
+    fastest), Prism fingerprint (`src/ui/Fingerprint.tsx`, a glass bubble per genre), total length
+    (+ longest/shortest; lengths from playlist reads and the seed lookup), and match spread (saved
+    at creation only). Record fields tempo/length/match are OPTIONAL (older records lack them).
+  - Sidebar: Prism playlists (a saved record, or still named "Prism · ...") get a purple hover
+    (`src/ui/prismRows.ts`, always-on). Spotify paints its row hover on the row's ::after layer,
+    so the purple goes there. Refreshed at start, after a playlist is created (window event
+    "playlist-prism:records-changed") and every 20 s.
+  - Fingerprint bubbles pop on click ("sparkle shower": soft fade + translucent sparkles drifting
+    down), back after 3 s. Postponed (2026-11-22): cute hover doodles per playlist; two style rounds
+    (faces, white scribbles) were rejected, so revisit with a better art direction.
+- 11: Cleanup: remove the debug hook, README, release (after 12).
 
 ## Dev loop (Claude runs this, not the developer)
 - Keep two terminal tabs running: `npm run watch` (rebuild on save) and `spicetify watch -e`
@@ -112,13 +152,19 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
 - Before handing a step over for testing, Claude makes sure the new build reached Spotify
   (watch tab says "Reloaded Spotify", or run `spicetify refresh -e` + `spicetify restart`).
   Never ask the developer to press Ctrl+Shift+R.
-- If Spotify's window is minimized/hidden, `spicetify watch -e`'s reload can leave
-  `Spicetify.showNotification` undefined, so the extension never starts (main() waits for it).
-  Fix: reload the page via the debug port (`location.reload()`), which works even when hidden.
+- If Spotify's window is minimized/hidden: `Spicetify.showNotification` may stay undefined (so
+  never wait for it at startup), Spicetify doesn't draw header links (the smoke test then SKIPS the
+  icon check), and CDP screenshots never return (the smoke test gives up after 5 s). A plain
+  `location.reload()` while minimized can leave Spicetify half-started (`Spicetify.ReactDOM`
+  missing, extension never runs). Fix: over the debug port send
+  `Emulation.setFocusEmulationEnabled {enabled:true}` + `Page.setWebLifecycleState {state:"active"}`,
+  then `Page.reload`: it then starts fully without showing the window.
+- A stopped background Bash task can leave `node scripts/smoke.mjs` running and driving Spotify;
+  check for stray node processes before re-running the smoke test.
 - Type check: `npx -y -p typescript@5.6.3 tsc --noEmit -p .` (TypeScript isn't a local dependency;
   plain `npx tsc` fetches an unrelated package).
 - Before handing over a step, run `npm test` and `npm run smoke` and report results.
-  Smoke test is READ-ONLY (uses `window.__playlistPrism` debug hook in src/app.tsx); it never
+  Smoke test is READ-ONLY (uses `window.__playlistPrism` debug hook in src/extensions/prism.tsx); it never
   prints the API key. Screenshots go to `smoke-output/` (gitignored; they show the user's library).
 - Test fixtures in `tests/fixtures/` are real recorded Last.fm data: don't "fix" them.
 - `window.__playlistPrism` debug hook must be removed or dev-only before any public release.
