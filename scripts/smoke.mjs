@@ -752,6 +752,70 @@ try {
     await cdp.evaluate(`${DETAIL}.querySelector('[data-prism="all-groups"]').click()`);
     await sleep(300);
     check("merging leaves one group fewer", (await cdp.evaluate(`${CARDS}.length`)) === groupsBefore - 1, `${groupsBefore} -> ${await cdp.evaluate(`${CARDS}.length`)}`);
+    const suggestedAfterEdits = await cdp.evaluate(`${CARDS}.length`);
+
+    // 13c-2: "Start from scratch" (on screen only; nothing is created).
+    console.log("\n[13] Organize: Start from scratch (step 13c-2, read-only)");
+    const BUILDER = `document.querySelector('[data-prism-state="organize-builder"]')`;
+    await cdp.evaluate(`document.querySelector('[data-prism="start-from-scratch"]').click()`);
+    check("\"Start from scratch\" opens the group builder", await waitFor(`!!${BUILDER}`, 3000));
+    const builderGroups = await cdp.evaluate(`${BUILDER}.querySelectorAll('[data-prism="builder-group"]').length`);
+    check("it starts with as many empty groups as picked in setup (3)", builderGroups === 3, `${builderGroups}`);
+    const genres = await cdp.evaluate(
+      `[...${BUILDER}.querySelectorAll('[data-prism="pick-genre"]')].map((b) => b.dataset.label + " " + b.querySelector(".prism-tag-count").textContent)`
+    );
+    const moods = await cdp.evaluate(`[...${BUILDER}.querySelectorAll('[data-prism="pick-mood"]')].map((b) => b.dataset.label)`);
+    info(`genres: ${genres.slice(0, 8).join(", ")}${genres.length > 8 ? ", ..." : ""} (${genres.length} shown)`);
+    info(`moods: ${moods.join(", ") || "(none)"}`);
+    check("the genres to pick come from the scanned songs, with song counts", genres.length > 0 && genres.every((g) => / \d+$/.test(g)));
+    // Sorting with empty groups says what's missing instead of sorting.
+    await cdp.evaluate(`${BUILDER}.querySelector('[data-prism="builder-sort"]').click()`);
+    await sleep(200);
+    const problem = await cdp.evaluate(`${BUILDER}?.querySelector('[data-prism="builder-problem"]')?.innerText ?? ""`);
+    check("\"Sort songs\" with an empty group says what's missing", /has no genres or moods yet/.test(problem), problem);
+    // Give each group a label: group 1 and 2 a genre each, group 3 a mood (or a 3rd genre).
+    const pick = async (groupIndex, selector, labelIndex) => {
+      await cdp.evaluate(`${BUILDER}.querySelectorAll('[data-prism="builder-group"]')[${groupIndex}].click()`);
+      await sleep(150);
+      await cdp.evaluate(`${BUILDER}.querySelectorAll('[data-prism="${selector}"]')[${labelIndex}].click()`);
+      await sleep(150);
+    };
+    await pick(0, "pick-genre", 0);
+    const firstPressed = await cdp.evaluate(`${BUILDER}.querySelector('[data-prism="pick-genre"][aria-pressed="true"]')?.dataset.label ?? ""`);
+    const firstName = await cdp.evaluate(`${BUILDER}.querySelector('[data-prism="builder-name-input"]').value`);
+    check("picking a genre turns it on and names the group after it", !!firstPressed && firstName.toLowerCase() === firstPressed.toLowerCase(), `${firstPressed} -> "${firstName}"`);
+    await pick(1, "pick-genre", 1);
+    await pick(2, moods.length ? "pick-mood" : "pick-genre", moods.length ? 0 : 2);
+    await screenshot("organize-builder.png");
+    await cdp.evaluate(`${BUILDER}.querySelector('[data-prism="builder-sort"]').click()`);
+    const sorted = await waitFor(`document.querySelector('[data-prism-view="custom"]') !== null`, 3000);
+    check("\"Sort songs\" shows the user's groups as album-cover cards", sorted);
+    if (sorted) {
+      const custom = await cdp.evaluate(`${CARDS}.map((g) => g.innerText.replace(/\\s+/g, " ").slice(0, 70))`);
+      custom.forEach((g) => info(`your group: ${g}`));
+      const total = await cdp.evaluate(`${CARDS}.reduce((n, c) => n + parseInt(c.innerText.match(/(\\d+) songs/)[1]), 0)`);
+      const intro2 = await cdp.evaluate(`document.querySelector('[data-prism-state="organize-groups"] p').innerText`);
+      info(intro2);
+      check("3 groups, and every song is in one (overlap on: at least 25 places)", custom.length === 3 && total >= 25, `${custom.length} groups, ${total} places`);
+      await screenshot("organize-custom-groups.png");
+      await cdp.evaluate(`${CARDS}[0].click()`);
+      check("your groups open with the same editing tools", await waitFor(`!!${DETAIL}?.querySelector('[data-prism="group-name-input"]')`, 3000));
+      await cdp.evaluate(`${DETAIL}.querySelector('[data-prism="all-groups"]').click()`);
+      await sleep(300);
+      // Back to the suggestions: the edits made to them earlier are still there.
+      await cdp.evaluate(`document.querySelector('[data-prism="use-suggestions"]').click()`);
+      await sleep(300);
+      check(
+        "\"Use suggestions\" goes back to the suggested groups, edits kept",
+        (await cdp.evaluate(`document.querySelector('[data-prism-view="suggested"]') !== null`)) &&
+          (await cdp.evaluate(`${CARDS}.length`)) === suggestedAfterEdits &&
+          (await cdp.evaluate(`${CARDS}.some((c) => c.innerText.startsWith("Smoke test name"))`))
+      );
+      // And the builder still has the picked labels.
+      await cdp.evaluate(`document.querySelector('[data-prism="start-from-scratch"]').click()`);
+      await sleep(300);
+      check("the builder keeps your groups while you switch", (await cdp.evaluate(`${BUILDER}?.querySelectorAll('[aria-pressed="true"][data-prism^="pick-"]').length ?? 0`)) >= 1);
+    }
   }
   await cdp.evaluate("window.__playlistPrism.goHome()");
 } catch (error) {

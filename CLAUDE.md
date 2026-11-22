@@ -190,7 +190,15 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
       transform, which makes position:fixed measure from the view (list showed ~300px off).
       Merge is "Combine with another group…" and asks first, saying what will happen.
     - 13c-2: "Start from scratch" builder (pick genres/moods per group, Prism sorts the songs
-      into them).
+      into them). DONE: tested and committed 2026-11-22 (group detail's "All groups" button is now
+      "Back", developer's request). Layout "B"
+      (developer's pick): group list left, name + genre/mood labels (with song counts, genre search,
+      moods dashed) right. Pure logic `src/organize/customGroups.ts` (+ tests/customGroups.test.ts):
+      a song matches a group by genre tag or main lyrics mood; best fit wins (FOCUS_WEIGHTS),
+      overlap uses OVERLAP_SHARE; songs matching nothing go to the closest group by mood + BPM
+      (`closestByMoodAndTempo` in grouping.ts). UI `src/ui/GroupBuilder.tsx`; GroupReview keeps
+      suggested and custom groups SEPARATELY (switching loses no edits); custom cards show the
+      picked labels first.
   - 13d: create the N playlists. write.ts must allow SEVERAL new playlists per session, each still
     guarded (only URIs created in this session); confirm first; save stats records for each.
 - 11: Cleanup: remove the debug hook, README, release (after 12).
@@ -226,6 +234,11 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
 - Work in **small steps**. Do one step of the build plan at a time, then **stop** so the
   developer can test it before moving on.
 - Prefer simple, readable code over clever code. Add unit tests for pure logic.
+- For visual/UI changes: show 3-4 clearly different mockup options first (an interactive widget,
+  animated if motion matters), let the developer pick, then build it and check it with zoomed
+  real-pixel screenshots. Their taste: purple "twilight" theme, frosted/liquid glass, soft pastel
+  rainbow accents, subtle motion, consistent sizes across screens, no faces/mascots.
+- Claude reloads Spotify itself before handing over; never ask the developer to press Ctrl+Shift+R.
 - Say clearly what was verified and what wasn't.
 
 ## Git

@@ -244,6 +244,22 @@ const CSS = `
 .prism-group-card { transition: transform 150ms ease-out, border-color 150ms ease-out, box-shadow 150ms ease-out; }
 .prism-group-card:hover { transform: translateY(-2px); border-color: rgba(205, 184, 255, 0.6); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 8px 24px rgba(10, 0, 30, 0.35); }
 .prism-group-card:focus-visible { outline: 2px solid #cdb8ff; outline-offset: 2px; }
+/* "Start from scratch" builder (step 13c-2). The chosen group in the list
+   gets a lavender edge; genre/mood labels are buttons you turn on and off
+   (on = the bright .shared look). Moods have a dashed edge. */
+.prism-builder-group { transition: border-color 150ms ease-out, background 150ms ease-out; }
+.prism-builder-group:hover { border-color: rgba(205, 184, 255, 0.5); }
+.prism-builder-group.on { border-color: #cdb8ff; background: linear-gradient(145deg, rgba(205, 184, 255, 0.24), rgba(255, 255, 255, 0.06)); }
+.prism-builder-group:focus-visible { outline: 2px solid #cdb8ff; outline-offset: 2px; }
+.prism-tag-pick { font-family: inherit; cursor: pointer; transition: background 120ms ease-out, border-color 120ms ease-out, color 120ms ease-out; }
+.prism-tag-pick:hover:not(.shared) { color: #ffffff; border-color: rgba(255, 255, 255, 0.32); }
+.prism-tag-pick:focus-visible { outline: 2px solid #cdb8ff; outline-offset: 1px; }
+/* 3 classes, so it beats .prism-tag.shared further down this file. */
+.prism-tag.prism-tag-pick.shared { background: rgba(205, 184, 255, 0.3); border-color: #cdb8ff; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 0 10px rgba(205, 184, 255, 0.35); }
+.prism-tag.mood { border-style: dashed; }
+.prism-tag-pick.shared.mood { border-style: dashed; }
+.prism-glass-input::placeholder { color: rgba(255, 255, 255, 0.5); }
+.prism-tag-count { font-weight: 400; opacity: 0.6; }
 /* Glass drop-down menu (src/ui/GlassMenu.tsx). */
 .prism-menu-button {
   display: inline-flex; align-items: center; gap: 6px;

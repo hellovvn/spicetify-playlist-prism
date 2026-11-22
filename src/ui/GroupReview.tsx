@@ -1,6 +1,8 @@
 // Organize's review screen (step 13c): the suggested groups as album-cover
 // cards. Click a card to open it: rename it, move or remove songs, or merge
-// it into another group. Nothing is created in Spotify here (that's 13d).
+// it into another group. Or "Start from scratch" (13c-2): make your own
+// groups in the builder (GroupBuilder.tsx), and the sorted result shows as
+// the same cards. Nothing is created in Spotify here (that's 13d).
 //
 // The groups are kept as EditableGroup state (src/organize/editGroups.ts:
 // pure functions that return new groups), and each group's summary is worked
@@ -8,7 +10,8 @@
 
 import React from "react";
 import type { ScannedSong } from "../scan/scan";
-import { summarize, type GroupSummary, type SongGroup } from "../organize/grouping";
+import { summarize, type GroupFocus, type GroupSummary, type SongGroup } from "../organize/grouping";
+import { blankGroups, sortIntoGroups, type CustomGroup } from "../organize/customGroups";
 import {
   editableGroups,
   mergeGroups,
@@ -21,23 +24,68 @@ import {
 import { tagColour } from "./tagLabels";
 import { TagLabels } from "./GenreLabels";
 import { GlassMenu } from "./GlassMenu";
+import { GroupBuilder } from "./GroupBuilder";
 
 export interface GroupReviewProps {
   songs: ScannedSong[]; // every scanned song (for names, covers, summaries)
   suggested: SongGroup[]; // what the grouping suggested
+  settings: { count: number | "auto"; overlap: boolean; focus: GroupFocus }; // chosen in Organize's setup
   intro: React.ReactNode; // e.g. "250 songs from 2 playlists into 8 groups..."
   onBack: () => void;
 }
 
-export function GroupReview({ songs, suggested, intro, onBack }: GroupReviewProps) {
+// What the screen shows: the suggested groups, the user's own sorted
+// groups, or the "Start from scratch" builder.
+type View = "suggested" | "custom" | "builder";
+
+export function GroupReview({ songs, suggested, settings, intro, onBack }: GroupReviewProps) {
   const { ButtonSecondary } = Spicetify.ReactComponent as any;
-  const [groups, setGroups] = React.useState<EditableGroup[]>(() => editableGroups(suggested));
+  // Two separate sets of groups, so switching between "Use suggestions" and
+  // your own groups never loses the edits made to either one.
+  const [suggestedGroups, setSuggestedGroups] = React.useState<EditableGroup[]>(() => editableGroups(suggested));
+  const [customGroups, setCustomGroups] = React.useState<EditableGroup[]>([]);
+  // The builder's groups (names + picked genres/moods), kept while you switch.
+  const [specs, setSpecs] = React.useState<CustomGroup[]>(() => blankGroups(settings.count === "auto" ? 3 : settings.count));
+  const [forced, setForced] = React.useState(0); // songs placed by mood/tempo only
+  // The genres/moods the user picked per sorted group (by card id), shown
+  // first on its card: songs placed by mood/tempo can outnumber them.
+  const [pickedLabels, setPickedLabels] = React.useState<Map<string, string[]>>(new Map());
+  const [view, setView] = React.useState<View>("suggested");
   const [openId, setOpenId] = React.useState<string | null>(null);
+  const groups = view === "custom" ? customGroups : suggestedGroups;
+  const setGroups = view === "custom" ? setCustomGroups : setSuggestedGroups;
   // Look songs up by URI quickly (a Map), rebuilt only when the songs change.
   const byUri = React.useMemo(() => new Map(songs.map((s) => [s.uri, s])), [songs]);
   const songsOf = (group: EditableGroup) => group.songs.map((u) => byUri.get(u)).filter((s): s is ScannedSong => !!s);
   const left = songsInNoGroup(groups, songs.map((s) => s.uri));
   const open = groups.find((g) => g.id === openId) ?? null;
+  const overlap = settings.overlap ? "a song can join every group it fits well" : "each song goes into one group";
+
+  if (view === "builder") {
+    return (
+      <GroupBuilder
+        songs={songs}
+        groups={specs}
+        setGroups={setSpecs}
+        intro={
+          <>
+            Make your own groups: give each one a name and pick its genres and/or moods. Then Prism sorts all{" "}
+            {songs.length} songs into them ({overlap}).
+            {customGroups.length > 0 && " Sorting again replaces your edits to the sorted groups."}
+          </>
+        }
+        onUseSuggestions={() => setView("suggested")}
+        onSort={() => {
+          const result = sortIntoGroups(songs, specs, { overlap: settings.overlap, focus: settings.focus });
+          const sorted = editableGroups(result.groups);
+          setCustomGroups(sorted);
+          setPickedLabels(new Map(sorted.map((g, i) => [g.id, [...specs[i].genres, ...specs[i].moods]])));
+          setForced(result.placedByMoodTempo.length);
+          setView("custom");
+        }}
+      />
+    );
+  }
 
   if (open) {
     return (
@@ -54,12 +102,29 @@ export function GroupReview({ songs, suggested, intro, onBack }: GroupReviewProp
     );
   }
 
+  const placed = groups.reduce((n, g) => n + g.songs.length, 0);
   return (
-    <div style={styles.screen} data-prism-state="organize-groups">
-      <p style={styles.sub}>{intro}</p>
+    <div style={styles.screen} data-prism-state="organize-groups" data-prism-view={view}>
+      <p style={styles.sub}>
+        {view === "suggested" ? (
+          intro
+        ) : (
+          <>
+            {songs.length} songs sorted into <b style={{ color: "#fff" }}>your {groups.length} groups</b>
+            {forced > 0 ? ` · ${forced} matched none of your genres/moods and went to the closest group by mood and tempo` : ""}
+            {settings.overlap && placed > songs.length ? ` · ${placed - songs.length} songs are in more than one` : ""}.
+          </>
+        )}
+      </p>
       <div style={styles.grid} data-prism="organize-group-list">
         {groups.map((group) => (
-          <GroupCard key={group.id} group={group} groupSongs={songsOf(group)} onOpen={() => setOpenId(group.id)} />
+          <GroupCard
+            key={group.id}
+            group={group}
+            groupSongs={songsOf(group)}
+            picked={view === "custom" ? pickedLabels.get(group.id) : undefined}
+            onOpen={() => setOpenId(group.id)}
+          />
         ))}
       </div>
       {left.length > 0 && (
@@ -75,6 +140,15 @@ export function GroupReview({ songs, suggested, intro, onBack }: GroupReviewProp
         <ButtonSecondary buttonSize="sm" onClick={onBack}>
           Back
         </ButtonSecondary>
+        <span style={{ flex: 1 }} />
+        {view === "custom" && (
+          <ButtonSecondary buttonSize="sm" onClick={() => setView("suggested")} data-prism="use-suggestions">
+            Use suggestions
+          </ButtonSecondary>
+        )}
+        <ButtonSecondary buttonSize="sm" onClick={() => setView("builder")} data-prism="start-from-scratch">
+          {view === "custom" ? "Edit my groups" : customGroups.length ? "My own groups" : "Start from scratch"}
+        </ButtonSecondary>
       </div>
     </div>
   );
@@ -82,8 +156,16 @@ export function GroupReview({ songs, suggested, intro, onBack }: GroupReviewProp
 
 // ----- One card: cover mosaic, name, count, genres, mood/tempo line -----
 
-function GroupCard({ group, groupSongs, onOpen }: { group: EditableGroup; groupSongs: ScannedSong[]; onOpen: () => void }) {
+interface GroupCardProps {
+  group: EditableGroup;
+  groupSongs: ScannedSong[];
+  picked?: string[]; // your own groups: the labels you picked come first
+  onOpen: () => void;
+}
+
+function GroupCard({ group, groupSongs, picked = [], onOpen }: GroupCardProps) {
   const summary = summarize(groupSongs);
+  const labels = [...picked, ...summary.tags.map(([name]) => name).filter((n) => !picked.includes(n))].slice(0, 2);
   return (
     <button
       type="button"
@@ -99,7 +181,7 @@ function GroupCard({ group, groupSongs, onOpen }: { group: EditableGroup; groupS
       {/* A box as wide as the card that cuts off labels that don't fit, so a
           long label can't spill over into the next card. */}
       <span style={styles.labelClip}>
-        <TagLabels labels={summary.tags.slice(0, 2).map(([name]) => ({ name, colour: tagColour(name), shared: true }))} />
+        <TagLabels labels={labels.map((name) => ({ name, colour: tagColour(name), shared: true }))} />
       </span>
       <span style={styles.cardLine}>{summaryLine(summary)}</span>
     </button>
@@ -250,8 +332,10 @@ function GroupDetail({ group, groupSongs, others, onClose, onRename, onMove, onR
       )}
 
       <div className="prism-actions" style={styles.detailActions}>
+        {/* "Back" like every other screen; it returns to the group cards.
+            (The test hook keeps its old name "all-groups".) */}
         <ButtonSecondary buttonSize="sm" onClick={onClose} data-prism="all-groups">
-          All groups
+          Back
         </ButtonSecondary>
         {others.length > 0 && (
           <GlassMenu

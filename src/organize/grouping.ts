@@ -320,7 +320,9 @@ const countUp = (values: string[]): [string, number][] => {
 };
 
 // Main moods of a song: those with at least 20% of its mood (like topMoods).
-const mainMoods = (mood: MoodProfile | null) =>
+// Exported for "Start from scratch" (customGroups.ts): a song "has" a mood
+// when it's one of these.
+export const mainMoods = (mood: MoodProfile | null) =>
   mood ? MOODS.filter((m) => (mood[m] ?? 0) >= 0.2).sort((a, b) => (mood[b] ?? 0) - (mood[a] ?? 0)).slice(0, 2) : [];
 
 // Main moods counted per song; a tie in songs goes to the STRONGER mood (its
@@ -416,6 +418,33 @@ function nameGroup(group: SongToGroup[], all: SongToGroup[], focus: GroupFocus):
           : [tags[0], mood ?? tempo];
   const name = parts.filter((p): p is string => !!p).map(titleCase).join(" · ");
   return name || (mood ? `${titleCase(mood)} songs` : tempo ? `${tempo} songs` : "Mixed");
+}
+
+// ----- Placing songs by mood + tempo only -----
+
+// For "Start from scratch" (customGroups.ts): songs that match none of the
+// picked genres/moods still go into the CLOSEST group, judged by lyrics mood
+// and BPM only (like untagged songs above). Each group's "average song" is
+// made from the songs already in it (`members`).
+// Returns, per song in `songs`, the index of its closest group. A song with
+// no mood or BPM (or groups with nothing to compare) goes to the biggest group.
+export function closestByMoodAndTempo(members: SongToGroup[][], songs: SongToGroup[], focus: GroupFocus): number[] {
+  const noTags = (s: SongToGroup): Signals => ({ ...signalsOf(s, new Map()), tags: null });
+  const centres = members.map((list) => centreOf(list.map(noTags)));
+  const biggest = members.reduce((b, list, i) => (list.length > members[b].length ? i : b), 0);
+  return songs.map((song) => {
+    const s = noTags(song);
+    let best = biggest;
+    let bestSim = 0;
+    centres.forEach((c, i) => {
+      const sim = similarity(s, c, focus);
+      if (sim > bestSim + 1e-9) {
+        bestSim = sim;
+        best = i;
+      }
+    });
+    return best;
+  });
 }
 
 // ----- Putting it together -----

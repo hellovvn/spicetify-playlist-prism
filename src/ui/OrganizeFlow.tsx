@@ -7,7 +7,8 @@
 //            "Group mostly by" (Balanced / Genre / Mood / Energy)
 //   scan     the same scan screen as the Prism flow (tags, BPM/key, mood)
 //   groups   the suggested groups as album-cover cards you can open and
-//            edit: rename, move/remove songs, merge (src/ui/GroupReview.tsx)
+//            edit: rename, move/remove songs, merge (src/ui/GroupReview.tsx),
+//            or "Start from scratch" with your own groups (GroupBuilder.tsx)
 
 import React from "react";
 import type { SourceOption } from "../sources/sources";
@@ -204,6 +205,7 @@ function Groups({
     <GroupReview
       songs={songs}
       suggested={grouping.groups}
+      settings={settings}
       onBack={onBack}
       intro={
         <>
