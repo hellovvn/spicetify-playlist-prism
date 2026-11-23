@@ -37,33 +37,28 @@ function NoteShape({ fill }: { fill: string }) {
 // Notes flying OUT of the boombox in every direction. Each starts at the
 // boombox's centre and travels along (dx, dy) while fading; the CSS
 // animation "prism-ic-fly" reads --dx/--dy (CSS variables set per note).
+// Notes in the Remix tile's three colours (pink first, then mint and sky).
 const FLY = [
-  { dx: -62, dy: -42, fill: "#fdffb6", delay: 0 },
+  { dx: -62, dy: -42, fill: "#ffb3d1", delay: 0 },
   { dx: 60, dy: -48, fill: "#9bf6ff", delay: 300 },
   { dx: -70, dy: 11, fill: "#ffb3d1", delay: 650 },
   { dx: 70, dy: 6, fill: "#caffbf", delay: 950 },
-  { dx: -10, dy: -64, fill: "#ffd6a5", delay: 1250 },
-  { dx: -47, dy: 48, fill: "#bdb2ff", delay: 450 },
-  { dx: 49, dy: 45, fill: "#ffd3ec", delay: 1100 },
+  { dx: -10, dy: -64, fill: "#ffb3d1", delay: 1250 },
+  { dx: -47, dy: 48, fill: "#caffbf", delay: 450 },
+  { dx: 49, dy: 45, fill: "#9bf6ff", delay: 1100 },
 ];
 
-// The ring of equalizer bars round the boombox: angle, rainbow colour, and a
-// delay that walks round the circle (a wave), with a little wobble.
-const RING_RADIUS = 64;
-const RING_COUNT = 20; // like mockup "X1": fewer, slimmer, shorter capsules
-const RING = Array.from({ length: RING_COUNT }, (_, i) => ({
-  angle: (360 / RING_COUNT) * i,
-  color: ["#ffb3d1", "#ffd6a5", "#fdffb6", "#caffbf", "#9bf6ff", "#bdb2ff"][i % 6],
-  delay: (i * 70) % 800,
-}));
-
 // "Make a Prism playlist": a chunky pink boombox. Speakers pulse with a ring
-// rippling out, a ring of rainbow equalizer bars pulses all round it, and notes fly out from behind it.
+// rippling out, and notes fly out from behind it.
 export function PrismIcon() {
+  // Mockup "B5": the body stays pink (the main colour); each speaker gets an
+  // outer mint ring and an inner sky ring (the Remix tapes' other colours)
+  // around the hot-pink cone that pulses.
   const speaker = (cx: number) => (
     <>
-      <circle cx={cx} cy={60} r={16} fill="#ffffff" opacity={0.22} />
-      <circle cx={cx} cy={60} r={16} fill="none" stroke="#ffffff" strokeOpacity={0.45} strokeWidth={1.2} />
+      <circle cx={cx} cy={60} r={16} fill="#ffffff" opacity={0.2} />
+      <circle cx={cx} cy={60} r={15} fill="none" stroke={MINT} strokeWidth={2.4} opacity={0.85} />
+      <circle cx={cx} cy={60} r={11.5} fill="none" stroke={SKY} strokeWidth={2.4} opacity={0.85} />
       {/* The ripple ring: grows from the cone and fades on every beat. */}
       <circle className="prism-ic-anim prism-ic-ripple" cx={cx} cy={60} r={8} fill="none" stroke="#ff8fc6" strokeWidth={2} />
       {/* A second ripple, half a beat later, so the wave reads clearly. */}
@@ -73,21 +68,13 @@ export function PrismIcon() {
     </>
   );
   return (
-    // A bigger canvas than the tapes' (160 x 160) to leave room for the ring.
+    // A bigger canvas than the tapes' (160 x 160) to leave room for the flying notes.
     <svg className="prism-mode-icon" viewBox="-15 -22 160 160" width={176} height={176} aria-hidden="true">
-      {/* Equalizer ring: 20 round rainbow capsules all the way round the
-          boombox. Each is drawn pointing straight up, then turned to its angle
-          around the centre (rotate(angle 65 58)). The CSS slides each capsule
-          outwards and back (it doesn't stretch it, which would flatten its
-          round ends); staggered delays make a wave run round the ring. */}
-      {RING.map((b, i) => (
-        <g key={i} transform={`rotate(${b.angle} 65 58)`}>
-          <rect className="prism-ic-anim prism-ic-ringpulse" style={{ animationDelay: `${b.delay}ms` }} x={63} y={58 - RING_RADIUS - 10} width={4} height={10} rx={2} fill={b.color} opacity={0.9} />
-        </g>
-      ))}
-      {/* Handle, in the background: drawn early, dimmer, and stopping at the
+      {/* Pink handle, in the background: drawn early, softer, and stopping at the
           body's top edge so it sits behind the boombox. */}
-      <path d="M44 28 V20 a7 7 0 0 1 7 -7 H79 a7 7 0 0 1 7 7 V28" fill="none" stroke="#e9dcff" strokeOpacity={0.45} strokeWidth={4.5} strokeLinecap="round" />
+      {/* Flat ends ("butt") stopping exactly at the body's top edge (y = 28):
+          round ends used to poke into the see-through body. */}
+      <path d="M44 28 V20 a7 7 0 0 1 7 -7 H79 a7 7 0 0 1 7 7 V28" fill="none" stroke={PINK} strokeOpacity={0.7} strokeWidth={4.5} strokeLinecap="butt" />
       {/* Flying notes start at the centre, behind the body. The body is
           see-through, so a mask hides the notes wherever the body is: a mask
           shows what's under its white parts and hides what's under black. */}

@@ -612,39 +612,50 @@ const CSS = `
 .prism-mode-tile:hover .prism-mode-tip, .prism-mode-tile:focus-visible .prism-mode-tip { opacity: 1; transform: none; }
 
 /* The icons' little moving parts: paused until the tile is hovered. */
-.prism-ic-anim { transform-box: fill-box; transform-origin: center; animation-play-state: paused; }
-.prism-mode-tile:hover .prism-ic-anim, .prism-mode-tile:focus-visible .prism-ic-anim { animation-play-state: running; }
+/* The icons' little moving parts run only while the tile has the class
+   "is-animating". FlipTile.tsx adds it on hover/focus and, when the pointer
+   leaves, lets every animation finish its current loop before removing it,
+   so nothing freezes halfway. Each part's plain style below is its resting
+   pose, which matches the start and end of its loop. */
+.prism-ic-anim { transform-box: fill-box; transform-origin: center; }
 /* Boombox + tapes. Speakers: the cone pulses and a ring ripples out on each
-   beat. The ring capsules (prism-ic-ringpulse) slide out and back. Notes fly
+   beat. Notes fly
    out along their own --dx/--dy (CSS variables set per note
    in HomeIcons.tsx) and fade. Reels spin. The tapes shuffle and notes drop into the top one. */
-.prism-ic-pulse { animation: prism-ic-pulse 0.6s ease-in-out infinite; animation-play-state: paused; }
-.prism-ic-ripple { opacity: 0; animation: prism-ic-ripple 0.6s ease-out infinite; animation-play-state: paused; }
+.prism-ic-pulse { transform: scale(0.62); }
+.prism-mode-tile.is-animating .prism-ic-pulse { animation: prism-ic-pulse 0.6s ease-in-out infinite; }
+.prism-ic-ripple { opacity: 0; }
+.prism-mode-tile.is-animating .prism-ic-ripple { animation: prism-ic-ripple 0.6s ease-out infinite; }
 /* Tape shuffle (3.2 s loop): hold, move, hold swapped (40-75%), move back.
+   Unlike the other parts, the shuffle is always there but PAUSED: FlipTile
+   plays it on hover and, on leave, pauses it at the next still moment, so the
+   tapes stay in whatever order they reached (no need to go back to pink on top).
    a = left tape -> right spot, b = right tape -> top, c = top tape -> left. */
-.prism-ic-shuffle-a { animation: prism-ic-shuffle-a 3.2s ease-in-out infinite; animation-play-state: paused; }
-.prism-ic-shuffle-b { animation: prism-ic-shuffle-b 3.2s ease-in-out infinite; animation-play-state: paused; }
-.prism-ic-shuffle-c { animation: prism-ic-shuffle-c 3.2s ease-in-out infinite; animation-play-state: paused; }
+.prism-ic-shuffle-a { animation: prism-ic-shuffle-a 3.2s ease-in-out infinite paused; }
+.prism-ic-shuffle-b { animation: prism-ic-shuffle-b 3.2s ease-in-out infinite paused; }
+.prism-ic-shuffle-c { animation: prism-ic-shuffle-c 3.2s ease-in-out infinite paused; }
 @keyframes prism-ic-shuffle-a { 0%, 25%, 90%, 100% { transform: translate(0, 0); } 40%, 75% { transform: translate(46px, 0); } }
 @keyframes prism-ic-shuffle-b { 0%, 25%, 90%, 100% { transform: translate(0, 0); } 40%, 75% { transform: translate(-23px, -32px); } }
 @keyframes prism-ic-shuffle-c { 0%, 25%, 90%, 100% { transform: translate(0, 0); } 40%, 75% { transform: translate(-23px, 32px); } }
 /* Notes dropping into the top tape (1.6 s loop = half the shuffle). */
-.prism-ic-drop { opacity: 0; animation: prism-ic-drop 1.6s ease-in infinite; animation-play-state: paused; }
+.prism-ic-drop { opacity: 0; }
+.prism-mode-tile.is-animating .prism-ic-drop { animation: prism-ic-drop 1.6s ease-in infinite; }
 @keyframes prism-ic-drop {
   0%        { transform: translateY(-14px) rotate(-12deg); opacity: 0; }
   10%       { opacity: 1; }
   32%       { transform: translateY(11px) rotate(0deg) scale(0.9); opacity: 1; }
   42%, 100% { transform: translateY(16px) scale(0.3); opacity: 0; }
 }
-.prism-ic-ringpulse { animation: prism-ic-ringpulse 0.8s ease-in-out infinite; animation-play-state: paused; }
-@keyframes prism-ic-ringpulse { 0%, 100% { transform: translateY(2px); opacity: 0.55; } 50% { transform: translateY(-5px); opacity: 1; } }
-.prism-ic-fly { opacity: 0; animation: prism-ic-fly 1.6s ease-out infinite; animation-play-state: paused; }
-.prism-ic-spin { animation: prism-ic-spin 2.4s linear infinite; animation-play-state: paused; }
+.prism-ic-fly { opacity: 0; }
+.prism-mode-tile.is-animating .prism-ic-fly { animation: prism-ic-fly 1.6s ease-out infinite; }
+.prism-mode-tile.is-animating .prism-ic-spin { animation: prism-ic-spin 2.4s linear infinite; }
 @keyframes prism-ic-pulse { 0%, 100% { transform: scale(0.62); } 45% { transform: scale(1.12); } }
 @keyframes prism-ic-ripple { 0% { transform: scale(1); opacity: 0.9; } 100% { transform: scale(1.9); opacity: 0; } }
 @keyframes prism-ic-fly {
   0%   { transform: translate(0, 0) scale(0.5); opacity: 0; }
-  20%  { opacity: 1; }
+  15%  { opacity: 1; }
+  /* Fully visible for most of the flight (like the tapes' notes), fading only at the end. */
+  80%  { opacity: 1; }
   100% { transform: translate(var(--dx), var(--dy)) scale(1.05) rotate(12deg); opacity: 0; }
 }
 @keyframes prism-ic-spin { to { transform: rotate(360deg); } }

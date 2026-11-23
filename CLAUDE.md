@@ -216,11 +216,18 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
     "D" flip tiles (`src/ui/FlipTile.tsx`). The front shows a centered whimsical SVG icon and a
     label (`src/ui/HomeIcons.tsx`, the developer's picks after many mockup rounds). Tile 1,
     "Grow a playlist": a see-through matte pink boombox. Its speakers pulse with two ripple
-    rings (no centre dot), it has a small pill in the middle and a ring of 20 round rainbow
-    capsules that slide out on the beat, and notes fly out from behind it (hidden by an SVG
-    mask). Tile 2, "Remix into moods": three see-through tapes with hearts on a shelf. On
-    hover they shuffle places (3.2 s loop), and music notes drop into whichever tape is on top
-    (1.6 s loop, so the notes land during each pause). On hover there's a swirling pastel conic glow, sparkles, the icon
+    rings (no centre dot) and it has a small pill in the middle. Notes fly out from behind it
+    (hidden by an SVG mask). The ring of rainbow bars was removed at the developer's request.
+    Colours follow the Remix tapes, with pink as the main colour (mockup "B5"): a pink body and
+    handle (flat ends, so it doesn't poke into the body), mint and sky rings round each pink
+    cone, and pink/mint/sky notes. Tile 2, "Remix into moods": three see-through tapes with hearts on a shelf. On
+    hover they shuffle places (3.2 s loop; on leave they stop at the next still moment in
+    whatever order they reached), and music notes drop into whichever tape is on top
+    (1.6 s loop, so the notes land during each pause).
+    Icon animations run only while the tile has the class `is-animating`. On mouse leave or
+    blur, FlipTile lets each animation finish its current loop (Web Animations API:
+    updateTiming iterations = current + 1) before removing the class, so nothing freezes
+    mid-move. Hovering again during that wind-down restarts the loops. On hover there's a swirling pastel conic glow, sparkles, the icon
     animates, and a short line appears. Click flips the tile to the old card content plus
     "← Back". The hidden face is visibility:hidden, so Tab skips it. Reduced motion means no
     turn or swirl. Smoke: `flip-prism`/`flip-organize` buttons, `unflip-*` Back.
