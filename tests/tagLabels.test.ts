@@ -1,7 +1,7 @@
 // Unit tests for the preview list's genre labels. Run with: npm test
 
 import { describe, expect, test } from "vitest";
-import { TAG_PALETTE, labelsFor, tagColour } from "../src/ui/tagLabels";
+import { TAG_PALETTE, labelsFor, tagColour, tagColours } from "../src/ui/tagLabels";
 import type { SourcedTag } from "../src/tags/combineTags";
 
 const t = (name: string): SourcedTag => ({ name, weight: 1, source: "track" });
@@ -50,5 +50,17 @@ describe("labelsFor", () => {
   test("each label carries its tag's colour", () => {
     const [label] = labelsFor(["pop"], []);
     expect(label.colour).toBe(tagColour("pop"));
+  });
+});
+
+describe("tagColours (several tags on one page)", () => {
+  test("no two tags on the same page share a colour, while the palette lasts", () => {
+    const names = ["r&b", "pop", "alternative", "electronic", "indie", "female vocalist", "soul", "trap"];
+    const colours = tagColours(names);
+    expect(new Set(names.map((n) => colours.get(n))).size).toBe(names.length);
+  });
+  test("the first tag keeps its usual colour; it's the same every time", () => {
+    expect(tagColours(["alternative", "indie"]).get("alternative")).toBe(tagColour("alternative"));
+    expect(tagColours(["alternative", "indie"])).toEqual(tagColours(["alternative", "indie"]));
   });
 });

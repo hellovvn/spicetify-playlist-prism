@@ -32,7 +32,8 @@ import {
   type SongToGroup,
 } from "./grouping";
 
-export const MIN_CUSTOM_GROUPS = 2;
+// 1 = "just one playlist": pick its genres/moods and only matching songs go in.
+export const MIN_CUSTOM_GROUPS = 1;
 export const MAX_CUSTOM_GROUPS = 10;
 
 export interface CustomGroup {
@@ -120,7 +121,7 @@ export function renameCustomGroup(groups: CustomGroup[], id: string, name: strin
 
 // What's missing before the songs can be sorted, or null when it's ready.
 export function checkCustomGroups(groups: CustomGroup[]): string | null {
-  if (groups.length < MIN_CUSTOM_GROUPS) return `Make at least ${MIN_CUSTOM_GROUPS} groups.`;
+  if (groups.length < MIN_CUSTOM_GROUPS) return "Make at least one group.";
   const empty = groups.find((g) => g.genres.length === 0 && g.moods.length === 0);
   if (empty) return `"${empty.name}" has no genres or moods yet. Pick at least one, or remove the group.`;
   return null;
@@ -192,6 +193,10 @@ export function sortIntoGroups(songs: SongToGroup[], custom: CustomGroup[], sett
       });
     }
   }
+
+  // ONE group ("just one playlist"): songs that match nothing are simply
+  // left out (they'd all end up in it otherwise).
+  if (custom.length === 1) unmatched.length = 0;
 
   // Songs that matched nothing: the closest group by mood + BPM, compared
   // with the songs that DID match each group. (Sorted first, so the result

@@ -33,7 +33,7 @@ export interface GroupBuilderProps {
   setGroups: (update: (groups: CustomGroup[]) => CustomGroup[]) => void;
   intro: React.ReactNode;
   onSort: () => void; // only called when checkCustomGroups found nothing missing
-  onUseSuggestions: () => void;
+  onUseSuggestions?: () => void; // not offered when making just one playlist
 }
 
 export function GroupBuilder({ songs, groups, setGroups, intro, onSort, onUseSuggestions }: GroupBuilderProps) {
@@ -157,9 +157,11 @@ export function GroupBuilder({ songs, groups, setGroups, intro, onSort, onUseSug
         </p>
       )}
       <div className="prism-actions" style={styles.buttons}>
-        <ButtonSecondary buttonSize="sm" onClick={onUseSuggestions} data-prism="builder-use-suggestions">
-          Use suggestions
-        </ButtonSecondary>
+        {onUseSuggestions && (
+          <ButtonSecondary buttonSize="sm" onClick={onUseSuggestions} data-prism="builder-use-suggestions">
+            Use suggestions
+          </ButtonSecondary>
+        )}
         <ButtonPrimary buttonSize="sm" onClick={sort} data-prism="builder-sort">
           Sort songs
         </ButtonPrimary>

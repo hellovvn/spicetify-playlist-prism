@@ -37,6 +37,7 @@ import { getLyricsMood, pausingLyricsMood } from "./spotify/lyrics";
 import { formatMood, type MoodProfile } from "./mood/lyricsMood";
 import { getSongTags } from "./tags/getSongTags";
 import { formatAudio, getAudioAttributes } from "./spotify/audio";
+import { playlistExtras, type PlaylistExtras } from "./stats/playlistExtras";
 import type { SourceOption } from "./sources/sources";
 import type { SourcedTag } from "./tags/combineTags";
 import type { RankedSong } from "./scoring/rank";
@@ -248,11 +249,37 @@ export async function loadPlaylistStats(uri: string): Promise<PrismPlaylistRecor
   });
 }
 
+// Artists, eras and key for a playlist (stats page and side panel), worked out
+// live from the playlist's songs: names, artists and release years from
+// Spotify's playlist list, keys from the same lookup as BPM. READ-ONLY.
+// Remembered for 5 minutes, so switching between the side panel and the full
+// page doesn't load it twice.
+const extrasCache = new Map<string, { at: number; extras: Promise<PlaylistExtras> }>();
+const EXTRAS_FRESH_MS = 5 * 60 * 1000;
+
+export function loadPlaylistExtras(uri: string): Promise<PlaylistExtras> {
+  const cached = extrasCache.get(uri);
+  if (cached && Date.now() - cached.at < EXTRAS_FRESH_MS) return cached.extras;
+  const extras = (async () => {
+    const tracks = await getSourceTracks(uri);
+    const audio = await getAudioAttributes(tracks.map((track) => track.uri)).catch(() => new Map());
+    return playlistExtras(
+      tracks.map((track) => {
+        const attrs = audio.get(track.uri) ?? null;
+        return { name: track.name, artists: track.artists, year: track.year, key: attrs?.key, mode: attrs?.mode };
+      })
+    );
+  })();
+  extrasCache.set(uri, { at: Date.now(), extras });
+  extras.catch(() => extrasCache.delete(uri)); // a failure isn't remembered
+  return extras;
+}
+
 // Turns known errors into messages a user can act on (shown on the page).
 // (Last.fm error 6 "not found" never gets here: getSongTags treats it as "no tags".)
 export function friendlyError(error: unknown): string {
   if (isKeyProblem(error)) {
-    return "Last.fm API key problem: check Playlist Prism settings (the Settings button at the top of this page).";
+    return "Last.fm API key problem: check Prism settings (the Settings button at the top of this page).";
   }
   if (isRateLimit(error)) {
     return "Last.fm rate limit hit: wait a minute and try again.";

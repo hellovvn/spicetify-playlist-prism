@@ -9,6 +9,7 @@
 import type { SourcedTag } from "../tags/combineTags";
 import type { AudioAttributes } from "../spotify/audio";
 import { topMoods, type MoodProfile } from "../mood/lyricsMood";
+import { isJunkTagName } from "../tags/cleanTags";
 
 export interface PrismPlaylistRecord {
   uri: string; // the new playlist
@@ -143,7 +144,9 @@ function summarize(songs: Omit<SongLike, "uri">[]) {
   const moods: string[] = [];
   for (const song of songs) {
     // A song counts once per tag, even if the tag shows up twice in its list.
-    tagNames.push(...new Set(song.tags.map((tag) => tag.name.toLowerCase())));
+    // Personal labels ("my top songs", "saw live") are skipped: songs' cached
+    // tags may have been cleaned before those words were on the junk list.
+    tagNames.push(...new Set(song.tags.filter((tag) => !isJunkTagName(tag.name)).map((tag) => tag.name.toLowerCase())));
     if (song.mood) moods.push(...topMoods(song.mood));
   }
   const bpms = songs.map((song) => song.audio?.bpm).filter((bpm): bpm is number => typeof bpm === "number");
@@ -270,7 +273,21 @@ export interface ChartRow {
 // For an estimate, shares are of the SCANNED songs (the only ones counted).
 export function chartRows(record: PrismPlaylistRecord, max = 8): ChartRow[] {
   const total = Math.max(record.estimate ? record.estimate.scanned : record.songCount, 1);
-  return record.tagCounts.slice(0, max).map(([name, count]) => ({ name, count, share: Math.min(count / total, 1) }));
+  return genreCounts(record)
+    .slice(0, max)
+    .map(([name, count]) => ({ name, count, share: Math.min(count / total, 1) }));
+}
+
+// The record's tag counts without personal labels ("my top songs", "saw
+// live"...). Records saved before those words were on the junk list still
+// contain them, so they're filtered when shown, not only when saved.
+export function genreCounts(record: PrismPlaylistRecord): [string, number][] {
+  return record.tagCounts.filter(([name]) => !isJunkTagName(name));
+}
+
+// The tags a playlist was built from, without personal labels (same reason).
+export function builtFromTags(record: PrismPlaylistRecord): string[] {
+  return record.keptTags.filter((name) => !isJunkTagName(name));
 }
 
 // The most common lyrics mood, or null if no song had one.

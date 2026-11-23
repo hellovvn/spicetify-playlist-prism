@@ -158,7 +158,7 @@ export function CreatePlaylists(props: CreatePlaylistsProps) {
               Back
             </ButtonSecondary>
             <ButtonPrimary buttonSize="sm" onClick={start} disabled={n === 0} data-prism="create-go">
-              Create playlists
+              {n === 1 ? "Create playlist" : "Create playlists"}
             </ButtonPrimary>
           </>
         )}

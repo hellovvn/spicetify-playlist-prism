@@ -21,7 +21,8 @@ import { SCREEN_HEIGHT } from "./styles";
 
 // How many new playlists: a number, or "auto" (Prism decides, step 13b).
 export type GroupCount = number | "auto";
-export const GROUP_COUNTS: GroupCount[] = [2, 3, 4, 5, 6, 8, "auto"];
+// 1 = one playlist of the songs matching the genres/moods you pick (no suggestions).
+export const GROUP_COUNTS: GroupCount[] = [1, 2, 3, 4, 5, 6, 8, "auto"];
 
 export interface OrganizeSettings {
   count: GroupCount;

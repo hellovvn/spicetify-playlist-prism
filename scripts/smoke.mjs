@@ -116,7 +116,7 @@ try {
 
   console.log("\n[1b] The Playlist Prism page (step 12a)");
   // Spicetify adds a header button for every custom app, labelled with its name.
-  const HEADER_ICON = `document.querySelector('button[aria-label="Playlist Prism"]')`;
+  const HEADER_ICON = `document.querySelector('button[aria-label="Prism"]')`;
   // Known starting point: the page's start screen, then away to Spotify's
   // Home, so clicking the icon must bring us BACK to the page.
   await cdp.evaluate("window.__playlistPrism.goHome()");
@@ -614,7 +614,7 @@ try {
   await cdp.evaluate("window.__playlistPrism.openSettings()");
   await sleep(800); // let React draw it
   const visible = await cdp.evaluate(
-    `[...document.querySelectorAll("h1, h2")].some((el) => el.textContent.includes("Playlist Prism settings"))`
+    `[...document.querySelectorAll("h1, h2")].some((el) => el.textContent.includes("Prism settings"))`
   );
   check("settings open on the page with their title", visible);
   await screenshot("settings.png");

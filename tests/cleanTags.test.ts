@@ -8,6 +8,7 @@
 //     its name tells you exactly which rule broke.
 
 import { describe, expect, test } from "vitest";
+import { MUSICBRAINZ_GENRES } from "../src/tags/musicbrainzGenres";
 import { cleanTags, normalizeTagName } from "../src/tags/cleanTags";
 import fixtures from "./fixtures/lastfm-tags.json";
 
@@ -23,7 +24,8 @@ describe("cleanTags on real Last.fm data (fixtures)", () => {
     "Snooze (Acoustic) (feat. Justin Bieber)": [],
     "WHERE IS MY HUSBAND!": ["big band", "pop soul", "go go", "soul", "contemporary r&b"],
     "Marvins Room": ["hip hop", "rap", "r&b", "downtempo"],
-    YUKON: ["pop", "indie pop", "r&b", "bedroom pop", "downtempo", "alternative r&b", "nachspiel"],
+    // "nachspiel" (Norwegian for after-party) is a personal label, not a genre: dropped.
+    YUKON: ["pop", "indie pop", "r&b", "bedroom pop", "downtempo", "alternative r&b"],
     "Golden Tears": [],
   };
 
@@ -138,14 +140,16 @@ describe("cleanTags rules", () => {
   });
 
   test("only drops a tag if ALL its words are in the title", () => {
+    // "dream pop": every word is in the title -> dropped. "neo soul": only "neo"
+    // is in the title -> kept.
     const result = cleanTags(
       [
-        { name: "violet", count: 100 },
-        { name: "violet hour", count: 50 },
+        { name: "dream pop", count: 100 },
+        { name: "neo soul", count: 50 },
       ],
-      { title: "The Color Violet" }
+      { title: "Dream Pop Neo" }
     );
-    expect(names(result)).toEqual(["violet hour"]);
+    expect(names(result)).toEqual(["neo soul"]);
   });
 
   test("title words in brackets and punctuation still count", () => {
@@ -160,28 +164,28 @@ describe("cleanTags rules", () => {
   });
 
   test("without a title, nothing is dropped for being a title word", () => {
-    expect(names(cleanTags([{ name: "color", count: 100 }]))).toEqual(["color"]);
+    expect(names(cleanTags([{ name: "dream pop", count: 100 }]))).toEqual(["dream pop"]);
   });
 
   test("merges spelling and plural variants into one tag (strongest name wins)", () => {
     const result = cleanTags([
-      { name: "colours", count: 100 },
-      { name: "color", count: 60 },
+      { name: "ballads", count: 100 },
+      { name: "ballad", count: 60 },
       { name: "love songs", count: 50 },
       { name: "love song", count: 40 },
     ]);
     expect(result).toEqual([
-      { name: "colours", weight: 1 },
+      { name: "ballads", weight: 1 },
       { name: "love songs", weight: 0.5 },
     ]);
   });
 
-  test("'blues' is a genre, not a plural: it doesn't merge with 'blue'", () => {
+  test("'blues' is a genre, not a plural: it stays 'blues' (and 'blue' alone isn't a genre)", () => {
     const result = cleanTags([
-      { name: "blues", count: 100 },
-      { name: "blue", count: 50 },
+      { name: "blue", count: 100 },
+      { name: "blues", count: 50 },
     ]);
-    expect(names(result)).toEqual(["blues", "blue"]);
+    expect(names(result)).toEqual(["blues"]);
   });
 
   test("drops every credited artist's name, any capitalisation", () => {
@@ -229,7 +233,8 @@ describe("cleanTags rules", () => {
   });
 
   test("keeps at most maxTags", () => {
-    const tags = Array.from({ length: 30 }, (_, i) => ({ name: `genre ${i}`, count: 100 - i }));
+    const genres = MUSICBRAINZ_GENRES.split("\n").slice(100, 130); // 30 real genres
+    const tags = genres.map((name, i) => ({ name, count: 100 - i }));
     expect(cleanTags(tags)).toHaveLength(15);
     expect(cleanTags(tags, { maxTags: 3 })).toHaveLength(3);
   });

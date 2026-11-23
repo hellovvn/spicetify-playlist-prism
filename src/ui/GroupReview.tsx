@@ -59,7 +59,10 @@ export function GroupReview(props: GroupReviewProps) {
   // The genres/moods the user picked per sorted group (by card id), shown
   // first on its card: songs placed by mood/tempo can outnumber them.
   const [pickedLabels, setPickedLabels] = React.useState<Map<string, string[]>>(new Map());
-  const [view, setView] = React.useState<View>("suggested");
+  // One playlist: suggestions would just be "every song", so go straight to
+  // the builder with one group to pick genres/moods for.
+  const single = settings.count === 1;
+  const [view, setView] = React.useState<View>(single ? "builder" : "suggested");
   const [openId, setOpenId] = React.useState<string | null>(null);
   const [creating, setCreating] = React.useState(false); // the confirm/create screen is showing
   const groups = view === "custom" ? customGroups : suggestedGroups;
@@ -78,13 +81,20 @@ export function GroupReview(props: GroupReviewProps) {
         groups={specs}
         setGroups={setSpecs}
         intro={
-          <>
-            Make your own groups: give each one a name and pick its genres and/or moods. Then Prism sorts all{" "}
-            {songs.length} songs into them ({overlap}).
-            {customGroups.length > 0 && " Sorting again replaces your edits to the sorted groups."}
-          </>
+          single ? (
+            <>
+              Pick the genres and/or moods for your playlist. Prism collects the songs among these {songs.length} that match
+              (songs that don't match are left out).
+            </>
+          ) : (
+            <>
+              Make your own groups: give each one a name and pick its genres and/or moods. Then Prism sorts all{" "}
+              {songs.length} songs into them ({overlap}).
+              {customGroups.length > 0 && " Sorting again replaces your edits to the sorted groups."}
+            </>
+          )
         }
-        onUseSuggestions={() => setView("suggested")}
+        onUseSuggestions={single ? undefined : () => setView("suggested")}
         onSort={() => {
           const result = sortIntoGroups(songs, specs, { overlap: settings.overlap, focus: settings.focus });
           const sorted = editableGroups(result.groups);
@@ -140,6 +150,10 @@ export function GroupReview(props: GroupReviewProps) {
       <p style={styles.sub}>
         {view === "suggested" ? (
           intro
+        ) : single ? (
+          <>
+            <b style={{ color: "#fff" }}>{placed}</b> of {songs.length} songs match your picks.
+          </>
         ) : (
           <>
             {songs.length} songs sorted into <b style={{ color: "#fff" }}>your {groups.length} groups</b>
@@ -161,7 +175,9 @@ export function GroupReview(props: GroupReviewProps) {
       </div>
       {left.length > 0 && (
         <p style={styles.sub} data-prism="organize-left-out">
-          {left.length} song{left.length === 1 ? "" : "s"} removed from every group (won't be in any new playlist).
+          {single
+            ? `${left.length} song${left.length === 1 ? "" : "s"} didn't match, so ${left.length === 1 ? "it's" : "they're"} left out.`
+            : `${left.length} song${left.length === 1 ? "" : "s"} removed from every group (won't be in any new playlist).`}
         </p>
       )}
       <p className="prism-notice" style={{ fontSize: 13 }}>
@@ -173,16 +189,16 @@ export function GroupReview(props: GroupReviewProps) {
           Back
         </ButtonSecondary>
         <span style={{ flex: 1 }} />
-        {view === "custom" && (
+        {view === "custom" && !single && (
           <ButtonSecondary buttonSize="sm" onClick={() => setView("suggested")} data-prism="use-suggestions">
             Use suggestions
           </ButtonSecondary>
         )}
         <ButtonSecondary buttonSize="sm" onClick={() => setView("builder")} data-prism="start-from-scratch">
-          {view === "custom" ? "Edit my groups" : customGroups.length ? "My own groups" : "Start from scratch"}
+          {view === "custom" ? (single ? "Edit my picks" : "Edit my groups") : customGroups.length ? "My own groups" : "Start from scratch"}
         </ButtonSecondary>
         <ButtonPrimary buttonSize="sm" onClick={() => setCreating(true)} data-prism="open-create">
-          Create playlists
+          {groups.length === 1 ? "Create playlist" : "Create playlists"}
         </ButtonPrimary>
       </div>
     </div>

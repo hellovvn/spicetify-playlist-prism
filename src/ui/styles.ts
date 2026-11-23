@@ -389,11 +389,33 @@ const CSS = `
    own moment (delays are set per bubble). */
 @keyframes prism-bubble-float { 50% { transform: translateY(-2px); } }
 .prism-bubble { animation: prism-bubble-float 4s ease-in-out infinite; }
+/* The wobble: a slight stretch back and forth from the bubble's own centre. */
+.prism-bubble-wobble { transform-box: fill-box; transform-origin: center; animation: prism-bubble-wobble 3s ease-in-out infinite; }
+@keyframes prism-bubble-wobble {
+  0%, 100% { transform: scale(1, 1); }
+  25% { transform: scale(1.03, 0.97); }
+  50% { transform: scale(0.98, 1.02); }
+  75% { transform: scale(1.02, 0.99); }
+}
+/* The pop's droplet spray: each droplet flies out along --dx/--dy, falls a
+   little, shrinks and fades. */
+.prism-drop-bit {
+  opacity: 0;
+  pointer-events: none;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: prism-drop-fly 650ms ease-out forwards;
+}
+@keyframes prism-drop-fly {
+  0%   { transform: translate(0, 0) scale(0.4); opacity: 0; }
+  15%  { opacity: 0.95; }
+  100% { transform: translate(var(--dx), calc(var(--dy) + 6px)) scale(0.6); opacity: 0; }
+}
 
 /* Popping a bubble (src/ui/Fingerprint.tsx). The body grows from its own
    centre (fill-box): "popping" softly swells and fades, "gone" stays hidden,
-   "back" floats in from small. Meanwhile a shower of translucent sparkles
-   appears, drifts apart (--dx/--dy), tilts (--sway) and slowly floats down. */
+   "back" floats in from small. Meanwhile droplets spray out and fall
+   (.prism-drop-bit, above). */
 .prism-bubble-body {
   cursor: pointer;
   outline: none;
@@ -401,29 +423,17 @@ const CSS = `
   transform-origin: center;
 }
 .prism-bubble-body:focus-visible circle { stroke: #ffffff; stroke-opacity: 1; stroke-width: 1.2; }
-.prism-bubble-body.is-popping { animation: prism-bubble-pop 380ms ease-out forwards; pointer-events: none; }
+.prism-bubble-body.is-popping { animation: prism-bubble-pop 140ms ease-out forwards; pointer-events: none; }
 .prism-bubble-body.is-gone { opacity: 0; pointer-events: none; }
 .prism-bubble-body.is-back { animation: prism-bubble-back 600ms cubic-bezier(0.2, 0.8, 0.2, 1); }
 @keyframes prism-bubble-pop {
   0%   { transform: scale(1); opacity: 1; }
-  100% { transform: scale(1.12); opacity: 0; }
+  40%  { transform: scale(1.06); opacity: 0.6; }
+  100% { transform: scale(1.1); opacity: 0; }
 }
 @keyframes prism-bubble-back {
   from { transform: scale(0.2) translateY(6px); opacity: 0; }
   to   { transform: scale(1) translateY(0); opacity: 1; }
-}
-.prism-sparkle-bit {
-  opacity: 0;
-  pointer-events: none;
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: prism-sparkle-drift 1900ms cubic-bezier(0.25, 0.6, 0.35, 1) forwards;
-}
-@keyframes prism-sparkle-drift {
-  0%   { transform: translate(0, 0) scale(0) rotate(0deg); opacity: 0; }
-  18%  { transform: translate(calc(var(--dx) * 0.4), calc(var(--dy) * 0.4)) scale(1) rotate(calc(var(--sway) * 0.3)); opacity: 0.6; }
-  55%  { transform: translate(var(--dx), calc(var(--dy) + 4px)) scale(0.9) rotate(var(--sway)); opacity: 0.5; }
-  100% { transform: translate(var(--dx), calc(var(--dy) + 14px)) scale(0.4) rotate(calc(var(--sway) * 1.6)); opacity: 0; }
 }
 
 /* ----- Genre labels in the preview list: frosted glass + a colour dot -----
@@ -459,6 +469,9 @@ const CSS = `
   box-shadow: 0 0 6px var(--tag);
   flex-shrink: 0;
 }
+/* A genre label next to a bar: a long name wraps onto two lines inside its
+   pill instead of being cut off ("female vocalist"). */
+.prism-tag.wrap { white-space: normal; border-radius: 10px; line-height: 14px; padding: 3px 9px; }
 .prism-tag.shared {
   color: #ffffff;
   background: rgba(255, 255, 255, 0.16);
@@ -583,6 +596,15 @@ const CSS = `
   gap: 10px;
 }
 .prism-mode-icon { transition: transform 350ms cubic-bezier(0.3, 1.5, 0.5, 1); overflow: visible; }
+/* Header icon sparkles: each one fades and shrinks away, then pops back
+   (staggered by their animation-delay, so they twinkle in turn). */
+.prism-head-sparkle { transform-box: fill-box; transform-origin: center; animation: prism-head-twinkle 3.2s ease-in-out infinite; }
+@keyframes prism-head-twinkle {
+  0%, 60%, 100% { opacity: 1; transform: scale(1); }
+  75% { opacity: 0.2; transform: scale(0.4); }
+  85% { opacity: 1; transform: scale(1.25); }
+}
+.prism-mode-icon-box { height: 180px; width: 100%; display: flex; align-items: center; justify-content: center; }
 .prism-mode-tile:hover .prism-mode-icon, .prism-mode-tile:focus-visible .prism-mode-icon { transform: translateY(-4px) scale(1.07); }
 /* Soft lavender with a faint lavender glow, to match the twilight theme. */
 .prism-mode-label {
@@ -666,6 +688,136 @@ const CSS = `
   100% { transform: translateY(6px) scale(0.6); opacity: 0; }
 }
 
+/* ----- Full stats page: use the middle AND right-hand area -----
+   Spotify's window is a grid: library | main view | right panel. While the
+   Prism stats page is showing (data-prism-view="stats"), the main view is
+   stretched over the right panel's column too, and the right panel is
+   hidden. :has() lets this rule react to what's on the page, so it switches
+   back by itself when you leave the stats page. The stats page also gets
+   wider to use the room. */
+.Root__top-container:has(.Root__main-view [data-prism-view="stats"]) .Root__main-view {
+  grid-column: main-view-start / right-sidebar-end !important;
+}
+.Root__top-container:has(.Root__main-view [data-prism-view="stats"]) .Root__right-sidebar {
+  display: none !important;
+}
+.prism-page[data-prism-view="stats"] { max-width: 1120px !important; }
+/* Opening: the page grows out of the right panel's spot (clip-path shows
+   only the right third at first, then opens up to the left) while fading
+   in. Minimizing: the reverse, then the playlist page and its side panel
+   appear (PrismPage waits MINIMIZE_MS = 380 ms). */
+.prism-cosmos.is-wide-stats { animation: prism-stats-grow 480ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+/* Minimizing uses a still COPY of the page ("ghost", made in PrismPage)
+   laid over the window while Spotify opens the playlist underneath. The
+   ghost only moves and fades (transform + opacity): the browser keeps
+   animating those even while Spotify is busy building its page, so the
+   shrink stays smooth and the playlist is revealed, never a black screen.
+   The movement itself ("morph into the panel": shrink to exactly the side
+   panel's spot and fade into it) is worked out in PrismPage, because the
+   panel's position depends on the window size. */
+.prism-ghost {
+  pointer-events: none;
+  transform-origin: 0 0;
+  will-change: transform, opacity;
+}
+.prism-cosmos.is-leaving .prism-page { opacity: 0 !important; }
+@keyframes prism-stats-grow {
+  from { clip-path: inset(0 0 0 66% round 8px); opacity: 0.4; }
+  to { clip-path: inset(0 0 0 0 round 8px); opacity: 1; }
+}
+/* The side panel's stats fade in each time they appear (meeting the
+   stats page as it morphs into this spot). */
+[data-prism="panel-stats"] { animation: prism-panel-in 260ms ease-out; }
+@keyframes prism-panel-in {
+  from { opacity: 0; transform: scale(0.985); }
+  to { opacity: 1; transform: none; }
+}
+/* The playlist's cover on the stats page: one image, or Spotify's 2x2
+   mosaic of album covers, inside a moving neon ring.
+
+   How the ring moves: --prism-ring-angle is a REGISTERED custom property
+   (@property says it's an <angle>), so the browser can animate it smoothly
+   from 0deg to 360deg. The ring's colours are a conic gradient (colours laid
+   round a centre, like a colour wheel) that STARTS at that angle, so as the
+   angle turns, every colour slides round the border. On top, a white
+   "comet" of light chases round with it. */
+@property --prism-ring-angle {
+  syntax: "<angle>";
+  inherits: true;
+  initial-value: 0deg;
+}
+.prism-artwork {
+  position: relative;
+  isolation: isolate; /* keeps the glow (z-index -1) behind the cover, not behind the page */
+  width: 120px;
+  height: 120px;
+  flex-shrink: 0;
+  align-self: center; /* centred in the title row, like the title beside it */
+  border-radius: 15px;
+  display: grid;
+  padding: 3px; /* the visible width of the neon ring */
+  animation: prism-ring-turn 3.5s linear infinite;
+}
+/* The ring itself, on its own layer so it can be blurred a little: a slight
+   blur(1.5px) feathers its outer and inner edges, so you see a soft band of
+   light instead of a crisp pixel edge. (Both layers sit behind the images:
+   negative z-index inside .prism-artwork, which "isolates" them.) */
+.prism-artwork::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 15px;
+  background:
+    conic-gradient(from var(--prism-ring-angle), transparent 0 70%, rgba(255, 255, 255, 0.7) 84%, transparent 94%),
+    conic-gradient(from var(--prism-ring-angle), #ff8fc6, #ffd98a, #86e8b8, #8ec5ff, #c3a6ff, #f59cf0, #ff8fc6);
+  filter: blur(1.5px);
+  opacity: 0.9;
+}
+/* The glow: the same colours, blurred, just outside the ring, so the glow's
+   colour travels round too. */
+.prism-artwork::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  z-index: -1;
+  border-radius: 18px;
+  background: conic-gradient(from var(--prism-ring-angle), #ff8fc6, #ffd98a, #86e8b8, #8ec5ff, #c3a6ff, #f59cf0, #ff8fc6);
+  filter: blur(12px);
+  opacity: 0.7;
+}
+.prism-artwork img { width: 100%; height: 100%; object-fit: cover; display: block; }.prism-artwork:not(.mosaic) img { border-radius: 12px; }
+.prism-artwork.mosaic { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+.prism-artwork.mosaic img:nth-child(1) { border-top-left-radius: 12px; }
+.prism-artwork.mosaic img:nth-child(2) { border-top-right-radius: 12px; }
+.prism-artwork.mosaic img:nth-child(3) { border-bottom-left-radius: 12px; }
+.prism-artwork.mosaic img:nth-child(4) { border-bottom-right-radius: 12px; }
+@keyframes prism-ring-turn { to { --prism-ring-angle: 360deg; } }
+
+/* A glass pill button, like the rest of the UI ("View full stats"). */
+.prism-glass-button {
+  padding: 8px 20px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.06));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 4px 14px rgba(20, 8, 40, 0.25);
+  backdrop-filter: blur(10px);
+  color: #f3e8ff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 160ms, border-color 160ms, box-shadow 160ms, transform 160ms;
+}
+.prism-glass-button:hover {
+  background: linear-gradient(145deg, rgba(205, 184, 255, 0.34), rgba(255, 255, 255, 0.1));
+  border-color: rgba(222, 205, 255, 0.8);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 0 18px rgba(205, 184, 255, 0.45);
+  transform: translateY(-1px);
+}
+.prism-glass-button:focus-visible { outline: 2px solid #cdb8ff; outline-offset: 2px; }
+
+
+
 /* The page content sits above the background layer. */
 .prism-cosmos > .prism-page { position: relative; z-index: 1; }
 
@@ -674,10 +826,11 @@ const CSS = `
   .prism-blob, .prism-wave { animation: none !important; }
   .prism-star { animation: none !important; opacity: 0.6; }
   .prism-scan-ray, .prism-scan-gem { animation: none !important; }
-  .prism-page, .prism-fade-in, .prism-overlay, .prism-glass-card, .prism-bar-fill, .prism-bubble, .prism-bubble-body.is-back { animation: none; }
+  .prism-page, .prism-fade-in, .prism-overlay, .prism-glass-card, .prism-bar-fill, .prism-bubble, .prism-bubble-wobble, .prism-bubble-body.is-back { animation: none; }
   /* Popping still works, just without the swell: the bubble disappears at once. */
   .prism-bubble-body.is-popping { animation: none; opacity: 0; }
-  .prism-sparkle-bit { display: none; }
+  .prism-drop-bit { display: none; }
+  .prism-cosmos.is-wide-stats, .prism-ghost, [data-prism="panel-stats"], .prism-artwork, .prism-head-sparkle { animation: none; }
   /* Start page tiles: swap faces without the turn, and keep the hover glow still. */
   .prism-flip-inner, .prism-mode-icon { transition: none; }
   .prism-mode-tile::before, .prism-ic-anim { animation: none !important; }

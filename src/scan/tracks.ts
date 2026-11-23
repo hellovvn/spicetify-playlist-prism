@@ -1,11 +1,14 @@
 // Turning the songs of several playlists into ONE list to scan.
 // PURE helpers, unit-tested in tests/scanTracks.test.ts.
 
+import { yearFromRelease } from "../stats/playlistExtras";
+
 export interface ScanTrack {
   uri: string;
   name: string;
   artists: string[];
   durationMs?: number; // song length, when Spotify says (for the stats page)
+  year?: number; // release year, when Spotify says (the stats page's "Eras")
   // Album cover web addresses, when Spotify says (Organize's cards and lists):
   cover?: string; // ~300px, for the 2x2 mosaics
   coverSmall?: string; // ~64px, for song rows
@@ -30,6 +33,7 @@ export function toScanTracks(items: any[]): ScanTrack[] {
     if (item.isLocal || typeof item.name !== "string") continue;
     const artists = (item.artists ?? []).map((a: any) => a?.name).filter(Boolean);
     const durationMs = item.duration?.milliseconds;
+    const year = yearFromRelease(item.release?.isoString);
     const cover = coverUrl(item.album?.images, "standard");
     const coverSmall = coverUrl(item.album?.images, "small");
     result.push({
@@ -37,6 +41,7 @@ export function toScanTracks(items: any[]): ScanTrack[] {
       name: item.name,
       artists,
       ...(typeof durationMs === "number" ? { durationMs } : {}),
+      ...(year ? { year } : {}),
       ...(cover ? { cover } : {}),
       ...(coverSmall ? { coverSmall } : {}),
     });

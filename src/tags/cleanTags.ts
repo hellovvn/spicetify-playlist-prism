@@ -9,6 +9,7 @@
 // listen" = 100) squashing real tags like "sad" down to 4.
 
 import type { LastfmTag } from "../lastfm/client";
+import { isKnownTag } from "./knownTags";
 
 // A cleaned tag. weight is relative: the song's strongest real tag is 1.0.
 export interface CleanTag {
@@ -192,6 +193,19 @@ export function baseForm(word: string): string {
 
 const baseOfTag = (name: string) => name.split(" ").map(baseForm).join(" ");
 
+// Kept only if it's a known genre or mood word (src/tags/knownTags.ts), also
+// counting plurals: "ballads" is known because "ballad" is.
+const isKnown = (name: string): boolean => isKnownTag(name) || isKnownTag(baseOfTag(name)) || isRegionalGenre(name);
+
+// "ukrainian pop", "korean r&b": a nationality or country word followed by a
+// known genre is a real (regional) genre even if MusicBrainz doesn't list it.
+function isRegionalGenre(name: string): boolean {
+  const space = name.indexOf(" ");
+  if (space < 0) return false;
+  const rest = name.slice(space + 1);
+  return NATIONALITIES.has(name.slice(0, space)) && (isKnownTag(rest) || isKnownTag(baseOfTag(rest)));
+}
+
 // ----- Tags that just repeat the title -----
 // People tag songs with words from the title ("color" on "The Color Violet",
 // so it shows up in a "colours" playlist). That says nothing about the vibe.
@@ -225,7 +239,7 @@ function repeatsTitle(name: string, title: Set<string>): boolean {
 // word was added here) can still skip them, e.g. Organize's grouping.
 export function isJunkTagName(name: string): boolean {
   const normal = normalizeTagName(name);
-  return JUNK_TAGS.has(normal) || JUNK_PATTERNS.some((pattern) => pattern.test(normal));
+  return JUNK_TAGS.has(normal) || JUNK_PATTERNS.some((pattern) => pattern.test(normal)) || !isKnown(normal);
 }
 
 function isJunk(name: string, artistNames: Set<string>, title: Set<string>): boolean {
@@ -235,7 +249,9 @@ function isJunk(name: string, artistNames: Set<string>, title: Set<string>): boo
     NATIONALITIES.has(name) ||
     artistNames.has(name) ||
     repeatsTitle(name, title) ||
-    JUNK_PATTERNS.some((pattern) => pattern.test(name))
+    JUNK_PATTERNS.some((pattern) => pattern.test(name)) ||
+    // Not a known genre or mood word: fandom tags, jokes, personal labels...
+    !isKnown(name)
   );
 }
 

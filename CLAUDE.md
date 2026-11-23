@@ -1,4 +1,5 @@
-# Playlist Prism (Spicetify extension)
+# Prism (Spicetify extension)
+Repo: github.com/hellovvn/spicetify-prism, folder Documents\Projects\spicetify-prism (renamed from Playlist Prism 2026-11-23).
 
 ## Goal
 Build a NEW Spotify playlist around the vibe of 1–2 "seed" songs, using only songs
@@ -94,6 +95,14 @@ Since step 12a this is a Spicetify CUSTOM APP (src/settings.json has an "icon"),
 - `src/spotify/`: read helpers and the single write module
 - `src/ui/`: React components (chips, playlist picker, preview)
 
+## Name
+The app is called "Prism" everywhere users see it (renamed 2026-11-23: src/settings.json
+displayName, page title, Settings title, profile-menu item, messages). Internal ids stay
+"playlist-prism" (custom app nameId, storage keys "prism:*", data-prism attributes, the
+`[Playlist Prism]` console prefix), so saved settings and playlists keep working.
+The start page has no "What would you like to do?" heading any more (Prism will start
+changing playlist contents in the future, so its "never changed" line no longer holds).
+
 ## Build plan
 Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cleanup,
 4b title retries + artist fallback, 4c BPM/key, 5 seed panel + chips, 6 source picker,
@@ -141,8 +150,12 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
     (`src/ui/prismRows.ts`, always-on). Spotify paints its row hover on the row's ::after layer,
     so the purple goes there. Refreshed at start, after a playlist is created (window event
     "playlist-prism:records-changed") and every 20 s.
-  - Fingerprint bubbles pop on click ("sparkle shower": soft fade + translucent sparkles drifting
-    down), back after 3 s. Postponed (2026-11-22): cute hover doodles per playlist; two style rounds
+  - Fingerprint bubbles: restyled 2026-11-22 (mockup "C3", developer's pick after rejecting
+    other styles and colourless soap bubbles). Each bubble keeps its GENRE TAG COLOUR: see-through
+    colour that's strongest at the edge, a soft glow in that colour, a faint white rim, two
+    reflections, and a gentle float plus wobble. A pop vanishes in a 140 ms flash and sprays 16
+    droplets (colour and white). Back after 3 s. Genre-mix numbers sit right after their bars
+    (narrow column, left-aligned). Postponed (2026-11-22): cute hover doodles per playlist; two style rounds
     (faces, white scribbles) were rejected, so revisit with a better art direction.
 - 13 (decided 2026-11-22, before 12b): ORGANIZE PLAYLISTS mode. Pick several playlists and split
   ALL their songs into N NEW playlists by genre + mood. Source playlists are never changed.
@@ -236,10 +249,39 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
     sunset, twilight (current), dusk, and a few more (for example dawn, aurora, ocean). Pick in
     Settings; saved in Spicetify.LocalStorage. The colours should be CSS variables, so a theme
     only swaps the variables.
+    PAUSED 2026-11-22 after the first mockup round: 8 themes shown (Twilight, Sunset, Dusk, Dawn,
+    Aurora, Ocean, Midnight, Cherry blossom) and 2 pickers (A: theme cards in Settings, B: colour
+    dots in the header). The developer hasn't picked yet. Resume from that mockup.
   - 14b PER-PLAYLIST THEME: a theme can be set on one playlist. Opening that playlist in Spotify
     changes the background to its theme. This is a local setting only (LocalStorage keyed by
     playlist URI) and must NEVER write to the playlist itself (hard rule).
   - 14c The LYRICS view follows the active theme (the playlist's theme if it has one).
+    FIRST PART BUILT 2026-11-22 (not committed): `src/ui/lyricsTheme.ts`, injected by the
+    always-on extension, gives Spotify's lyrics views the twilight colours. It overrides the
+    CSS variables Spotify writes per song (--cinema-mode-bg-color-from/to,
+    --lyrics-color-*) with !important, found with [style*="..."] selectors, not generated
+    class names. It also keeps [data-testid="now-playing-bar"] at opacity 1: in the expanded
+    lyrics view Spotify fades the controls out after ~4 s idle, and the developer wants them
+    always usable. Later, when themes (14a) exist, swap the colours for the active theme.
+    Also: the expanded view gets the full twilight sky (gradient, glows, rainbow bands) on
+    `.Root__cinema-view > .main-actionBar-ActionBarContainer`, the still box around the
+    scrolling part, and Spotify's #121212 backdrop is cleared, so the top and bottom aren't
+    black. Spotify's "Full screen" buttons are hidden ([data-testid="fullscreen-mode-button"]
+    and the view's "Enter Full screen"): full screen made the view cover the top bar and the
+    player bar. IMMERSIVE MODE (Spotify adds Root__cinema-view--controls-hidden BY ITSELF,
+    e.g. after idle or a reload; no button needed): its own CSS gives the view negative
+    margins and z-index --above-everything, and Spotify's code hides the top bar (opacity 0)
+    and pushes the right sidebar (Now Playing) over the view as an empty grey block. Undone
+    with margin 0 / height auto / z-index 5, top bar and title row opacity 1, and
+    .Root__right-sidebar hidden while that class is on. Verified 2026-11-22 when Spotify
+    switched it on by itself. LESSON: a test where the class was present but the margins
+    weren't was wrongly taken as proof. Verify against Spotify's real trigger, and use a plain
+    full-window screenshot. The developer chose: always keep both bars.
+    SETTINGS SWITCH "Prism look for lyrics" (On/Off, On by default): saved as
+    `prism:lyricsTheme` ("on"/"off"; only "off" turns it off, isLyricsThemeOn is pure and
+    tested). Off removes the whole style tag, so Spotify's own lyrics (cover colours, full
+    screen, immersive) come back. The switch sends LYRICS_THEME_CHANGED_EVENT, so it takes
+    effect without a reload. startLyricsTheme() in the always-on script applies it.
   - 14d NEW VIEW: the playlist and its lyrics side by side, so the user can see the playlist
     while singing along. Never store or log lyrics text.
   - 14e DISCOVER in Prism playlists: besides songs from the user's own sources, also recommend
@@ -247,6 +289,83 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
     preview, marked as new finds, and let the user choose how many / turn them off. Candidate
     source to investigate (read-only spike first): Last.fm `track.getSimilar` / `artist.getSimilar`,
     then search Spotify for each match. These songs are only added to the NEW playlist.
+- SIDE-PANEL STATS (built 2026-11-22, not committed): when a playlist Prism made or organized
+  (one with a saved record) is open, Spotify's right-hand Now Playing panel shows its stats,
+  layout "P2" (developer's pick): a strip with the song playing now, then name + "Grown
+  from"/"Organized from" + date, built-from tag chips, fingerprint bubbles, songs/length/avg
+  BPM/top mood, top 6 genre bars (+ "N more genres"), tempo split with slowest/fastest, longest/
+  shortest song, match to the seed (grown playlists only), mood chips, and a "View full stats"
+  button.
+  Junk tags in stats (fixed 2026-11-22): record tag counts are built from CACHED song tags, which
+  may have been cleaned before a junk word was listed ("my top songs", "saw live" showed in the
+  panel). Now summarize() skips isJunkTagName tags, and chartRows / genreCounts / builtFromTags
+  filter them at display time too, so OLD records are fixed without re-saving.
+  FULL STATS PAGE WIDE (2026-11-22): while the Prism stats page shows, CSS (:has on
+  data-prism-view="stats", in styles.ts) stretches .Root__main-view over the right panel's
+  grid column (main-view-start / right-sidebar-end), hides .Root__right-sidebar and widens the
+  page to 1120px. It switches back by itself on leaving.
+  It grows in from the right (clip-path animation, class is-wide-stats on the twilight box). A
+  ONE glass button "Back to playlist" (data-prism="stats-open"; the corner icon and "Open
+  playlist" were merged, developer's choice). When the side panel can show the playlist (saved
+  record, panel setting on) it minimizes; otherwise it just opens the playlist. Minimizing: a still COPY ("ghost", .prism-ghost) is
+  laid over the main view (clipped to what was visible, in a fixed frame) and MORPHS into the
+  side panel's exact spot (mockup "A2", the developer's pick; target = the 3rd grid column of
+  .Root__top-container, or the width panelHost remembers in --prism-side-panel-width, because
+  that column is 0px while the stats page is open) using only transform + opacity via
+  element.animate(). It ends with a CROSSFADE: the copy waits in the panel's spot until the
+  panel's stats are drawn, then fades out as they fade in (the browser
+  keeps animating those while Spotify's ~250 ms playlist-page build blocks the page), the real
+  page's content is hidden (is-leaving, twilight background stays), and the playlist opens
+  underneath. The side panel's host (solid twilight background) is placed at once on a page
+  change, and its stats are drawn when the browser is idle, so Spotify's own panel never
+  flashes. Checked with a Chrome screencast (frames keep coming every ~10 ms).
+- Stats page text sizes (kept consistent): summary values 24px, a panel's headline value 16px,
+  counts beside bars 13px, section headings 13px, smaller lines 12px.
+- Stats cover ring (.prism-artwork in styles.ts): a MOVING pastel neon ring. A registered
+  custom property (`@property --prism-ring-angle`) is animated 0->360deg in 3.5 s and a conic
+  gradient starts at it, so the colours travel round the 3px border (with a white glint).
+  ::after = the ring, blur(1.5px) so its edges are soft (developer asked); ::before = the
+  same colours blurred 12px as a glow. The cover is align-self: center in the title row so its
+  middle lines up with the title's. Reduced motion: still.
+- Stats page: no Prism header (developer's request), every bar is the same 14px thickness, and
+  the playlist's cover (one image or Spotify's 2x2 mosaic, artworkUrls in sidePanel.ts) sits
+  left of the title.
+- MORE STATS (2026-11-23): Artists (N songs from M artists, top 5), Eras (songs per decade,
+  oldest/newest), Key (major vs minor split, most common key). Worked out LIVE and read-only
+  from the playlist (artists + release year from PlaylistAPI items, key from the BPM lookup)
+  in `src/stats/playlistExtras.ts` (pure, tested), loaded by loadPlaylistExtras in flow.ts
+  (cached 5 min), shown by `src/ui/ExtraStats.tsx` on the full page and (compact) side panel.
+- GENRE COLOURS: palette is 11 pastels; tagColours(names) gives each tag on one view its own
+  colour (next free one on a clash). Stats page and side panel pass it to bars, chips and the
+  Fingerprint (colourOf). Genre labels next to bars sit in one grid (fit-content column) and
+  long names wrap inside the pill (.prism-tag.wrap).
+- GENRE ALLOWLIST (2026-11-22, developer's choice "keep only known genres"): a tag is kept only
+  if it's on the MusicBrainz genre list (`src/tags/musicbrainzGenres.ts`, 2,227 genres, CC0,
+  GENERATED from https://musicbrainz.org/ws/2/genre/all?fmt=txt), on EXTRA_GENRES (alternative,
+  indie, cottagecore, female vocalist, live...) or MOOD_TAGS (chill, sexy, dark, late night...),
+  all in `src/tags/knownTags.ts`. Also kept: decades ("80s") and "<nationality> <known genre>"
+  ("korean r&b"). Matching ignores spaces, "-" and "_" ("synthpop" = "synth-pop"). It applies in
+  cleanTags (new tags) and isJunkTagName (cached tags, saved stats, Organize), so fandom tags
+  ("lestappencore") and personal labels vanish everywhere, including old records.
+- SIDE PANEL STATS: shown for Prism-made/organized playlists. It only covers the panel while it shows Now Playing
+  (never the queue). Pure parts are in `src/ui/sidePanel.ts` (tested; NOT "panelStats.ts", which
+  clashes with PanelStats.tsx on Windows). The view is `src/ui/PanelStats.tsx`, mounted by
+  `src/ui/panelHost.tsx` from the always-on script (createRoot into a div placed inside
+  .Root__right-sidebar, re-checked every 1.5 s). Settings switch "Prism stats in the side panel"
+  (`prism:panelStats`, on by default). Right-click > Prism stats still opens the full page.
+- REMIX INTO 1 PLAYLIST (2026-11-23): "1" is the first count choice (GROUP_COUNTS in
+  OrganizeFlow.tsx; MIN_CUSTOM_GROUPS = 1). With 1, GroupReview opens straight in the builder
+  with one group and no "Use suggestions"; sortIntoGroups leaves songs that match nothing OUT
+  (with 2+ groups they still go to the closest group by mood + tempo). Wording is singular:
+  "N of M songs match your picks", "Edit my picks", "Create playlist".
+- START PAGE WORDING (developer's picks): Grow = "Start with a favourite song and grow a
+  playlist of songs that feel like it." Remix = "Shuffle your playlists into fresh ones sorted
+  by genre and mood. Make several, or just the one you want."
+- PAGE HEADER ICON (PrismIcon in PrismIcon.tsx, mockup "H2 + sparkles"): glass diamond with a
+  pastel rainbow edge + facet lines, and 3 sparkles that twinkle in turn
+  (.prism-head-sparkle). The Spotify top-bar icon (src/assets/prism.svg) is unchanged.
+- Smoke note: "Cancel stops the scan part-way" can fail as a race when nearly every song is
+  cached (the scan finishes before the Cancel click lands); a re-run reports it as SKIPPED.
 - 11: Cleanup: remove the debug hook, README, release (after 12).
 
 ## Dev loop (Claude runs this, not the developer)

@@ -6,6 +6,8 @@
 //   - "Start a Prism playlist" to a song's right-click menu
 //   - "Playlist Prism settings" to the profile menu
 //   - the read-only debug hook for the smoke test
+//   - twilight colours for Spotify's lyrics views (src/ui/lyricsTheme.ts)
+//   - Prism stats in the right-hand panel for Prism playlists (src/ui/panelHost.tsx)
 // All of them simply OPEN THE PAGE with a request (see src/nav.ts).
 // The header icon needs no code: Spicetify adds it for every custom app.
 
@@ -22,6 +24,9 @@ import { LOG_PREFIX } from "../log";
 import { isPlaylistUri, openPage } from "../nav";
 import { injectHeaderIconStyles } from "../ui/headerIcon";
 import { startPrismRows } from "../ui/prismRows";
+import { startLyricsTheme } from "../ui/lyricsTheme";
+import { startPanelStats } from "../ui/panelHost";
+import { injectStyles } from "../ui/styles";
 
 async function main() {
   // This can run before Spotify's UI and the Spicetify APIs are ready.
@@ -34,6 +39,9 @@ async function main() {
 
   injectHeaderIconStyles(); // hover spin + sparkle on the header diamond
   startPrismRows(); // purple hover on Prism playlists in the sidebar
+  startLyricsTheme(); // twilight lyrics views + bars kept (Settings switch, on by default)
+  injectStyles(); // Prism's styles, also needed by the side-panel stats outside the page
+  startPanelStats(); // Prism playlist stats in the right-hand panel (Settings switch, on by default)
   registerContextMenu();
   registerStatsMenu();
   registerSettingsMenu();
@@ -88,7 +96,7 @@ function isSinglePlaylist(uris: string[]): boolean {
 // Adds "Playlist Prism settings" to the profile menu (click your avatar, top right).
 // Spicetify.Menu.Item is meant for on/off toggles, so isEnabled = false.
 function registerSettingsMenu() {
-  new Spicetify.Menu.Item("Playlist Prism settings", false, () => openPage({ go: "settings" })).register();
+  new Spicetify.Menu.Item("Prism settings", false, () => openPage({ go: "settings" })).register();
 }
 
 // "shouldAdd" check: Spotify calls this every time a right-click menu opens.

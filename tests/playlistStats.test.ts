@@ -5,6 +5,7 @@ import {
   SAMPLE_RECORD,
   addRecord,
   buildRecord,
+  builtFromTags,
   chartRows,
   estimateRecord,
   lengthSummary,
@@ -100,6 +101,17 @@ describe("for the stats page", () => {
     const rows = chartRows(SAMPLE_RECORD);
     expect(rows).toHaveLength(8);
     expect(rows.every((row) => row.share > 0 && row.share <= 1)).toBe(true);
+  });
+
+  test("personal labels in OLD saved records are hidden (genre bars and built-from tags)", () => {
+    const old = {
+      ...SAMPLE_RECORD,
+      songCount: 27,
+      tagCounts: [["r&b", 8], ["my top songs", 4], ["pop", 7], ["saw live", 4]] as [string, number][],
+      keptTags: ["r&b", "my top songs"],
+    };
+    expect(chartRows(old).map((row) => row.name)).toEqual(["r&b", "pop"]);
+    expect(builtFromTags(old)).toEqual(["r&b"]);
   });
 
   test("topMood: most common mood, or null", () => {

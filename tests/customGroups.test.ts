@@ -68,7 +68,8 @@ describe("labelChoices", () => {
 describe("building groups", () => {
   test("blankGroups makes 2 to 10 empty groups called Group 1, 2...", () => {
     expect(blankGroups(3).map((g) => g.name)).toEqual(["Group 1", "Group 2", "Group 3"]);
-    expect(blankGroups(1)).toHaveLength(2);
+    expect(blankGroups(0)).toHaveLength(1); // at least one group
+    expect(blankGroups(1)).toHaveLength(1);
     expect(blankGroups(50)).toHaveLength(10);
   });
 
@@ -102,7 +103,7 @@ describe("building groups", () => {
     groups = removeCustomGroup(groups, "c2");
     groups = addCustomGroup(groups);
     expect(new Set(groups.map((g) => g.id)).size).toBe(3);
-    expect(removeCustomGroup(removeCustomGroup(groups, "c1"), "c3")).toHaveLength(2);
+    expect(removeCustomGroup(removeCustomGroup(groups, "c1"), "c3")).toHaveLength(1);
     expect(addCustomGroup(blankGroups(10))).toHaveLength(10);
   });
 
@@ -116,7 +117,8 @@ describe("building groups", () => {
   });
 
   test("checkCustomGroups says what's missing", () => {
-    expect(checkCustomGroups([group("a", ["jazz"])])).toMatch(/at least 2/);
+    expect(checkCustomGroups([])).toMatch(/at least one/);
+    expect(checkCustomGroups([group("a", ["jazz"])])).toBeNull(); // one group is fine (one playlist)
     expect(checkCustomGroups([group("a", ["jazz"]), group("b", [], [], "Empty one")])).toMatch(/"Empty one" has no genres/);
     expect(checkCustomGroups([group("a", ["jazz"]), group("b", [], ["love"])])).toBeNull();
   });
@@ -190,5 +192,15 @@ describe("sortIntoGroups", () => {
     const a = sortIntoGroups(all, groups, { overlap: true, focus: "genre" });
     const b = sortIntoGroups([...all].reverse(), groups, { overlap: true, focus: "genre" });
     expect(b.groups.map((g) => g.songs)).toEqual(a.groups.map((g) => g.songs));
+  });
+});
+
+describe("just one playlist", () => {
+  test("only matching songs go in; the rest are left out (not forced in)", () => {
+    const songs = [song("a", [t("jazz")], null, null), song("b", [t("rock")], null, null), song("c", [t("jazz")], null, null)];
+    const result = sortIntoGroups(songs, [group("Jazz", ["jazz"])], { overlap: false, focus: "balanced" });
+    expect(result.groups).toHaveLength(1);
+    expect(result.groups[0].songs.sort()).toEqual([uri("a"), uri("c")]);
+    expect(result.placedByMoodTempo).toEqual([]);
   });
 });

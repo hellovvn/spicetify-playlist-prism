@@ -79,6 +79,14 @@ export async function getPlaylistName(uri: string): Promise<string | null> {
   return typeof metadata?.name === "string" ? metadata.name : null;
 }
 
+// The playlist's cover address (read-only): one image, or Spotify's mosaic
+// of four album covers. See artworkUrls in src/ui/sidePanel.ts.
+export async function getPlaylistCover(uri: string): Promise<string | null> {
+  const metadata = await Spicetify.Platform.PlaylistAPI.getMetadata(uri);
+  const url = metadata?.images?.[0]?.url;
+  return typeof url === "string" ? url : null;
+}
+
 export async function getSourceTracks(uri: string): Promise<ScanTrack[]> {
   const page =
     uri === LIKED_SONGS_URI

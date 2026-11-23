@@ -3,11 +3,14 @@
 // genre that more of the playlist has gets a bigger bubble. The same mix
 // always draws the same picture, so every playlist has its own.
 //
-// Each bubble is glass: a radial gradient (clear-ish middle, tinted edge), a
-// thin rim in the genre colour and a small white shine. They float gently,
-// and each one can be POPPED (click, or Enter/Space when focused): it softly
-// swells and fades while a shower of translucent sparkles drifts apart and
-// floats down, then the bubble floats back in after a few seconds.
+// Each bubble looks like a soap bubble in its genre's tag colour (mockup
+// "C3", developer's pick): see-through colour that gets stronger towards the
+// edge, a soft glow in that colour, a faint white rim, a bright reflection at
+// the top left and a small one at the bottom right. Bubbles float and
+// wobble gently, and each one can be POPPED (click, or Enter/Space when
+// focused): like a real bubble it vanishes in a flash and sprays tiny
+// droplets (its colour and white) that fly out and fall, then it floats back
+// in after a few seconds.
 // Animations are in styles.ts (.prism-bubble...).
 
 import React from "react";
@@ -22,30 +25,34 @@ const SPOTS: [number, number][] = [
 
 // How long a popped bubble stays gone, and how long the pop itself takes.
 export const RETURN_AFTER_MS = 3000;
-const POP_MS = 380;
+const POP_MS = 380; // the flash takes 140 ms; the droplets keep flying a bit longer
 
-// The sparkle shower: 14 sparkles spread over the bubble. Fixed "random"
-// values (so it's the same every time and needs no random numbers):
-// [angle 0..1 of a turn, distance 0..1 of the radius, size, delay ms, drift].
-const SPARKLES: [number, number, number, number, number][] = [
-  [0.02, 0.3, 2.4, 0, 1], [0.11, 0.85, 1.6, 60, -1], [0.19, 0.55, 2.0, 120, 1], [0.27, 0.9, 1.4, 30, 1],
-  [0.36, 0.4, 2.2, 90, -1], [0.44, 0.75, 1.5, 150, 1], [0.52, 0.2, 1.8, 40, -1], [0.6, 0.95, 2.1, 110, -1],
-  [0.68, 0.5, 1.4, 20, 1], [0.76, 0.8, 2.3, 140, -1], [0.84, 0.35, 1.6, 70, 1], [0.92, 0.65, 1.9, 100, -1],
-  [0.47, 0.05, 1.3, 160, 1], [0.97, 0.9, 1.5, 50, 1],
-];
-// Pastel sparkle colours (the bubble's own colour is added as well).
-const SPARKLE_COLOURS = ["#ffffff", "#fff1a8", "#ffb3d1", "#a8d8ff", "#cdb8ff"];
-
-// A 4-pointed sparkle of radius r centred on (0, 0).
-const sparklePath = (r: number) =>
-  `M0 ${-r}Q${r * 0.18} ${-r * 0.18} ${r} 0Q${r * 0.18} ${r * 0.18} 0 ${r}Q${-r * 0.18} ${r * 0.18} ${-r} 0Q${-r * 0.18} ${-r * 0.18} 0 ${-r}Z`;
+// The droplet spray: 16 droplets around the bubble's edge. Fixed values (the
+// same every time, no random numbers): droplet k sits at angle k/16 of a
+// turn, with sizes and distances cycling so it doesn't look too regular.
+const DROPS = Array.from({ length: 16 }, (_, k) => ({
+  turn: k / 16 + (k % 2) * 0.015,
+  size: 0.7 + (k % 3) * 0.35, // radius in picture units
+  reach: 0.45 + (k % 4) * 0.12, // how far it flies, as a share of the bubble radius
+  white: k % 3 === 0, // every third droplet is white, the rest the genre colour
+  delay: (k % 4) * 25, // ms
+}));
 
 // Each Fingerprint needs its own gradient ids (ids are page-wide in SVG).
 let instances = 0;
 
 type BubbleState = "here" | "popping" | "gone" | "back";
 
-export function Fingerprint({ rows, size = 96 }: { rows: ChartRow[]; size?: number }) {
+export function Fingerprint({
+  rows,
+  size = 96,
+  colourOf = tagColour,
+}: {
+  rows: ChartRow[];
+  size?: number;
+  // The page's colour for each genre, so bubbles match its bars and chips.
+  colourOf?: (name: string) => string;
+}) {
   // useRef keeps the same id prefix for this fingerprint across re-renders.
   const prefix = React.useRef(`prism-bubble-${++instances}`).current;
   // Which bubbles are popped. Keyed by genre name, so it doesn't mix up
@@ -70,7 +77,7 @@ export function Fingerprint({ rows, size = 96 }: { rows: ChartRow[]; size?: numb
   const bubbles = rows.slice(0, SPOTS.length).map((row, i) => {
     const [x, y] = SPOTS[i];
     const r = 6 + Math.sqrt(row.share) * 17; // area grows with the share
-    const colour = tagColour(row.name);
+    const colour = colourOf(row.name);
     const id = `${prefix}-${i}`;
     const state = states[row.name] ?? "here";
     return (
@@ -86,47 +93,54 @@ export function Fingerprint({ rows, size = 96 }: { rows: ChartRow[]; size?: numb
         >
           <title>{`${row.name}: ${row.count} songs (click to pop)`}</title>
           <defs>
-            <radialGradient id={id} cx="35%" cy="30%" r="70%">
-              <stop offset="0" stopColor="#ffffff" stopOpacity={0.35} />
-              <stop offset="0.6" stopColor={colour} stopOpacity={0.18} />
-              <stop offset="1" stopColor={colour} stopOpacity={0.45} />
+            {/* The body: see-through in the middle, the full genre colour at the edge. */}
+            <radialGradient id={id} cx="45%" cy="40%" r="65%">
+              <stop offset="0" stopColor={colour} stopOpacity={0.25} />
+              <stop offset="0.85" stopColor={colour} stopOpacity={0.67} />
+              <stop offset="1" stopColor={colour} stopOpacity={1} />
+            </radialGradient>
+            {/* The glow: the genre colour fading out just beyond the edge. (A
+                gradient circle, not a CSS blur filter, which is costly to draw.) */}
+            <radialGradient id={`${id}-glow`}>
+              <stop offset="0.7" stopColor={colour} stopOpacity={0.5} />
+              <stop offset="1" stopColor={colour} stopOpacity={0} />
+            </radialGradient>
+            {/* A reflection: bright white fading to nothing. */}
+            <radialGradient id={`${id}-shine`}>
+              <stop offset="0" stopColor="#ffffff" stopOpacity={0.9} />
+              <stop offset="1" stopColor="#ffffff" stopOpacity={0} />
             </radialGradient>
           </defs>
-          <circle cx={x} cy={y} r={r} fill={`url(#${id})`} stroke={colour} strokeOpacity={0.7} strokeWidth={0.7} />
-          {/* The shine: a small tilted white oval near the top left. */}
-          <ellipse
-            cx={x - r * 0.35}
-            cy={y - r * 0.4}
-            rx={r * 0.28}
-            ry={r * 0.16}
-            fill="#ffffff"
-            fillOpacity={0.55}
-            transform={`rotate(-30 ${x - r * 0.35} ${y - r * 0.4})`}
-          />
+          {/* Wobble: a slight stretch back and forth, like a floating bubble. */}
+          <g className="prism-bubble-wobble" style={{ animationDelay: `${-i * 0.45}s`, animationDuration: `${3 + i * 0.4}s` }}>
+            <circle cx={x} cy={y} r={r * 1.3} fill={`url(#${id}-glow)`} />
+            <circle cx={x} cy={y} r={r} fill={`url(#${id})`} />
+            <circle cx={x} cy={y} r={r - 0.4} fill="none" stroke="#ffffff" strokeOpacity={0.33} strokeWidth={0.8} />
+            <ellipse cx={x - r * 0.36} cy={y - r * 0.48} rx={r * 0.44} ry={r * 0.28} fill={`url(#${id}-shine)`} />
+            <ellipse cx={x + r * 0.36} cy={y + r * 0.56} rx={r * 0.2} ry={r * 0.12} fill={`url(#${id}-shine)`} opacity={0.6} />
+          </g>
         </g>
-        {/* The sparkle shower: while popping/gone, translucent sparkles appear
-            over the bubble, drift apart and float down (animation in styles.ts,
-            which plays once and ends invisible). */}
+        {/* The droplet spray: while popping/gone, droplets appear around the
+            bubble's edge, fly out and fall (animation in styles.ts, which
+            plays once and ends invisible). */}
         {(state === "popping" || state === "gone") &&
-          SPARKLES.map(([turn, distance, size, delay, sway], k) => {
-            const angle = turn * 2 * Math.PI;
-            const sx = x + Math.cos(angle) * distance * r;
-            const sy = y + Math.sin(angle) * distance * r;
+          DROPS.map((drop, k) => {
+            const angle = drop.turn * 2 * Math.PI;
             return (
-              <g key={k} transform={`translate(${sx} ${sy})`}>
-                <path
-                  className="prism-sparkle-bit"
-                  d={sparklePath(size)}
-                  fill={k % 3 === 0 ? colour : SPARKLE_COLOURS[k % SPARKLE_COLOURS.length]}
-                  // --dx/--dy: where this sparkle drifts to; --sway: which way it tilts.
-                  style={{
-                    ["--dx" as any]: `${Math.cos(angle) * (6 + distance * 6)}px`,
-                    ["--dy" as any]: `${Math.sin(angle) * (4 + distance * 4)}px`,
-                    ["--sway" as any]: `${sway * 25}deg`,
-                    animationDelay: `${delay}ms`,
-                  }}
-                />
-              </g>
+              <circle
+                key={k}
+                className="prism-drop-bit"
+                cx={x + Math.cos(angle) * r * 0.9}
+                cy={y + Math.sin(angle) * r * 0.9}
+                r={drop.size}
+                fill={drop.white ? "#ffffff" : colour}
+                // --dx/--dy: where this droplet flies (it also falls a little).
+                style={{
+                  ["--dx" as any]: `${Math.cos(angle) * r * drop.reach}px`,
+                  ["--dy" as any]: `${Math.sin(angle) * r * drop.reach}px`,
+                  animationDelay: `${drop.delay}ms`,
+                }}
+              />
             );
           })}
       </g>
@@ -138,7 +152,7 @@ export function Fingerprint({ rows, size = 96 }: { rows: ChartRow[]; size?: numb
       height={size}
       viewBox="0 0 100 100"
       role="group"
-      aria-label="Prism fingerprint: this playlist's genre mix as glass bubbles you can pop"
+      aria-label="Prism fingerprint: this playlist's genre mix as bubbles you can pop"
       data-prism="stats-fingerprint"
       style={{ overflow: "visible" }}
     >

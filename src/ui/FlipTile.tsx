@@ -191,7 +191,9 @@ export function FlipTile({ id, icon, label, tip, children }: FlipTileProps) {
             />
           ))}
           <span className="prism-mode-center">
-            {icon}
+            {/* Same-height box for every icon, so the labels of tiles side
+                by side sit at the same height. */}
+            <span className="prism-mode-icon-box">{icon}</span>
             <span className="prism-mode-label">{label}</span>
           </span>
           <span className="prism-mode-tip">{tip}</span>

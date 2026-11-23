@@ -13,18 +13,28 @@
 // It's read-only: nothing here changes Spotify.
 
 import React from "react";
-import { chartRows, FAST_FROM, SLOW_BELOW, topMood, type PrismPlaylistRecord } from "../stats/playlistStats";
+import { builtFromTags, chartRows, FAST_FROM, SLOW_BELOW, topMood, type PrismPlaylistRecord } from "../stats/playlistStats";
 import { Fingerprint } from "./Fingerprint";
-import { tagColour } from "./tagLabels";
+import { tagColours } from "./tagLabels";
+import { ExtraStats, useExtras } from "./ExtraStats";
+import { artworkUrls } from "./sidePanel";
+import type { PlaylistExtras } from "../stats/playlistExtras";
 import { TagLabels } from "./GenreLabels";
 
 export interface StatsScreenProps {
   // Loads the stats (saved record or estimate). Called once when the screen opens.
   load: () => Promise<PrismPlaylistRecord>;
   onOpenPlaylist?: (uri: string) => void;
+  // Shrinks the full page back into the right-hand side panel (only offered
+  // when the side panel can show this playlist; see PrismPage).
+  onMinimize?: (uri: string) => void;
+  // Loads artists / eras / key (read-only, live from the playlist).
+  loadExtras?: (uri: string) => Promise<PlaylistExtras>;
+  // Loads the playlist's cover address (read-only).
+  loadCover?: (uri: string) => Promise<string | null>;
 }
 
-export function StatsScreen({ load, onOpenPlaylist }: StatsScreenProps) {
+export function StatsScreen({ load, onOpenPlaylist, onMinimize, loadExtras, loadCover }: StatsScreenProps) {
   const [record, setRecord] = React.useState<PrismPlaylistRecord | null>(null);
   const [failed, setFailed] = React.useState(false);
 
@@ -57,12 +67,43 @@ export function StatsScreen({ load, onOpenPlaylist }: StatsScreenProps) {
       </div>
     );
   }
-  return <StatsContent record={record} onOpenPlaylist={onOpenPlaylist} />;
+  return <StatsContent record={record} onOpenPlaylist={onOpenPlaylist} onMinimize={onMinimize} loadExtras={loadExtras} loadCover={loadCover} />;
 }
 
-function StatsContent({ record, onOpenPlaylist }: { record: PrismPlaylistRecord; onOpenPlaylist?: (uri: string) => void }) {
-  const { ButtonSecondary } = Spicetify.ReactComponent as any;
+function StatsContent({
+  record,
+  onOpenPlaylist,
+  onMinimize,
+  loadExtras,
+  loadCover,
+}: {
+  record: PrismPlaylistRecord;
+  onOpenPlaylist?: (uri: string) => void;
+  onMinimize?: (uri: string) => void;
+  loadExtras?: (uri: string) => Promise<PlaylistExtras>;
+  loadCover?: (uri: string) => Promise<string | null>;
+}) {
+  const extras = useExtras(record.uri, loadExtras);
+  const [cover, setCover] = React.useState<string[]>([]);
+  React.useEffect(() => {
+    let closed = false;
+    loadCover?.(record.uri)
+      .then((url) => !closed && setCover(artworkUrls(url)))
+      .catch(() => undefined); // no cover: the title just sits on its own
+    return () => {
+      closed = true;
+    };
+  }, [record.uri]);
+  // ONE button back to the playlist. When the side panel can show this
+  // playlist (setting on, saved stats), it morphs the page into the panel;
+  // otherwise it simply opens the playlist.
+  const back = onMinimize && !record.estimate ? onMinimize : onOpenPlaylist;
   const rows = chartRows(record);
+  const builtFrom = builtFromTags(record);
+  // One colour per genre on this page (bars, bubbles and chips match, and no
+  // two genres share a colour). Genres first, so the bars keep their usual colours.
+  const colours = tagColours([...rows.map((row) => row.name), ...builtFrom]);
+  const colourOf = (name: string) => colours.get(name) ?? "#d5c2ff";
   const mood = topMood(record);
   const date =
     record.createdAt === null
@@ -73,7 +114,14 @@ function StatsContent({ record, onOpenPlaylist }: { record: PrismPlaylistRecord;
   return (
     <div className="prism-fade-in" style={styles.screen} data-prism-state="stats">
       <div style={styles.titleRow}>
-        <div style={{ minWidth: 0 }}>
+        {cover.length > 0 && (
+          <div className={`prism-artwork${cover.length === 4 ? " mosaic" : ""}`} data-prism="stats-artwork">
+            {cover.map((url) => (
+              <img key={url} src={url} alt="" />
+            ))}
+          </div>
+        )}
+        <div style={{ minWidth: 0, flex: 1, alignSelf: "center" }}>
           <h2 style={styles.name} data-prism="stats-name">
             {record.name}
           </h2>
@@ -81,16 +129,17 @@ function StatsContent({ record, onOpenPlaylist }: { record: PrismPlaylistRecord;
             {record.seed
               ? `Made from "${record.seed.name}" by ${record.seed.artists.join(", ")}${date ? ` · ${date}` : ""}`
               : record.organized
-                ? `Organized from ${record.organized.from.join(", ")}${date ? ` · ${date}` : ""}`
+                ? // Not the source playlists' names: they may be deleted later.
+                  `Organized with Prism${date ? ` · ${date}` : ""}`
                 : `${record.songCount} songs`}
           </p>
         </div>
         <div style={styles.titleSide}>
-          <Fingerprint rows={chartRows(record, 8)} size={96} />
-          {onOpenPlaylist && (
-            <ButtonSecondary buttonSize="sm" onClick={() => onOpenPlaylist(record.uri)} data-prism="stats-open">
-              Open playlist
-            </ButtonSecondary>
+          <Fingerprint rows={chartRows(record, 8)} size={96} colourOf={colourOf} />
+          {back && (
+            <button type="button" className="prism-glass-button" onClick={() => back(record.uri)} data-prism="stats-open">
+              Back to playlist
+            </button>
           )}
         </div>
       </div>
@@ -105,34 +154,38 @@ function StatsContent({ record, onOpenPlaylist }: { record: PrismPlaylistRecord;
       ) : (
         <section>
           <h3 style={styles.heading}>Built from these tags</h3>
-          <TagLabels labels={record.keptTags.map((name) => ({ name, colour: tagColour(name), shared: true }))} />
+          <TagLabels labels={builtFrom.map((name) => ({ name, colour: colourOf(name), shared: true }))} />
         </section>
       )}
 
       <div style={styles.cards}>
         <StatCard label="Songs" value={String(record.songCount)} />
-        <StatCard label="Length" value={record.length && record.length.known ? formatLength(record.length.totalMs) : "–"} small />
+        <StatCard label="Length" value={record.length && record.length.known ? formatLength(record.length.totalMs) : "–"} />
         <StatCard label="Average tempo" value={record.averageBpm ? String(record.averageBpm) : "–"} unit={record.averageBpm ? "BPM" : ""} />
-        <StatCard label="Top mood" value={mood ?? "–"} small />
+        <StatCard label="Top mood" value={mood ?? "–"} />
       </div>
 
       <section className="prism-glass-panel" style={styles.chart} data-prism="stats-chart">
         <h3 style={styles.heading}>Genre mix</h3>
-        {rows.map((row, i) => (
-          <div key={row.name} style={styles.barRow} title={`${row.count} of ${estimate ? estimate.scanned : record.songCount} songs`}>
-            <span className="prism-tag shared" style={{ ...styles.barLabel, ["--tag" as any]: tagColour(row.name) }}>
-              <span className="prism-tag-text">{row.name}</span>
-            </span>
-            <span className="prism-bar-track">
-              <span
-                className="prism-bar-fill"
-                // --tag: the bar's colour; --delay: bars grow in one after another.
-                style={{ width: `${row.share * 100}%`, ["--tag" as any]: tagColour(row.name), ["--delay" as any]: `${i * 60}ms` }}
-              />
-            </span>
-            <span style={styles.barCount}>{row.count}</span>
-          </div>
-        ))}
+        {/* One grid for all rows, so the label column fits the longest label
+            (up to 190px; longer names wrap inside their pill) and the bars line up. */}
+        <div style={styles.barGrid}>
+          {rows.map((row, i) => (
+            <React.Fragment key={row.name}>
+              <span className="prism-tag shared wrap" style={{ ...styles.barLabel, ["--tag" as any]: colourOf(row.name) }}>
+                <span className="prism-tag-text">{row.name}</span>
+              </span>
+              <span className="prism-bar-track" title={`${row.count} of ${estimate ? estimate.scanned : record.songCount} songs`}>
+                <span
+                  className="prism-bar-fill"
+                  // --tag: the bar's colour; --delay: bars grow in one after another.
+                  style={{ width: `${row.share * 100}%`, ["--tag" as any]: colourOf(row.name), ["--delay" as any]: `${i * 60}ms` }}
+                />
+              </span>
+              <span style={styles.barCount}>{row.count}</span>
+            </React.Fragment>
+          ))}
+        </div>
         {rows.length === 0 && <p style={styles.subtext}>No genres to show yet.</p>}
         <p style={styles.note}>
           Number of {estimate ? "scanned " : ""}songs with each tag (a song can have several).
@@ -147,6 +200,11 @@ function StatsContent({ record, onOpenPlaylist }: { record: PrismPlaylistRecord;
         <MatchPanel record={record} />
         <LengthPanel record={record} />
       </div>
+      {extras && (
+        <div style={styles.threeCols}>
+          <ExtraStats extras={extras} />
+        </div>
+      )}
     </div>
   );
 }
@@ -155,14 +213,14 @@ function StatsContent({ record, onOpenPlaylist }: { record: PrismPlaylistRecord;
 
 // A colour per lyrics mood, from the same pastel family as the genres.
 const MOOD_COLOURS: Record<string, string> = {
-  love: "#ff8cc3",
-  heartbreak: "#be9bff",
-  desire: "#f08cff",
-  party: "#ffcd6e",
-  anger: "#ffa07a",
-  dark: "#78b4ff",
-  hopeful: "#6ee1aa",
-  numb: "#5fd7e6",
+  love: "#ffb8d9",
+  heartbreak: "#d5c2ff",
+  desire: "#f5baff",
+  party: "#ffe2a8",
+  anger: "#ffc6ad",
+  dark: "#a9cdff",
+  hopeful: "#a8ecc9",
+  numb: "#a6eaf2",
 };
 
 // Lyrics moods as small glass bars (longest = the most common mood).
@@ -175,10 +233,10 @@ function MoodMix({ record }: { record: PrismPlaylistRecord }) {
       {record.moodCounts.slice(0, 5).map(([mood, count], i) => (
         <div key={mood} style={styles.smallBarRow}>
           <span style={styles.smallLabel}>{mood}</span>
-          <span className="prism-bar-track" style={styles.thinTrack}>
+          <span className="prism-bar-track">
             <span
               className="prism-bar-fill"
-              style={{ width: `${(count / most) * 100}%`, ["--tag" as any]: MOOD_COLOURS[mood] ?? "#be9bff", ["--delay" as any]: `${300 + i * 60}ms` }}
+              style={{ width: `${(count / most) * 100}%`, ["--tag" as any]: MOOD_COLOURS[mood] ?? "#d5c2ff", ["--delay" as any]: `${300 + i * 60}ms` }}
             />
           </span>
           <span style={styles.smallCount}>{count}</span>
@@ -194,9 +252,9 @@ function TempoPanel({ record }: { record: PrismPlaylistRecord }) {
   const known = tempo ? tempo.slow + tempo.mid + tempo.fast : 0;
   const parts: [string, number, string][] = tempo
     ? [
-        [`slow (under ${SLOW_BELOW})`, tempo.slow, "#78b4ff"],
-        ["mid", tempo.mid, "#be9bff"],
-        [`fast (${FAST_FROM}+)`, tempo.fast, "#ff8cc3"],
+        [`slow (under ${SLOW_BELOW})`, tempo.slow, "#a9cdff"],
+        ["mid", tempo.mid, "#d5c2ff"],
+        [`fast (${FAST_FROM}+)`, tempo.fast, "#ffb8d9"],
       ]
     : [];
   return (
@@ -261,7 +319,7 @@ function MatchPanel({ record }: { record: PrismPlaylistRecord }) {
           {match.bands.map(([band, count], i) => (
             <div key={band} style={styles.smallBarRow}>
               <span style={styles.smallLabel}>{band}</span>
-              <span className="prism-bar-track" style={styles.thinTrack}>
+              <span className="prism-bar-track">
                 <span
                   className="prism-bar-fill"
                   style={{ width: `${(count / most) * 100}%`, ["--tag" as any]: "#cdb8ff", ["--delay" as any]: `${300 + i * 60}ms` }}
@@ -327,11 +385,12 @@ function formatClock(ms: number): string {
 }
 
 
-function StatCard({ label, value, unit = "", small = false }: { label: string; value: string; unit?: string; small?: boolean }) {
+function StatCard({ label, value, unit = "" }: { label: string; value: string; unit?: string }) {
   return (
     <div className="prism-glass-panel" style={styles.card}>
       <span style={styles.cardLabel}>{label}</span>
-      <span style={{ ...styles.cardValue, fontSize: small ? 18 : 24 }}>
+      {/* Every summary value the same size (numbers and words alike). */}
+      <span style={styles.cardValue}>
         {value} {unit && <span style={styles.cardUnit}>{unit}</span>}
       </span>
     </div>
@@ -341,7 +400,7 @@ function StatCard({ label, value, unit = "", small = false }: { label: string; v
 const styles: Record<string, React.CSSProperties> = {
   screen: { display: "flex", flexDirection: "column", gap: 16 },
   empty: { display: "flex", flexDirection: "column", gap: 6, padding: "32px 0" },
-  titleRow: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 },
+  titleRow: { display: "flex", alignItems: "flex-start", gap: 18 },
   name: {
     margin: 0, fontSize: 24, fontWeight: 300, letterSpacing: "0.02em", color: "#ffffff",
     fontFamily: '"Segoe UI Variable Display", "Segoe UI", sans-serif',
@@ -349,29 +408,35 @@ const styles: Record<string, React.CSSProperties> = {
   },
   text: { margin: 0, color: "var(--spice-text)", fontWeight: 700 },
   subtext: { margin: 0, color: "var(--spice-subtext)", fontSize: 13 },
-  heading: { margin: "0 0 8px", fontSize: 13, fontWeight: 700, color: "var(--spice-subtext)" },
+  heading: { margin: "0 0 6px", fontSize: 13, fontWeight: 700, color: "var(--spice-subtext)" },
   cards: { display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 10 },
   titleSide: { display: "flex", flexDirection: "column", alignItems: "center", gap: 8, flexShrink: 0 },
   twoCols: { display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 },
+  threeCols: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10 },
+  barGrid: { display: "grid", gridTemplateColumns: "fit-content(190px) 1fr 26px", alignItems: "center", columnGap: 8, rowGap: 8 },
   panel: { display: "flex", flexDirection: "column", gap: 6, padding: "14px 16px", minWidth: 0 },
   smallBarRow: { display: "grid", gridTemplateColumns: "84px 1fr 24px", alignItems: "center", gap: 8 },
   smallLabel: { color: "var(--spice-text)", fontSize: 12, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
-  smallCount: { color: "#ffffff", fontWeight: 600, fontSize: 12, textAlign: "right", fontVariantNumeric: "tabular-nums" },
-  thinTrack: { height: 8 },
+  smallCount: { color: "#ffffff", fontWeight: 600, fontSize: 13, textAlign: "left", fontVariantNumeric: "tabular-nums" },
   splitTrack: { display: "flex", height: 14 },
   legend: { display: "flex", flexWrap: "wrap", gap: "4px 12px", fontSize: 12, color: "var(--spice-subtext)" },
   legendItem: { display: "inline-flex", alignItems: "center", gap: 5 },
   legendDot: { width: 7, height: 7, borderRadius: "50%" },
   line: { margin: 0, fontSize: 12, color: "var(--spice-subtext)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
-  bigLine: { margin: 0, fontSize: 22, fontWeight: 600, color: "#ffffff" },
+  // Text sizes used across the stats page (kept consistent on purpose):
+  //   summary values 24px, a panel's headline value 16px, counts next to
+  //   bars 13px, section headings 13px, smaller lines 12px.
+  bigLine: { margin: 0, fontSize: 16, fontWeight: 700, color: "#ffffff" },
   card: { display: "flex", flexDirection: "column", gap: 2, padding: "12px 14px" },
   cardLabel: { color: "var(--spice-subtext)", fontSize: 12 },
-  cardValue: { color: "#ffffff", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
+  cardValue: { color: "#ffffff", fontSize: 24, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
   cardUnit: { fontSize: 13, fontWeight: 400, color: "var(--spice-subtext)" },
   chart: { display: "flex", flexDirection: "column", gap: 8, padding: "14px 16px" },
-  barRow: { display: "grid", gridTemplateColumns: "120px 1fr 32px", alignItems: "center", gap: 10 },
-  barLabel: { justifySelf: "start", maxWidth: 120, overflow: "hidden" },
-  barCount: { color: "#ffffff", fontWeight: 600, textAlign: "right", fontVariantNumeric: "tabular-nums" },
+  // The count sits right after its bar: a narrow column (fits "999") and left-aligned,
+  // so short numbers don't float away from the bar.
+  barRow: { display: "grid", gridTemplateColumns: "120px 1fr 26px", alignItems: "center", gap: 10, columnGap: 8 },
+  barLabel: { justifySelf: "start" },
+  barCount: { color: "#ffffff", fontSize: 13, fontWeight: 600, textAlign: "left", fontVariantNumeric: "tabular-nums" },
   note: { margin: "4px 0 0", color: "var(--spice-subtext)", fontSize: 12 },
   estimate: { fontSize: 13 },
 };

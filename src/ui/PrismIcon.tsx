@@ -1,7 +1,7 @@
-// The Playlist Prism diamond, drawn in React for use ON the page: a small one
-// for the page header (PrismIcon) and a big animated one while scanning
-// (ScanningPrism). Same faceted diamond as the Spotify header icon
-// (src/assets/prism.svg). Animations are in src/ui/styles.ts.
+// The Prism diamond, drawn in React for use ON the page: a small one for the
+// page header (PrismIcon, glass + rainbow edge + sparkles) and a big animated
+// one while scanning (ScanningPrism, the same faceted diamond as the Spotify
+// header icon, src/assets/prism.svg). Animations are in src/ui/styles.ts.
 
 import React from "react";
 
@@ -72,6 +72,10 @@ export function ScanningPrism({ size = 132 }: { size?: number }) {
   );
 }
 
+// The page header's icon (mockup "H2 + sparkles"): a see-through glass
+// diamond with a pastel rainbow edge, and three little sparkles round it that
+// twinkle one after another (animation in styles.ts, .prism-head-sparkle).
+const EDGE = "prism-head-edge"; // the gradient's id (only one header on the page)
 export function PrismIcon({ size = 36 }: { size?: number }) {
   return (
     <svg
@@ -79,13 +83,29 @@ export function PrismIcon({ size = 36 }: { size?: number }) {
       height={size}
       viewBox="0 0 24 24"
       fill="none"
-      stroke="currentColor"
-      strokeWidth={1.3}
       strokeLinejoin="round"
       strokeLinecap="round"
       aria-hidden="true"
+      data-prism="header-icon"
+      style={{ overflow: "visible" }}
     >
-      <Gem />
+      <defs>
+        {/* Pink -> butter -> mint -> sky -> lavender, corner to corner. */}
+        <linearGradient id={EDGE} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#ffb8d9" />
+          <stop offset="0.35" stopColor="#ffe2a8" />
+          <stop offset="0.6" stopColor="#a8ecc9" />
+          <stop offset="0.8" stopColor="#a9cdff" />
+          <stop offset="1" stopColor="#d5c2ff" />
+        </linearGradient>
+      </defs>
+      {/* Glass body with the rainbow edge, then the faint facet lines. */}
+      <path d="M12 2 20 12 12 22 4 12Z" fill="rgba(255, 255, 255, 0.14)" stroke={`url(#${EDGE})`} strokeWidth={1.6} />
+      <path d="M12 2 11 10.6 4 12M11 10.6 20 12M11 10.6 12 22" stroke={`url(#${EDGE})`} strokeWidth={0.8} opacity={0.8} />
+      {/* Sparkles: a butter plus (top right), a sky plus (bottom left), a pink dot. */}
+      <path className="prism-head-sparkle" d="M20 2.5v3M18.5 4h3" stroke="#ffe2a8" strokeWidth={0.9} />
+      <path className="prism-head-sparkle" style={{ animationDelay: "-1.2s" }} d="M4.5 17.5v2.4M3.3 18.7h2.4" stroke="#a9cdff" strokeWidth={0.8} />
+      <circle className="prism-head-sparkle" style={{ animationDelay: "-2.2s" }} cx={19.5} cy={18} r={0.7} fill="#ffb8d9" />
     </svg>
   );
 }

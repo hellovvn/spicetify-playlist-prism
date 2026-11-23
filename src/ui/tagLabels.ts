@@ -6,17 +6,47 @@
 
 import type { SourcedTag } from "../tags/combineTags";
 
-// Pastel colours that sit well on the purple background.
+// Soft pastel colours that sit well on the purple background (made lighter
+// 2026-11-22 to match the theme; the bubbles, bars and tag dots all use them).
 export const TAG_PALETTE = [
-  "#ff8cc3", // pink
-  "#78b4ff", // sky blue
-  "#ffcd6e", // honey
-  "#6ee1aa", // mint
-  "#be9bff", // lavender
-  "#ffa07a", // peach
-  "#5fd7e6", // aqua
-  "#f08cff", // orchid
+  "#ffb8d9", // pink
+  "#a9cdff", // sky blue
+  "#ffe2a8", // honey
+  "#a8ecc9", // mint
+  "#d5c2ff", // lavender
+  "#ffc6ad", // peach
+  "#a6eaf2", // aqua
+  "#f5baff", // orchid
+  "#d6f5a6", // lime
+  "#ffb3b3", // coral
+  "#b9bfff", // periwinkle
 ] as const;
+
+// Colours for several tags shown together (one stats page, one side panel):
+// each tag starts from its usual colour, but if another tag on the same view
+// already has it, it moves to the next free palette colour. So two genres
+// never share a colour on one page (e.g. "alternative" and "indie" were
+// both mint). The first tag listed keeps its usual colour, so pass the most
+// important tags first.
+export function tagColours(names: string[]): Map<string, string> {
+  const result = new Map<string, string>();
+  const used = new Set<string>();
+  for (const name of names) {
+    if (result.has(name)) continue;
+    const start = TAG_PALETTE.indexOf(tagColour(name) as (typeof TAG_PALETTE)[number]);
+    let pick: string = TAG_PALETTE[start];
+    for (let step = 0; step < TAG_PALETTE.length; step++) {
+      const candidate = TAG_PALETTE[(start + step) % TAG_PALETTE.length];
+      if (!used.has(candidate)) {
+        pick = candidate;
+        break;
+      }
+    }
+    used.add(pick);
+    result.set(name, pick);
+  }
+  return result;
+}
 
 // Turns a tag name into a palette colour. A "hash": the same text always
 // gives the same number, and different texts usually give different ones.

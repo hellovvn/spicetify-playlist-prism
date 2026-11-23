@@ -76,3 +76,29 @@ export function savePlaylistRecordsText(json: string): void {
     console.warn("[Playlist Prism] couldn't save the playlist record", error);
   }
 }
+
+// ----- Prism look for Spotify's lyrics (see src/ui/lyricsTheme.ts) -----
+// "off" = Spotify's own lyrics look. Anything else (including never set) = on.
+
+const LYRICS_THEME_KEY = "prism:lyricsTheme";
+
+export function loadLyricsThemeSetting(): string | null {
+  return Spicetify.LocalStorage.get(LYRICS_THEME_KEY);
+}
+
+export function saveLyricsThemeSetting(on: boolean): void {
+  Spicetify.LocalStorage.set(LYRICS_THEME_KEY, on ? "on" : "off");
+}
+
+// ----- Prism stats in Spotify's right-hand panel (see src/ui/sidePanel.ts) -----
+// "off" = the panel stays plain Spotify. Anything else (including never set) = on.
+
+const PANEL_STATS_KEY = "prism:panelStats";
+
+export function loadPanelStatsSetting(): string | null {
+  return Spicetify.LocalStorage.get(PANEL_STATS_KEY);
+}
+
+export function savePanelStatsSetting(on: boolean): void {
+  Spicetify.LocalStorage.set(PANEL_STATS_KEY, on ? "on" : "off");
+}

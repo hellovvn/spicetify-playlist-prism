@@ -22,12 +22,15 @@
 import React from "react";
 import { FlipTile } from "./FlipTile";
 import { OrganizeIcon, PrismIcon as PrismTileIcon } from "./HomeIcons";
-import { getSources } from "../spotify/read";
-import { getLastfmKey } from "../storage";
+import { getPlaylistCover, getSources } from "../spotify/read";
+import { getLastfmKey, loadPanelStatsSetting } from "../storage";
 import { SAMPLE_RECORD } from "../stats/playlistStats";
 import { StatsScreen } from "./StatsScreen";
+import { isPanelStatsOn } from "./sidePanel";
+
+
 import { OrganizeFlow } from "./OrganizeFlow";
-import { createFromPreview, createOrganizedPlaylist, friendlyError, loadPlaylistStats, loadSeed, runScan } from "../flow";
+import { createFromPreview, createOrganizedPlaylist, friendlyError, loadPlaylistExtras, loadPlaylistStats, loadSeed, runScan } from "../flow";
 import { PAGE_PATH, parsePageRequest, parseTrackLink, type PageRequest } from "../nav";
 import { SeedPanel } from "./SeedPanel";
 import { SettingsPanel } from "./SettingsPanel";
@@ -98,6 +101,22 @@ function takeRequest(location: { pathname?: string; search?: string } | undefine
   return actionFor(parsed.request, parsed.requestId);
 }
 
+// Where Spotify's right-hand side panel sits: the last column of its
+// window layout (a grid: library | main view | right panel), at the full
+// height of the page. Falls back to the panel's remembered width, then to
+// the right third of the page.
+function sidePanelBox(page: DOMRect): { left: number; top: number; width: number; height: number } {
+  const grid = document.querySelector(".Root__top-container");
+  const columns = grid ? getComputedStyle(grid).gridTemplateColumns.split(" ").map(parseFloat) : [];
+  // While the full stats page is open, Spotify shrinks the right-hand column
+  // to 0px, so use the width the side panel last had (panelHost.tsx keeps it).
+  const remembered = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--prism-side-panel-width"));
+  const width =
+    columns.length >= 3 && columns[2] > 0 ? columns[2] : remembered > 0 ? remembered : page.width / 3;
+  const capped = Math.min(width, page.width);
+  return { left: page.right - capped, top: page.top, width: capped, height: page.height };
+}
+
 export function PrismPage() {
   const { ButtonSecondary } = Spicetify.ReactComponent as any;
   const History = Spicetify.Platform.History;
@@ -132,6 +151,76 @@ export function PrismPage() {
   // Is a scan running right now? (SeedPanel -> ScanScreen tell us.) Leaving
   // the Prism stops its scan (until step 12b), so "Start page" asks first.
   const [scanning, setScanning] = React.useState(false);
+  // "Show in the side panel": a still copy ("ghost") of the stats page is
+  // laid over the window and shrinks towards the right (styles.ts,
+  // .prism-ghost) while Spotify opens the playlist underneath. The ghost only
+  // moves and fades, which the browser keeps animating even while Spotify is
+  // busy, so there's no stutter and no black screen. Two animation frames
+  // are waited first so the ghost is on screen before Spotify gets busy.
+  const minimize = (uri: string) => {
+    const open = () => History.push(`/playlist/${uri.split(":")[2]}`);
+    const page = document.querySelector('[data-prism="cosmos"]') as HTMLElement | null;
+    const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (!page || reduceMotion) return open();
+    // Only the part of the page you can see: the main view's box (the page
+    // itself can be taller than the window when it scrolls).
+    const pageBox = page.getBoundingClientRect();
+    const view = (document.querySelector(".Root__main-view") as HTMLElement | null)?.getBoundingClientRect() ?? pageBox;
+    const box = new DOMRect(view.left, view.top, view.width, view.height);
+    const ghost = page.cloneNode(true) as HTMLElement;
+    // The copy must not be mistaken for the real page (tests and our own code
+    // look things up by these attributes).
+    ghost.removeAttribute("data-prism");
+    ghost.querySelectorAll("[data-prism], [data-prism-state], [data-prism-view], [id]").forEach((el) => {
+      el.removeAttribute("data-prism");
+      el.removeAttribute("data-prism-state");
+      el.removeAttribute("data-prism-view");
+      el.removeAttribute("id");
+    });
+    ghost.classList.remove("is-wide-stats");
+    // A window-sized frame that clips the copy to what was on screen; the
+    // frame is what moves.
+    Object.assign(ghost.style, { position: "absolute", left: `${pageBox.left - box.left}px`, top: `${pageBox.top - box.top}px`, width: `${pageBox.width}px`, height: `${pageBox.height}px`, margin: "0" });
+    const frame = document.createElement("div");
+    frame.className = "prism-ghost";
+    Object.assign(frame.style, { position: "fixed", left: `${box.left}px`, top: `${box.top}px`, width: `${box.width}px`, height: `${box.height}px`, overflow: "hidden", zIndex: "50", borderRadius: "8px" });
+    frame.appendChild(ghost);
+    document.body.appendChild(frame);
+    // Hide the real page's content (its twilight background stays), so only
+    // the shrinking copy moves: no second copy of the stats behind it.
+    page.classList.add("is-leaving");
+    // "Morph into the panel": shrink to exactly where the side panel will be
+    // (the right-hand column of Spotify's layout, the same height as the
+    // page) and fade into it. element.animate() is the Web Animations API:
+    // the same as a CSS animation, but with numbers worked out right now.
+    const target = sidePanelBox(box);
+    const morph = frame.animate(
+      [
+        { transform: "none", opacity: 1 },
+        { opacity: 0.85, offset: 0.6 },
+        {
+          transform: `translate(${target.left - box.left}px, ${target.top - box.top}px) scale(${target.width / box.width}, ${target.height / box.height})`,
+          opacity: 0.4,
+        },
+      ],
+      { duration: 480, easing: "cubic-bezier(0.5, 0, 0.2, 1)", fill: "forwards" }
+    );
+    const remove = () => frame.remove();
+    // The last step is a CROSSFADE: the copy waits in the panel's spot until
+    // the side panel's stats are actually drawn, then fades out while they
+    // fade in (so there's no moment with neither on screen).
+    morph.onfinish = () => {
+      const started = performance.now();
+      const fadeWhenReady = () => {
+        const drawn = !!document.querySelector('#playlist-prism-panel-stats [data-prism="panel-stats"]');
+        if (!drawn && performance.now() - started < 700) return requestAnimationFrame(fadeWhenReady);
+        frame.animate([{ opacity: 0.4 }, { opacity: 0 }], { duration: 220, easing: "ease-out", fill: "forwards" }).onfinish = remove;
+      };
+      fadeWhenReady();
+    };
+    window.setTimeout(remove, 2500); // just in case
+    requestAnimationFrame(() => requestAnimationFrame(open));
+  };
   const [confirmLeave, setConfirmLeave] = React.useState(false);
   React.useEffect(() => {
     if (!scanning) setConfirmLeave(false); // scan finished: nothing to warn about
@@ -171,6 +260,9 @@ export function PrismPage() {
         load={() => loadPlaylistStats(playlist)}
         // Just navigation, like clicking the playlist in the sidebar.
         onOpenPlaylist={(uri) => History.push(`/playlist/${uri.split(":")[2]}`)}
+        onMinimize={isPanelStatsOn(loadPanelStatsSetting()) ? minimize : undefined}
+        loadExtras={loadPlaylistExtras}
+        loadCover={getPlaylistCover}
       />
     );
   } else if (view.kind === "organize") {
@@ -198,7 +290,12 @@ export function PrismPage() {
     // inner one (flexbox: justify = left/right, align = up/down); the inner
     // one keeps the content at a readable width.
     // prism-cosmos: the twilight background with drifting glows and light waves (styles.ts).
-    <div className="prism-cosmos" style={styles.centerer} data-prism="cosmos">
+    // is-wide-stats: the full stats page grows in from the right (styles.ts).
+    <div
+      className={`prism-cosmos${view.kind === "stats" && !settings ? " is-wide-stats" : ""}`}
+      style={styles.centerer}
+      data-prism="cosmos"
+    >
      {/* aria-hidden: pure decoration, screen readers skip it. */}
      <div className="prism-cosmos-bg" aria-hidden="true">
       <span className="prism-blob prism-blob-1" />
@@ -216,31 +313,35 @@ export function PrismPage() {
       ))}
      </div>
      <div className="prism-page" style={styles.page} data-prism="page" data-prism-view={settings ? "settings" : view.kind}>
-      <header className="prism-header" style={styles.header}>
-        <div style={styles.brand}>
-          <PrismIcon size={34} />
-          <h1 className="prism-title" style={styles.title}>Playlist Prism</h1>
-        </div>
-        <div style={styles.headerButtons}>
-          {settings ? (
-            // Back closes settings and shows the screen you were on.
-            <ButtonSecondary buttonSize="sm" onClick={() => setSettings(null)} data-prism="nav-back">
-              Back
-            </ButtonSecondary>
-          ) : (
-            <>
-              {view.kind !== "home" && (
-                <ButtonSecondary buttonSize="sm" onClick={startPageClicked} data-prism="nav-home">
-                  Start page
-                </ButtonSecondary>
-              )}
-              <ButtonSecondary buttonSize="sm" onClick={() => setSettings({})} data-prism="nav-settings">
-                Settings
+      {/* No header on the full stats page (it has its own title and the
+          "Show in the side panel" button); every other screen keeps it. */}
+      {(view.kind !== "stats" || settings) && (
+        <header className="prism-header" style={styles.header}>
+          <div style={styles.brand}>
+            <PrismIcon size={34} />
+            <h1 className="prism-title" style={styles.title}>Prism</h1>
+          </div>
+          <div style={styles.headerButtons}>
+            {settings ? (
+              // Back closes settings and shows the screen you were on.
+              <ButtonSecondary buttonSize="sm" onClick={() => setSettings(null)} data-prism="nav-back">
+                Back
               </ButtonSecondary>
-            </>
-          )}
-        </div>
-      </header>
+            ) : (
+              <>
+                {view.kind !== "home" && (
+                  <ButtonSecondary buttonSize="sm" onClick={startPageClicked} data-prism="nav-home">
+                    Start page
+                  </ButtonSecondary>
+                )}
+                <ButtonSecondary buttonSize="sm" onClick={() => setSettings({})} data-prism="nav-settings">
+                  Settings
+                </ButtonSecondary>
+              </>
+            )}
+          </div>
+        </header>
+      )}
       {/* The content area has a fixed minimum height, so the header stays in
           the same spot whichever screen is showing (the whole block is
           centred, so a shorter screen used to move the header down). */}
@@ -293,17 +394,12 @@ function HomeScreen({ onStart, onOrganize }: { onStart: (seed: string) => void; 
 
   return (
     <div className="prism-fade-in" style={styles.column} data-prism-state="home">
-      <div>
-        <h2 style={styles.heading}>What would you like to do?</h2>
-        <p style={styles.subtext}>Your existing playlists are never changed: Prism only ever makes new ones.</p>
-      </div>
-
       {/* Two modes side by side, as flip tiles: an icon on the front, the
           details and buttons on the back (FlipTile.tsx). */}
       <div style={styles.modes}>
         <FlipTile id="mode-prism" icon={<PrismTileIcon />} label="Grow a playlist" tip="Turn one favourite song into a whole playlist">
           <h3 style={styles.cardTitle}>Make a Prism playlist</h3>
-          <p style={styles.subtext}>Start from one song and find its vibe in your playlists.</p>
+          <p style={styles.subtext}>Start with a favourite song and grow a playlist of songs that feel like it.</p>
 
           <div style={styles.option}>
             <span style={styles.optionLabel}>The song playing now</span>
@@ -356,7 +452,7 @@ function HomeScreen({ onStart, onOrganize }: { onStart: (seed: string) => void; 
         <FlipTile id="mode-organize" icon={<OrganizeIcon />} label="Remix into moods" tip="Split playlists by genre and mood">
           <h3 style={styles.cardTitle}>Organize playlists</h3>
           <p style={styles.subtext}>
-            Pick some playlists and split all their songs into new playlists by genre and mood.
+            Shuffle your playlists into fresh ones sorted by genre and mood. Make several, or just the one you want.
           </p>
           <ul style={styles.points}>
             <li>Prism suggests the groups; you can rename, move songs or start from scratch</li>

@@ -40,7 +40,7 @@ export class WriteGuardError extends PrismWriteError {}
 export function assertCreatedThisSession(playlistUri: string): void {
   if (!createdThisSession.has(playlistUri)) {
     throw new WriteGuardError(
-      `Refused to change ${playlistUri}: Playlist Prism only adds songs to a playlist it just created.`
+      `Refused to change ${playlistUri}: Prism only adds songs to a playlist it just created.`
     );
   }
 }
