@@ -74,3 +74,20 @@ export function mixCaption(mix: GenreMix): string {
   const from = mix.scanned < mix.total ? ` (from ${mix.scanned} of ${mix.total} songs)` : "";
   return parts.join(" · ") + from;
 }
+
+// Which of Spotify's pages a playlist theme paints (step 16, developer's pick
+// "A, full sky", 2026-11-24):
+//   "playlist" = /playlist/<id>: the sky plus the colour rail and genre mix,
+//   "sky"      = album, artist and Liked Songs pages: the same sky, cleared
+//                cover washes, glass bars and pastel play button, but no rail
+//                or genre mix (developer's decision: those stay playlist-only).
+// null = a page the theme leaves alone.
+export type ThemedPage = "playlist" | "sky";
+
+export function themedPageKind(path: string | undefined): ThemedPage | null {
+  const p = (path ?? "").replace(/\/$/, "");
+  if (/^\/playlist\/[A-Za-z0-9]{22}$/.test(p)) return "playlist";
+  if (/^\/(album|artist)\/[A-Za-z0-9]{22}$/.test(p)) return "sky";
+  if (p === "/collection/tracks") return "sky";
+  return null;
+}
