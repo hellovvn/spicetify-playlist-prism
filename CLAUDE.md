@@ -522,7 +522,7 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   development (e.g. Merge adds "[merged] "), so tests must NEVER find a playlist by its name or
   assume its song count. The smoke test's playlist is pinned by its Spotify ID in
   `scripts/smoke.local.json` (gitignored: `{ "playlistUri": "spotify:playlist:..." }`; now the
-  original 25-song Dark Romance, currently named "[merged] Dark Romance"); its name and song count
+  "Dark Romance", 39 songs on 2026-11-24, after the old pinned one left the library); its name and song count
   are read live. Picker rows carry `data-uri` so tests can click them by ID.
 - BUILDING: never run `npm run build` while `spicetify watch -a` is running: both touch the
   CustomApps folder, the build crashes half-way (Node error after "Moving files out of folders")
