@@ -193,36 +193,12 @@ export function suggestTone(songs: ToneSong[]): Pick<PlaylistTone, "genres" | "m
   const genres = choices.genres.filter((g) => g.songs >= enough).slice(0, 4).map((g) => g.name);
   if (genres.length === 0 && choices.genres[0]?.songs >= 2) genres.push(choices.genres[0].name);
   const moods = choices.moods.filter((m) => m.songs >= enough).slice(0, 2).map((m) => m.name as Mood);
-  return { genres, moods, tempo: commonTempo(songs.map((s) => s.bpm)) };
-}
-
-// A tempo band if at least 70% of the songs with a BPM (3 or more) are in it.
-export function commonTempo(bpmList: (number | null)[]): TempoBand {
-  const bpms = bpmList.filter((b): b is number => !!b);
+  const bpms = songs.map((s) => s.bpm).filter((b): b is number => !!b);
   let tempo: TempoBand = "any";
   for (const band of ["slow", "mid", "fast"] as TempoBand[]) {
     if (bpms.length >= 3 && bpms.filter((b) => tempoFit(band, b) === 1).length / bpms.length >= 0.7) tempo = band;
   }
-  return tempo;
-}
-
-// ----- The tone a GROWN playlist starts with -----
-// Made from the choices behind it: the genre chips the user kept ON (in
-// their order), the seed song's main lyrics moods, and a tempo band if the
-// playlist's songs mostly share one (same 70% rule as suggestTone). The tone
-// view is switched on, so the new playlist shows its fit straight away.
-export function toneFromGrow(choice: {
-  kept: SourcedTag[];
-  seedMood: MoodProfile | null;
-  bpms: (number | null)[]; // the seed's and every picked song's
-  now: number;
-}): PlaylistTone {
-  const genres: string[] = [];
-  for (const tag of choice.kept) {
-    const name = tag.name.toLowerCase().trim();
-    if (name && !isJunkTagName(name) && !genres.includes(name)) genres.push(name);
-  }
-  return { genres, moods: mainMoods(choice.seedMood), tempo: commonTempo(choice.bpms), show: true, updatedAt: choice.now };
+  return { genres, moods, tempo };
 }
 
 // ----- Saved tones (prism:tones) -----
