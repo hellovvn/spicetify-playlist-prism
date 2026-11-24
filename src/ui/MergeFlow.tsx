@@ -266,7 +266,7 @@ function MergeReview(props: {
               Open playlist
             </ButtonSecondary>
             <ButtonPrimary buttonSize="sm" onClick={onFinish} data-prism="merge-finish">
-              Start page
+              Home
             </ButtonPrimary>
           </>
         ) : (

@@ -160,7 +160,7 @@ export function CreatePlaylists(props: CreatePlaylistsProps) {
         )}
         {phase === "done" && (
           <ButtonPrimary buttonSize="sm" onClick={onFinish} data-prism="create-finish">
-            Start page
+            Home
           </ButtonPrimary>
         )}
       </div>

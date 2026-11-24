@@ -239,7 +239,7 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
     (empty groups skipped), a "Prism · " prefix switch (ON by default, developer's wish), then
     creates them ONE AT A TIME (`createAll` in `src/organize/createPlaylists.ts`, pure + tested):
     stops at the first failure and says which exist / weren't tried. Done = rows with Open +
-    "Start page". flow.ts `createOrganizedPlaylist` writes via createPrismPlaylist, then saves
+    "Home". flow.ts `createOrganizedPlaylist` writes via createPrismPlaylist, then saves
     `buildOrganizeRecord` (seed null, keptTags = picked labels or top 3 tags,
     `organized.from` = source playlist names; stats page says "Organized from ...").
     The smoke test opens the confirm screen only and NEVER clicks Create.
@@ -429,7 +429,7 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   (2+ playlists) -> confirm screen: one row per playlist with its song count, the total and how
   many duplicates are dropped, a name box (default "A + B", `defaultMergeName`), and the switch
   'Rename the originals to "[merged] …"' (ON by default; rows that can't be renamed say why)
-  -> Merge -> done (Open + Start page). Dedupe (`mergeSongs` in `src/merge/mergePlaylists.ts`,
+  -> Merge -> done (Open + Home). Dedupe (`mergeSongs` in `src/merge/mergePlaylists.ts`,
   pure + tested): the same URI OR the same songKey (title + main artist, so another album's
   copy counts) is a duplicate; the first copy keeps its place, playlists in the order picked.
   If a rename fails, the merged playlist still stands and the done screen lists what wasn't
@@ -524,6 +524,9 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   CustomApps folder, the build crashes half-way (Node error after "Moving files out of folders")
   and Spotify then shows "not found" for every custom app. Stop the watcher, build, then
   `spicetify refresh -a` and reload. Check the build's last line says "Build succeeded."
+- CLOSE THE WATCHER WHEN DONE (developer's rule, 2026-11-24): once the change is committed and
+  pushed (merged into main), stop `spicetify watch -a` / `spicetify watch -e` (and any
+  `npm run watch`) that this chat started, so no stray watcher blocks the next chat's build.
 - `window.__playlistPrism` debug hook must be removed or dev-only before any public release.
 
 ## UI elements (developer's rule, 2026-11-23)
