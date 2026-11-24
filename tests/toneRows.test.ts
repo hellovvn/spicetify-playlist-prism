@@ -22,6 +22,11 @@ describe("ringSvg", () => {
     expect(ringSvg(0.64, true)).toContain('opacity="0.5"');
     expect(ringSvg(0.64)).not.toContain("opacity");
   });
+  test("under 50% = grey ring and grey %", () => {
+    expect(ringSvg(0.3)).toContain("rgba(255,255,255,0.38)");
+    expect(ringSvg(0.3)).not.toContain('stroke="url(#prism-tone-fill)"');
+    expect(ringSvg(0.6)).toContain('stroke="url(#prism-tone-fill)"');
+  });
   test("unknown = dashed ring with a dash", () => {
     const svg = ringSvg(null);
     expect(svg).toContain("stroke-dasharray=\"3 4\"");

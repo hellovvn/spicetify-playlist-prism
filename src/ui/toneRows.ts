@@ -4,7 +4,7 @@
 // (Play/Shuffle): a toggle, the tone's genres/moods and Edit (plus a short
 // status only while the rings load). With the toggle on, every
 // song row gets a small score ring (how well the song fits the tone, same %
-// idea as Grow), and songs under 50% fade.
+// idea as Grow), and songs under 50% get a grey ring.
 //
 // Spotify draws this page, so we can't change its React code. Instead this
 // adds our own elements into its rows and re-checks them whenever the page
@@ -18,7 +18,7 @@
 // (tests/toneRows.test.ts).
 
 import { loadTones, loadToneSongs, saveTone, TONES_CHANGED_EVENT } from "../flow";
-import { DRIFT_BELOW, describeMatch, scoreAgainstTone, type PlaylistTone, type ToneMatch } from "../tone/tone";
+import { describeMatch, scoreAgainstTone, type PlaylistTone, type ToneMatch } from "../tone/tone";
 import { LOG_PREFIX } from "../log";
 import { openTonePopup } from "./tonePopup";
 import { moodColour, tagColour } from "./tagLabels";
@@ -28,7 +28,6 @@ const STYLE_ID = "playlist-prism-tone-rows";
 const STRIP_ATTR = "data-prism-tone-strip";
 const MAX_CHIPS = 4; // genres/moods shown in the strip; the rest as "+N"
 const RING_CLASS = "prism-tone-ring";
-const DRIFT_CLASS = "prism-tone-drift";
 
 const escapeHtml = (text: string) => text.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 
@@ -66,8 +65,6 @@ const CSS = `
 [${STRIP_ATTR}] .prism-tone-strip-status { margin-left: auto; font-size: 12px; color: #b3a6d6; white-space: nowrap; }
 [${STRIP_ATTR}] .prism-quiet-button { align-self: center; padding: 2px; }
 .${RING_CLASS} { display: inline-flex; flex: none; width: 32px; height: 32px; margin-right: 12px; cursor: default; }
-[role="row"].${DRIFT_CLASS} .main-trackList-trackListRow { opacity: 0.45; transition: opacity 150ms ease; }
-[role="row"].${DRIFT_CLASS} .main-trackList-trackListRow:hover { opacity: 1; }
 `;
 
 // The song URI of one of Spotify's track rows, from React's data on it.
@@ -190,7 +187,6 @@ export function startToneRows(): void {
 
   const clearRows = () => {
     document.querySelectorAll(`.${RING_CLASS}`).forEach((el) => el.remove());
-    document.querySelectorAll(`.${DRIFT_CLASS}`).forEach((el) => el.classList.remove(DRIFT_CLASS));
   };
 
   const update = () => {
@@ -235,7 +231,6 @@ export function startToneRows(): void {
       if (!scored) {
         if (songUri && !scores!.notInPlaylist.has(songUri)) missing.push(songUri);
         ring?.remove();
-        row.classList.remove(DRIFT_CLASS);
         return;
       }
       if (!ring) {
@@ -253,8 +248,6 @@ export function startToneRows(): void {
         ring.dataset.uri = songUri!;
         ring.dataset.key = scores!.key;
       }
-      // Rough guesses (partial) don't fade their row: the faded ring says enough.
-      row.classList.toggle(DRIFT_CLASS, scored.match.score !== null && !scored.match.partial && scored.match.score < DRIFT_BELOW);
     });
     if (missing.length > 0) refreshFor(scores, uri, tone, missing);
   };
