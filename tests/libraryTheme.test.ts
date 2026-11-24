@@ -1,7 +1,7 @@
 // Unit tests for the library panel theme (pure parts). Run with: npm test
 
 import { describe, expect, test } from "vitest";
-import { panelBackground, rowBackground, rowSkyHtml } from "../src/theme/libraryTheme";
+import { isLikedSongsPage, panelBackground, rowBackground, rowSkyHtml } from "../src/theme/libraryTheme";
 
 // A fixed "random" so the HTML is the same every run.
 const fixed = () => 0.5;
@@ -14,6 +14,18 @@ describe("panelBackground", () => {
   test("starry night uses the rising dusk", () => {
     expect(panelBackground("stars")).toContain("at 50% 110%");
     expect(panelBackground("stars")).toContain("#2a1d52");
+  });
+});
+
+describe("isLikedSongsPage", () => {
+  test("Liked Songs page", () => {
+    expect(isLikedSongsPage("/collection/tracks")).toBe(true);
+    expect(isLikedSongsPage("/collection/tracks/")).toBe(true);
+  });
+  test("other pages", () => {
+    expect(isLikedSongsPage("/playlist/4Gt7ro1pcxWSRED2XPOCLI")).toBe(false);
+    expect(isLikedSongsPage("/collection/albums")).toBe(false);
+    expect(isLikedSongsPage(undefined)).toBe(false);
   });
 });
 

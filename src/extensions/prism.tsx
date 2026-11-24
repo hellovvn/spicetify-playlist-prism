@@ -26,7 +26,6 @@ import { lastfmFetchers } from "../lastfm/fetchers";
 import { LOG_PREFIX } from "../log";
 import { isPlaylistUri, openPage } from "../nav";
 import { injectHeaderIconStyles } from "../ui/headerIcon";
-import { startPrismRows } from "../ui/prismRows";
 import { startLyricsTheme } from "../ui/lyricsTheme";
 import { startPanelStats } from "../ui/panelHost";
 import { startToneRows } from "../ui/toneRows";
@@ -45,7 +44,6 @@ async function main() {
   }
 
   injectHeaderIconStyles(); // hover spin + sparkle on the header diamond
-  startPrismRows(); // purple hover on Prism playlists in the sidebar
   startLyricsTheme(); // twilight lyrics views + bars kept (Settings switch, on by default)
   injectStyles(); // Prism's styles, also needed by the side-panel stats outside the page
   startPanelStats(); // Prism playlist stats in the right-hand panel (Settings switch, on by default)

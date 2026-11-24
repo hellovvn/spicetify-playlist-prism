@@ -164,10 +164,11 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
     fastest), Prism fingerprint (`src/ui/Fingerprint.tsx`, a glass bubble per genre), total length
     (+ longest/shortest; lengths from playlist reads and the seed lookup), and match spread (saved
     at creation only). Record fields tempo/length/match are OPTIONAL (older records lack them).
-  - Sidebar: Prism playlists (a saved record, or still named "Prism · ...") get a purple hover
-    (`src/ui/prismRows.ts`, always-on). Spotify paints its row hover on the row's ::after layer,
-    so the purple goes there. Refreshed at start, after a playlist is created (window event
-    "playlist-prism:records-changed") and every 20 s.
+  - Sidebar: Prism playlists USED to get a purple hover with rainbow rays (`src/ui/prismRows.ts`).
+    REMOVED 2026-11-24 at the developer's request: with a playlist theme on, every row gets the
+    "rainbow edge" hover instead (see LIBRARY PANEL THEME). Spotify paints its row hover on the
+    row's ::after layer. "playlist-prism:records-changed" (RECORDS_CHANGED_EVENT, now in
+    playlistStats.ts) still tells the side panel about new records.
   - Fingerprint bubbles: restyled 2026-11-22 (mockup "C3", developer's pick after rejecting
     other styles and colourless soap bubbles). Each bubble keeps its GENRE TAG COLOUR: see-through
     colour that's strongest at the edge, a soft glow in that colour, a faint white rim, two
@@ -504,6 +505,14 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   Green -> pink in the panel too. `src/theme/libraryTheme.ts` (pure, tests/libraryTheme.test.ts),
   `src/ui/libraryTheme.ts` (always-on). Panel grey = `.main-yourLibraryX-entryPoints` +
   `.main-yourLibraryX-libraryContainer`.
+  HOVER (developer's pick, option 4 "rainbow edge"): with a theme on, EVERY row (Prism or not)
+  gets lavender glass + a pastel rainbow bar on the left + a 3px slide. The Prism-only purple
+  rays were then removed completely (prismRows.ts deleted); with No theme rows keep Spotify's grey.
+  LIKED SONGS: its page is /collection/tracks but its row is a separate pinned
+  `spotify:playlist:37i9dQZF1F...` that isn't in the rootlist, so Spotify never sets
+  aria-selected on it. FIX: on /collection/tracks the row whose cover is
+  `img[src*="/liked-songs/"]` counts as open (`isLikedSongsPage`); the open row's box gets
+  `.prism-lib-open`. The Liked Songs PAGE itself still has no playlist theme (not /playlist/).
 - 15 (to-do): rename the internal ids from "playlist-prism" / "Playlist Prism" to just "prism"
   (custom app nameId and folder, `window.__playlistPrism` hook, `[Playlist Prism]` console
   prefix, "playlist-prism:*" window events, the header icon's aria-label). Storage keys are

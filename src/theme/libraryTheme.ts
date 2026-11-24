@@ -41,6 +41,16 @@ export function rowBackground(theme: Theme): string {
   return "#2a1a4a";
 }
 
+// Liked Songs opens at /collection/tracks, but its row in Your Library is a
+// separate pinned "spotify:playlist:..." item, so Spotify never marks that row
+// as the open one (aria-selected stays false). Spotting its row by its cover
+// (always Spotify's own liked-songs picture) works for every account and language.
+export const LIKED_SONGS_PATH = "/collection/tracks";
+export const LIKED_SONGS_COVER = 'img[src*="/liked-songs/"]';
+export function isLikedSongsPage(pathname: string | null | undefined): boolean {
+  return (pathname ?? "").replace(/\/+$/, "") === LIKED_SONGS_PATH;
+}
+
 type Random = () => number;
 
 // The selected row's moving parts (HTML). `random` is injectable for tests.

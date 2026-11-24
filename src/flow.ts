@@ -35,7 +35,6 @@ import {
   type PlaylistTones,
   type ToneSummary,
 } from "./tone/tone";
-import { RECORDS_CHANGED_EVENT } from "./ui/prismRows";
 import {
   addRecord,
   buildOrganizeRecord,
@@ -43,6 +42,7 @@ import {
   estimateRecord,
   parseRecords,
   type PrismPlaylistRecord,
+  RECORDS_CHANGED_EVENT,
 } from "./stats/playlistStats";
 import { mergeTracks, type ScanTrack } from "./scan/tracks";
 import { scanSongs, shareArtistLookups, tagStatusOf, type ScanProgress, type ScannedSong } from "./scan/scan";
@@ -426,8 +426,7 @@ function rememberPlaylist(uri: string, choice: { name: string; seed: SeedData; k
 
 function saveRecord(record: PrismPlaylistRecord) {
   savePlaylistRecordsText(JSON.stringify(addRecord(parseRecords(loadPlaylistRecordsText()), record)));
-  // Tell the always-on script (same window) so the new playlist's sidebar
-  // row gets its purple hover straight away (src/ui/prismRows.ts).
+  // Tell the always-on script (same window), so the side panel picks it up.
   window.dispatchEvent(new Event(RECORDS_CHANGED_EVENT));
 }
 
@@ -470,7 +469,7 @@ export async function mergePlaylists(choice: {
     renameSources
   );
   console.log(`${LOG_PREFIX} merged into ${result.uri}; renamed ${result.renamed.length}, not renamed ${result.notRenamed.length}`);
-  if (result.renamed.length) window.dispatchEvent(new Event(RECORDS_CHANGED_EVENT)); // sidebar rows re-check names
+  if (result.renamed.length) window.dispatchEvent(new Event(RECORDS_CHANGED_EVENT)); // the side panel re-checks
   return result;
 }
 
