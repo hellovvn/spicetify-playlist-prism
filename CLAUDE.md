@@ -51,6 +51,14 @@ the NEW playlist.
 - All write calls live in one module (`src/spotify/write.ts`). Every function there
   asserts that the target URI equals the playlist created in the same session.
 - Code review checklist item: grep for any other write call before merging.
+- ONE EXCEPTION (developer's decision, 2026-11-23): MERGE PLAYLISTS may RENAME the playlists
+  it merged, and only when the user leaves the "Rename the originals" switch on. The rename
+  only puts "[merged] " in front of the playlist's current name (never twice), only for
+  playlists picked in that same merge, only AFTER the new merged playlist was created and
+  filled, and only for the user's OWN playlists (`isOwnedBySelf`; the rootlist's
+  `canEditMetadata` is false even for your own; followed playlists and Liked Songs are never renamed). Songs, order, description and cover of the originals are
+  never touched. Lives in `createMergedPlaylist` in write.ts (`PlaylistAPI.updateDetails`
+  with `{ name }` only); tests/writeGuard.test.ts allows exactly that one extra call.
 
 ## Stack
 - Spicetify Creator (`npx create-spicetify-app`), TypeScript, React
@@ -82,8 +90,10 @@ Since step 12a this is a Spicetify CUSTOM APP (src/settings.json has an "icon"),
 - Reads we plan to use: `RootlistAPI.getContents` (user's playlists), `PlaylistAPI.getContents`
   (a playlist's tracks), `LibraryAPI.getTracks` (Liked Songs).
 - Writes allowed ONLY in `src/spotify/write.ts`: `RootlistAPI.createPlaylist`, then
-  `PlaylistAPI.add` targeting the URI we just created.
-- Never call: `PlaylistAPI.remove/move/updateDetails/setAttributes/clearAttributes/uploadImage`,
+  `PlaylistAPI.add` targeting the URI we just created, plus Merge's `[merged] ` rename
+  (`PlaylistAPI.updateDetails(uri, { name })`, see the hard rule's one exception).
+- Never call: `PlaylistAPI.remove/move/setAttributes/clearAttributes/uploadImage`
+  (or `updateDetails` for anything but Merge's rename),
   `RootlistAPI.remove/move/renameFolder/removeFolder`, `LibraryAPI.add/remove/pin/unpin`.
 - Method signatures are undocumented: test each one by logging before relying on it.
 - Avoid the Web API via `Spicetify.CosmosAsync` (api.spotify.com): it returned 429 Too Many
@@ -413,6 +423,17 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   (.prism-head-sparkle). The Spotify top-bar icon (src/assets/prism.svg) is unchanged.
 - Smoke note: "Cancel stops the scan part-way" can fail as a race when nearly every song is
   cached (the scan finishes before the Cancel click lands); a re-run reports it as SKIPPED.
+- MERGE PLAYLISTS (2026-11-23, built on branch feature/merge-playlists, waiting for the
+  developer's test). Start page: a wide glass bar under the two flip tiles (mockup "B",
+  developer's pick; `.prism-home-bar`). Flow (`src/ui/MergeFlow.tsx`): the shared SourcePicker
+  (2+ playlists) -> confirm screen: one row per playlist with its song count, the total and how
+  many duplicates are dropped, a name box (default "A + B", `defaultMergeName`), and the switch
+  'Rename the originals to "[merged] …"' (ON by default; rows that can't be renamed say why)
+  -> Merge -> done (Open + Start page). Dedupe (`mergeSongs` in `src/merge/mergePlaylists.ts`,
+  pure + tested): the same URI OR the same songKey (title + main artist, so another album's
+  copy counts) is a duplicate; the first copy keeps its place, playlists in the order picked.
+  If a rename fails, the merged playlist still stands and the done screen lists what wasn't
+  renamed. No stats record is saved for merged playlists (they aren't Prism-grown/organized).
 - 15 (to-do): rename the internal ids from "playlist-prism" / "Playlist Prism" to just "prism"
   (custom app nameId and folder, `window.__playlistPrism` hook, `[Playlist Prism]` console
   prefix, "playlist-prism:*" window events, the header icon's aria-label). Storage keys are

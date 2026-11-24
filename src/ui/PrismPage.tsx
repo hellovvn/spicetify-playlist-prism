@@ -5,6 +5,7 @@
 //   prism      the flow (tags -> sources -> scan -> preview) for one seed song
 //   stats      how a Prism playlist was made (right-click it > "Prism stats")
 //   organize   split several playlists into new ones by genre/mood (step 13)
+//   merge      join several playlists into one, without duplicates
 //   demo-scan  DEV/TEST: scan screen with a fake scan (smoke test)
 //   demo-stats DEV/TEST: stats page with sample numbers (smoke test)
 // Settings (the Last.fm key) open ON TOP of whichever of these is showing:
@@ -22,7 +23,7 @@
 import React from "react";
 import { FlipTile } from "./FlipTile";
 import { OrganizeIcon, PrismIcon as PrismTileIcon } from "./HomeIcons";
-import { getPlaylistCover, getSources } from "../spotify/read";
+import { getPlaylistCover, getSources, getSourceTracks } from "../spotify/read";
 import { getLastfmKey, loadPanelStatsSetting } from "../storage";
 import { SAMPLE_RECORD } from "../stats/playlistStats";
 import { StatsScreen } from "./StatsScreen";
@@ -30,7 +31,9 @@ import { isPanelStatsOn } from "./sidePanel";
 
 
 import { OrganizeFlow } from "./OrganizeFlow";
-import { createFromPreview, createOrganizedPlaylist, findNewSongs, friendlyError, loadPlaylistExtras, loadPlaylistStats, loadSeed, runScan } from "../flow";
+import { MergeFlow } from "./MergeFlow";
+import { MergeIcon } from "./HomeIcons";
+import { createFromPreview, createOrganizedPlaylist, findNewSongs, mergePlaylists, friendlyError, loadPlaylistExtras, loadPlaylistStats, loadSeed, runScan } from "../flow";
 import { PAGE_PATH, parsePageRequest, parseTrackLink, type PageRequest } from "../nav";
 import { SeedPanel } from "./SeedPanel";
 import { SettingsPanel } from "./SettingsPanel";
@@ -53,6 +56,7 @@ type View =
   | { kind: "prism"; seed: string; id: string }
   | { kind: "stats"; playlist: string; id: string } // stats for a Prism playlist
   | { kind: "organize"; id: string } // Organize playlists (step 13)
+  | { kind: "merge"; id: string } // Merge playlists
   | { kind: "demo-scan"; id: string }
   | { kind: "demo-stats"; id: string };
 
@@ -280,10 +284,29 @@ export function PrismPage() {
         onScanningChange={setScanning}
       />
     );
+  } else if (view.kind === "merge") {
+    body = (
+      <MergeFlow
+        key={view.id}
+        loadSources={getSources}
+        loadTracks={getSourceTracks}
+        merge={mergePlaylists}
+        describeError={friendlyError}
+        onCancel={goHome}
+        // Just navigation, like clicking the playlist in the sidebar.
+        onOpenPlaylist={(uri) => History.push(`/playlist/${uri.split(":")[2]}`)}
+      />
+    );
   } else if (view.kind === "demo-stats") {
     body = <StatsScreen key={view.id} load={async () => SAMPLE_RECORD} />;
   } else {
-    body = <HomeScreen onStart={start} onOrganize={() => apply({ view: { kind: "organize", id: newId() } })} />;
+    body = (
+      <HomeScreen
+        onStart={start}
+        onOrganize={() => apply({ view: { kind: "organize", id: newId() } })}
+        onMerge={() => apply({ view: { kind: "merge", id: newId() } })}
+      />
+    );
   }
 
   return (
@@ -378,7 +401,7 @@ export function PrismPage() {
 
 // ----- Start screen -----
 
-function HomeScreen({ onStart, onOrganize }: { onStart: (seed: string) => void; onOrganize: () => void }) {
+function HomeScreen({ onStart, onOrganize, onMerge }: { onStart: (seed: string) => void; onOrganize: () => void; onMerge: () => void }) {
   const { ButtonPrimary, ButtonSecondary } = Spicetify.ReactComponent as any;
   const [link, setLink] = React.useState("");
   const [linkError, setLinkError] = React.useState<string | null>(null);
@@ -469,6 +492,13 @@ function HomeScreen({ onStart, onOrganize }: { onStart: (seed: string) => void; 
           </div>
         </FlipTile>
       </div>
+
+      {/* Merge: a wide glass bar under the tiles (mockup "B"), opens straight away. */}
+      <button type="button" className="prism-home-bar" onClick={onMerge} data-prism="start-merge">
+        <MergeIcon />
+        <span style={styles.barLabel}>Merge playlists</span>
+        <span style={styles.barText}>Join playlists into one and leave out duplicates</span>
+      </button>
     </div>
   );
 }
@@ -519,6 +549,8 @@ const styles: Record<string, React.CSSProperties> = {
   option: { display: "flex", flexDirection: "column", gap: 6 },
   optionLabel: { color: "var(--spice-text)", fontSize: 13, fontWeight: 600 },
   hint: { margin: 0, color: "var(--spice-subtext)", fontSize: 12 },
+  barLabel: { fontSize: 15, fontWeight: 600, whiteSpace: "nowrap" },
+  barText: { color: "var(--spice-subtext)", fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
   points: { margin: 0, paddingLeft: 18, color: "var(--spice-subtext)", fontSize: 13, display: "flex", flexDirection: "column", gap: 6 },
   row: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 },
   text: { color: "var(--spice-text)" },

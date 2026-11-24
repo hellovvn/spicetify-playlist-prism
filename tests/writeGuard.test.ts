@@ -45,10 +45,12 @@ describe("write guard (static check of src/)", () => {
     }
   );
 
-  test("write.ts itself only creates a playlist and adds to it", () => {
+  test("write.ts itself only creates a playlist, adds to it, and does Merge's rename", () => {
     const text = files.find((f) => f.name === WRITE_MODULE)!.text;
     const calls = [...text.matchAll(WRITE_CALL)].map((m) => `${m[1]}.${m[2]}`).sort();
-    expect(calls).toEqual(["PlaylistAPI.add", "RootlistAPI.createPlaylist"]);
+    expect(calls).toEqual(["PlaylistAPI.add", "PlaylistAPI.updateDetails", "RootlistAPI.createPlaylist"]);
+    // The rename passes the NAME only (never description or cover).
+    expect(text).toMatch(/PlaylistAPI\.updateDetails\(playlistUri, \{ name \}\)/);
     expect([...text.matchAll(WEB_API_WRITE)]).toEqual([]);
   });
 });

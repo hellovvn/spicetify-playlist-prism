@@ -27,9 +27,10 @@ export interface SourcePickerProps {
   intro?: string; // text at the top (default: the Prism flow's)
   extra?: React.ReactNode; // mode-specific settings, shown above the buttons
   nextLabel?: string; // the Next button (default "Next: scan songs")
+  minPicked?: number; // how many must be ticked before Next works (default 1; Merge needs 2)
 }
 
-export function SourcePicker({ loadSources, describeError, selected, setSelected, onBack, onNext, intro, extra, nextLabel }: SourcePickerProps) {
+export function SourcePicker({ loadSources, describeError, selected, setSelected, onBack, onNext, intro, extra, nextLabel, minPicked = 1 }: SourcePickerProps) {
   const { ButtonPrimary, ButtonSecondary } = Spicetify.ReactComponent as any;
   const [sources, setSources] = React.useState<SourceOption[] | null>(null);
   const [error, setError] = React.useState<string | null>(null);
@@ -147,8 +148,8 @@ export function SourcePicker({ loadSources, describeError, selected, setSelected
         </ButtonSecondary>
         <ButtonPrimary
           buttonSize="sm"
-          disabled={picked.length === 0}
-          onClick={() => picked.length > 0 && onNext(picked)}
+          disabled={picked.length < minPicked}
+          onClick={() => picked.length >= minPicked && onNext(picked)}
           data-prism="sources-next"
         >
           {nextLabel ?? "Next: scan songs"}

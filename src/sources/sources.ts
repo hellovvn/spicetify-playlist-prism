@@ -10,6 +10,9 @@ export interface SourceOption {
   trackCount: number;
   folder: string | null; // the folder it sits in, if any
   owner: string; // display name, e.g. "Vivian" or "Spotify"
+  // Spotify says the user may edit its details (their own playlists). Only
+  // Merge uses it, to know which originals can get the "[merged] " tag.
+  canRename?: boolean;
 }
 
 // Spotify's URI for Liked Songs.
@@ -33,6 +36,9 @@ export function flattenRootlist(items: any[], folder: string | null = null): Sou
         trackCount: item.totalLength,
         folder,
         owner: item.owner?.displayName ?? item.owner?.username ?? "",
+        // canEditMetadata is false here even for your own playlists (checked
+        // 2026-11-23), so ownership is what counts. Collaborators can't rename.
+        canRename: item.isOwnedBySelf === true || item.canEditMetadata === true,
       });
     }
   }

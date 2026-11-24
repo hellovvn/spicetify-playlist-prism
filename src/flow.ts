@@ -10,7 +10,7 @@ import { searchTracks } from "./spotify/search";
 import { getArtistTopTracks, getSimilarArtists, getSimilarTracks, LastfmError } from "./lastfm/client";
 import { bestSearchHit, pickCandidates, type FoundTrack, type SimilarSong } from "./discover/discover";
 import { scoreSong, tagMatch } from "./scoring/score";
-import { createPrismPlaylist, PrismWriteError } from "./spotify/write";
+import { createMergedPlaylist, createPrismPlaylist, PrismWriteError, type MergeResult } from "./spotify/write";
 import { lastfmFetchers } from "./lastfm/fetchers";
 import { LOG_PREFIX } from "./log";
 import {
@@ -358,6 +358,27 @@ export async function createOrganizedPlaylist(choice: {
     console.warn(`${LOG_PREFIX} couldn't save the playlist record`, error);
   }
   return uri;
+}
+
+// Merge playlists: create the merged playlist and (if the switch is on) tag
+// the originals' names. Both writes happen in write.ts, guarded.
+export async function mergePlaylists(choice: {
+  name: string;
+  tracks: ScanTrack[];
+  sources: SourceOption[];
+  renameSources: boolean;
+}): Promise<MergeResult> {
+  const { name, tracks, sources, renameSources } = choice;
+  console.log(`${LOG_PREFIX} merge: creating "${name}" with ${tracks.length} songs from ${sources.length} playlists (rename: ${renameSources})`);
+  const result = await createMergedPlaylist(
+    name,
+    tracks.map((t) => t.uri),
+    sources.map((s) => ({ uri: s.uri, name: s.name, canRename: s.canRename === true })),
+    renameSources
+  );
+  console.log(`${LOG_PREFIX} merged into ${result.uri}; renamed ${result.renamed.length}, not renamed ${result.notRenamed.length}`);
+  if (result.renamed.length) window.dispatchEvent(new Event(RECORDS_CHANGED_EVENT)); // sidebar rows re-check names
+  return result;
 }
 
 // Stats for a playlist (the stats page). Prism playlists made since records
