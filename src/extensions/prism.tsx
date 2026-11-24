@@ -9,6 +9,7 @@
 //   - twilight colours for Spotify's lyrics views (src/ui/lyricsTheme.ts)
 //   - Prism stats in the right-hand panel for Prism playlists (src/ui/panelHost.tsx)
 //   - "Prism tone" on playlists + the Tone view's score rings (src/ui/toneRows.ts)
+//   - playlist themes: moving sky, colour rail, genre mix (src/ui/playlistTheme.ts)
 // All of them simply OPEN THE PAGE with a request (see src/nav.ts).
 // The header icon needs no code: Spicetify adds it for every custom app.
 
@@ -28,6 +29,7 @@ import { startPrismRows } from "../ui/prismRows";
 import { startLyricsTheme } from "../ui/lyricsTheme";
 import { startPanelStats } from "../ui/panelHost";
 import { startToneRows } from "../ui/toneRows";
+import { startPlaylistTheme } from "../ui/playlistTheme";
 import { loadTones } from "../flow";
 import { injectStyles } from "../ui/styles";
 
@@ -49,6 +51,7 @@ async function main() {
   registerStatsMenu();
   registerToneMenu();
   startToneRows(); // "✦ Tone" switch + score rings on playlists with a tone
+  startPlaylistTheme(); // playlist page themes: sky, colour rail, genre mix (Settings, off by default)
   registerSettingsMenu();
   exposeDebugHook();
 

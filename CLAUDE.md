@@ -478,6 +478,23 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   suggestTone), view switched ON. Local only; a failure leaves the playlist fine.
   Not built yet (suggested): drifters first, Grow from a tone, split the drifters into a new
   playlist. Open question: switch Settings' On/Off segmented choices to the Toggle too.
+- PLAYLIST THEMES (2026-11-24, developer's picks after mockup rounds D-H; tested by the developer,
+  committed 2026-11-24 in PR #10). Spotify's grey sticky bars (top bar + song-list column header)
+  become twilight glass and its green accents (play buttons, liked ticks, playing title)
+  Prism pastels, on themed playlist pages only. Settings > "Playlist theme": No theme (default) /
+  Northern lights / Starry night / Bubble nebula (segmented choice, saved as
+  `prism:playlistTheme`, PLAYLIST_THEME_CHANGED_EVENT applies it at once). With a theme on,
+  EVERY playlist page (developer's choice) gets: a moving sky behind the page
+  (`.prism-pl-sky`, first child of .Root__main-view with z-index -1; the view gets
+  `isolation: isolate` and data-prism-theme; Spotify's cover-colour washes are cleared), a
+  COLOUR RAIL beside the songs (each song's main genre = its strongest non-junk cached tag,
+  colours via tagColours; unscanned = faint lavender; playing song pulses; on the outer
+  [role="row"]; only `.main-trackList-indexable` rows, not
+  Recommended), and a GENRE MIX bar after `.main-entityHeader-metaData`. READ-ONLY: playlist
+  songs + tag cache only, nothing sent to Last.fm. Prism's own page keeps its twilight sky
+  (developer's choice). Code: `src/theme/playlistTheme.ts` (pure, tests/playlistTheme.test.ts),
+  `src/ui/playlistTheme.ts` (always-on). Densities scale with the window (mockups were 680px).
+  This covers part of 14a (themes); 14a's per-page theme picker is still open.
 - 15 (to-do): rename the internal ids from "playlist-prism" / "Playlist Prism" to just "prism"
   (custom app nameId and folder, `window.__playlistPrism` hook, `[Playlist Prism]` console
   prefix, "playlist-prism:*" window events, the header icon's aria-label). Storage keys are
