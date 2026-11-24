@@ -15,6 +15,12 @@ describe("pageUrl / parsePageRequest", () => {
     expect(parsePageRequest(url.split("?")[1])).toEqual({ request: { go: "stats", playlist: `spotify:playlist:${ID}` }, requestId: "9" });
   });
 
+  test("tone request survives the round trip", () => {
+    const url = pageUrl({ go: "tone", playlist: `spotify:playlist:${ID}` }, "4");
+    expect(parsePageRequest(url.split("?")[1])).toEqual({ request: { go: "tone", playlist: `spotify:playlist:${ID}` }, requestId: "4" });
+    expect(parsePageRequest(`go=tone&playlist=spotify:track:${ID}&r=1`)).toBeNull();
+  });
+
   test.each(["settings", "home", "demo-scan", "demo-stats"] as const)("%s request", (go) => {
     expect(parsePageRequest(pageUrl({ go }, "1").split("?")[1])?.request).toEqual({ go });
   });

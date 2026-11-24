@@ -8,6 +8,7 @@
 //   - the read-only debug hook for the smoke test
 //   - twilight colours for Spotify's lyrics views (src/ui/lyricsTheme.ts)
 //   - Prism stats in the right-hand panel for Prism playlists (src/ui/panelHost.tsx)
+//   - "Prism tone" on playlists + the Tone view's score rings (src/ui/toneRows.ts)
 // All of them simply OPEN THE PAGE with a request (see src/nav.ts).
 // The header icon needs no code: Spicetify adds it for every custom app.
 
@@ -26,6 +27,8 @@ import { injectHeaderIconStyles } from "../ui/headerIcon";
 import { startPrismRows } from "../ui/prismRows";
 import { startLyricsTheme } from "../ui/lyricsTheme";
 import { startPanelStats } from "../ui/panelHost";
+import { startToneRows } from "../ui/toneRows";
+import { loadTones } from "../flow";
 import { injectStyles } from "../ui/styles";
 
 async function main() {
@@ -44,6 +47,8 @@ async function main() {
   startPanelStats(); // Prism playlist stats in the right-hand panel (Settings switch, on by default)
   registerContextMenu();
   registerStatsMenu();
+  registerToneMenu();
+  startToneRows(); // "✦ Tone" switch + score rings on playlists with a tone
   registerSettingsMenu();
   exposeDebugHook();
 
@@ -73,6 +78,18 @@ function registerStatsMenu() {
     // SVG text (checked in its spicetifyWrapper.js), hence the cast.
     PRISM_MENU_ICON as Spicetify.Icon
   ).register();
+}
+
+// Adds the tone item to the right-click menu of playlists: set (or edit) the
+// genres/moods/tempo the playlist is meant to have. Saved only on this computer.
+// A menu item's label is fixed, so there are TWO items and the "shouldAdd"
+// check shows the one that fits: "Add Prism tone" (no tone yet) or
+// "Prism tone" (has one). Spotify runs the check each time the menu opens.
+function registerToneMenu() {
+  const hasTone = (uris: string[]) => isSinglePlaylist(uris) && !!loadTones()[uris[0]];
+  const open = (uris: string[]) => openPage({ go: "tone", playlist: uris[0] });
+  new Spicetify.ContextMenu.Item("Add Prism tone", open, (uris) => isSinglePlaylist(uris) && !hasTone(uris), PRISM_MENU_ICON as Spicetify.Icon).register();
+  new Spicetify.ContextMenu.Item("Prism tone", open, hasTone, PRISM_MENU_ICON as Spicetify.Icon).register();
 }
 
 // The faceted Prism diamond for the right-click menu (instead of a built-in
@@ -128,6 +145,9 @@ function exposeDebugHook() {
     previewStats: () => openPage({ go: "demo-stats" }),
     openStats: (uri: string) => openPage({ go: "stats", playlist: uri }),
     isSinglePlaylist,
+    // Tone editor for a playlist, and the saved tones (read-only copy).
+    openTone: (uri: string) => openPage({ go: "tone", playlist: uri }),
+    getTones: () => loadTones(),
     // BPM/key for some songs. Returns a plain object (a Map can't cross the debug port).
     getAudioAttributes: async (uris: string[]) => {
       const plain: Record<string, unknown> = {};

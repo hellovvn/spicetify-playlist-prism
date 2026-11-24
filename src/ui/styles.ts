@@ -273,6 +273,34 @@ const CSS = `
 .prism-quiet-button:hover { color: #ffffff; }
 .prism-quiet-button:focus-visible { outline: 2px solid var(--prism-accent-soft); outline-offset: 2px; border-radius: 4px; }
 
+/* ----- Toggle (approved 2026-11-24, tone strip "E") -----
+   For an on/off that takes effect AT ONCE (not for picking things: that's
+   the checkbox). A <button role="switch" aria-checked> with a knob.
+   Off = clear glass track, white knob left; on = lavender track, knob right. */
+.prism-toggle {
+  position: relative; flex: none;
+  width: 34px; height: 20px; padding: 0; margin: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+}
+.prism-toggle::after {
+  content: ""; position: absolute; top: 2px; left: 2px;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: #ffffff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  transition: transform 150ms ease;
+}
+.prism-toggle[aria-checked="true"] { background: #b794ff; border-color: #cdb8ff; }
+.prism-toggle[aria-checked="true"]::after { transform: translateX(14px); }
+.prism-toggle:hover { border-color: rgba(205, 184, 255, 0.75); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 0 12px rgba(205, 184, 255, 0.4); }
+.prism-toggle:active::after { width: 17px; }
+.prism-toggle[aria-checked="true"]:active::after { transform: translateX(11px); }
+.prism-toggle:focus-visible { outline: 2px solid #cdb8ff; outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .prism-toggle, .prism-toggle::after { transition: none; } }
+
 /* ----- Checkbox: one glass box everywhere -----
    A real <input type="checkbox"> (so keyboard, labels and "indeterminate"
    keep working) with the browser's own look switched off (appearance: none).
@@ -520,6 +548,9 @@ const CSS = `
   backdrop-filter: blur(18px) saturate(140%);
   animation: prism-rise 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
+/* Wide pop-up (approved 2026-11-24 with the tone editor pop-up): for a whole
+   editor, not a quick question. Same glass, up to 760px wide. */
+.prism-glass-card.is-wide { width: min(760px, calc(100% - 48px)); max-height: calc(100% - 48px); box-sizing: border-box; }
 .prism-glass-input {
   width: 100%;
   box-sizing: border-box;

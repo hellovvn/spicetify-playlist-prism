@@ -4,6 +4,7 @@
 //   home       start screen: use the playing song, or paste a song link
 //   prism      the flow (tags -> sources -> scan -> preview) for one seed song
 //   stats      how a Prism playlist was made (right-click it > "Prism stats")
+//   tone       set a playlist's tone (right-click it > "Prism tone")
 //   organize   split several playlists into new ones by genre/mood (step 13)
 //   merge      join several playlists into one, without duplicates
 //   demo-scan  DEV/TEST: scan screen with a fake scan (smoke test)
@@ -33,7 +34,9 @@ import { isPanelStatsOn } from "./sidePanel";
 import { OrganizeFlow } from "./OrganizeFlow";
 import { MergeFlow } from "./MergeFlow";
 import { MergeIcon } from "./HomeIcons";
-import { createFromPreview, createOrganizedPlaylist, findNewSongs, mergePlaylists, friendlyError, loadPlaylistExtras, loadPlaylistStats, loadSeed, runScan } from "../flow";
+import { createFromPreview, createOrganizedPlaylist, findNewSongs, mergePlaylists, friendlyError, loadPlaylistExtras, loadPlaylistStats, loadSeed, loadToneFit, loadToneSongs, loadTones, runScan, saveTone } from "../flow";
+import { getPlaylistName } from "../spotify/read";
+import { ToneEditor } from "./ToneEditor";
 import { PAGE_PATH, parsePageRequest, parseTrackLink, type PageRequest } from "../nav";
 import { SeedPanel } from "./SeedPanel";
 import { SettingsPanel } from "./SettingsPanel";
@@ -55,6 +58,7 @@ type View =
   | { kind: "home" }
   | { kind: "prism"; seed: string; id: string }
   | { kind: "stats"; playlist: string; id: string } // stats for a Prism playlist
+  | { kind: "tone"; playlist: string; id: string } // set a playlist's tone
   | { kind: "organize"; id: string } // Organize playlists (step 13)
   | { kind: "merge"; id: string } // Merge playlists
   | { kind: "demo-scan"; id: string }
@@ -89,6 +93,8 @@ function actionFor(request: PageRequest, id: string): PageAction {
       return { view: { kind: "home" } };
     case "stats":
       return { view: { kind: "stats", playlist: request.playlist, id } };
+    case "tone":
+      return { view: { kind: "tone", playlist: request.playlist, id } };
     case "demo-scan":
       return { view: { kind: "demo-scan", id } };
     case "demo-stats":
@@ -267,7 +273,30 @@ export function PrismPage() {
         onOpenPlaylist={(uri) => History.push(`/playlist/${uri.split(":")[2]}`)}
         onMinimize={isPanelStatsOn(loadPanelStatsSetting()) ? minimize : undefined}
         loadExtras={loadPlaylistExtras}
+        loadToneFit={loadToneFit}
         loadCover={getPlaylistCover}
+      />
+    );
+  } else if (view.kind === "tone") {
+    const playlist = view.playlist;
+    const openPlaylist = () => History.push(`/playlist/${playlist.split(":")[2]}`);
+    body = (
+      <ToneEditor
+        key={view.id}
+        playlist={playlist}
+        loadName={getPlaylistName}
+        loadSongs={loadToneSongs}
+        saved={loadTones()[playlist] ?? null}
+        describeError={friendlyError}
+        onBack={openPlaylist}
+        onSave={(tone) => {
+          saveTone(playlist, tone);
+          openPlaylist(); // with the Tone view switched on
+        }}
+        onRemove={() => {
+          saveTone(playlist, null);
+          openPlaylist();
+        }}
       />
     );
   } else if (view.kind === "organize") {

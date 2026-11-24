@@ -437,6 +437,43 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   DUPLICATES LIST (2026-11-24, mockup "A", developer's pick): "▾ Show duplicates" after the summary
   opens an in-place glass list; each row = the left-out copy + its playlist, and the copy kept
   ("kept \"Snooze\" from Dark Romance", or "already in …" for the same URI). Data: `dropped` from mergeSongs.
+- PLAYLIST TONE (2026-11-24, mockup "A", developer's pick; tested by the developer in Spotify,
+  committed and merged 2026-11-24). Right-click a playlist > "Prism tone" opens the tone editor
+  (`?go=tone&playlist=...`, `src/ui/ToneEditor.tsx`; the menu item says "Add Prism tone" when the
+  playlist has no tone yet: two registered items, each shown by its shouldAdd check): key genres (search + tag switches,
+  PickChip from GroupBuilder), lyrics moods, tempo Any/Slow/Mid/Fast. A new tone starts from
+  `suggestTone` (genres/moods shared by a fifth of the songs, a tempo band if 70% are in it).
+  Saved ONLY in `prism:tones` (keyed by playlist URI, `src/tone/tone.ts`, pure + tests); the
+  playlist is never touched. Score (`scoreAgainstTone`): genres 60 (75% from the song's BEST
+  tone genre, 25% from how many it has; exact = 1, word-inside = 0.5, tag strength 0.5+ counts
+  fully), mood 15 (cosine), tempo 15 (1 in the band, 0 at 20% outside); key not used. Unknown
+  parts are left out; no tags at all in a genre tone = no score ("–").
+  Tone view (`src/ui/toneRows.ts`, always-on): a TONE STRIP (mockup "E") right after the
+  playlist's action bar row ([data-testid="action-bar-row"]): Toggle (new element `.prism-toggle`,
+  for instant on/off only; checkboxes stay for picking), "✦ Tone", the tone's labels and Edit.
+  NO summary text (developer removed it): `stripStatus` only says "Scoring songs: 12 of 39…"
+  while the rings load, or "Couldn't score the songs". Edit opens the SAME ToneEditor
+  (variant "popup": Cancel instead of Back) in a wide pop-up over the playlist
+  (`src/ui/tonePopup.tsx`, host inside .Root__main-view, overlay has `prism-cosmos` for Prism's
+  colours); right-click > Prism tone still opens it on the Prism page. Pure strip/ring helpers
+  are in `src/ui/toneView.ts` (toneRows imports React via the pop-up, which tests can't load).
+  On = a 32px score ring in every song row (in .main-trackList-rowSectionEnd) and rows under 50%
+  fade. Songs with no Last.fm tags are scored on mood + tempo only ("partial", a FADED ring at
+  half strength, row never fades; developer's pick); no mood/tempo either = "–".
+  "Tone fit" (`loadToneFit` in flow.ts, `toneSummary`) shows as a 5th stat card on the stats page
+  and a 5th number cell in the side panel (average of all scores; hover = breakdown; fits/drift
+  count full scores only). Reloads on TONES_CHANGED_EVENT (defined in tone.ts). Rows have NO song ID in the HTML:
+  the URI is read from React's fiber (memoizedProps.uri, walking up). Spotify reuses rows while
+  scrolling, so a MutationObserver on .Root__main-view re-applies them. Songs not scanned yet are
+  scanned like a Grow scan (`loadToneSongs` in flow.ts, shares the caches; progress in the
+  switch). Spotify's "Recommended" rows under the playlist get no ring.
+  Songs added AFTER the scores loaded: a row whose song has no score makes the view re-read the
+  playlist (at most every 5 s, rings stay up) and score the new songs; songs still missing after
+  that (the Recommended rows) are remembered and never trigger a re-read again.
+  Testing note: the CDP "keep the page active" emulation only lasts while THAT debug connection
+  is open, so set it in the same connection that runs a check (or timers crawl while hidden).
+  Not built yet (suggested): drifters first, Grow from a tone, split the drifters into a new
+  playlist. Open question: switch Settings' On/Off segmented choices to the Toggle too.
 - 15 (to-do): rename the internal ids from "playlist-prism" / "Playlist Prism" to just "prism"
   (custom app nameId and folder, `window.__playlistPrism` hook, `[Playlist Prism]` console
   prefix, "playlist-prism:*" window events, the header icon's aria-label). Storage keys are

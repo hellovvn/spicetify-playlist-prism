@@ -17,7 +17,8 @@ import React from "react";
 import { builtFromTags, chartRows, genreCounts, topMood, FAST_FROM, SLOW_BELOW, type PrismPlaylistRecord } from "../stats/playlistStats";
 import { Fingerprint } from "./Fingerprint";
 import { moodColour, tagColours } from "./tagLabels";
-import { ExtraStats, useExtras } from "./ExtraStats";
+import { ExtraStats, toneFitText, useExtras, useToneFit } from "./ExtraStats";
+import type { ToneSummary } from "../tone/tone";
 import type { PlaylistExtras } from "../stats/playlistExtras";
 import { formatClock, formatLength, madeOn, panelSubtitle } from "./sidePanel";
 
@@ -32,10 +33,12 @@ export interface PanelStatsProps {
   nowPlaying: NowPlaying | null;
   onOpenStats: () => void;
   loadExtras?: (uri: string) => Promise<PlaylistExtras>;
+  loadToneFit?: (uri: string) => Promise<ToneSummary | null>;
 }
 
-export function PanelStats({ record, nowPlaying, onOpenStats, loadExtras }: PanelStatsProps) {
+export function PanelStats({ record, nowPlaying, onOpenStats, loadExtras, loadToneFit }: PanelStatsProps) {
   const extras = useExtras(record.uri, loadExtras);
+  const toneFit = useToneFit(record.uri, loadToneFit);
   const rows = chartRows(record, 6);
   const moreGenres = genreCounts(record).length - rows.length;
   const builtFrom = builtFromTags(record);
@@ -99,6 +102,9 @@ export function PanelStats({ record, nowPlaying, onOpenStats, loadExtras }: Pane
           <Quick value={record.length && record.length.known ? formatLength(record.length.totalMs) : "–"} label="length" />
           <Quick value={record.averageBpm ? String(record.averageBpm) : "–"} label="avg BPM" />
           <Quick value={mood ?? "–"} label="top mood" />
+          {toneFit && toneFit.average !== null && (
+            <Quick value={`${Math.round(toneFit.average * 100)}%`} label="tone fit" title={toneFitText(toneFit)} />
+          )}
         </div>
 
         {rows.length > 0 && (
@@ -206,9 +212,10 @@ function Line({ label, name, value }: { label: string; name: string; value: stri
   );
 }
 
-function Quick({ value, label }: { value: string; label: string }) {
+function Quick({ value, label, title }: { value: string; label: string; title?: string }) {
   return (
-    <div style={{ textAlign: "center", minWidth: 0 }}>
+    // The tone fit (the only one with a title) is the 5th cell: it spans the row.
+    <div style={{ textAlign: "center", minWidth: 0, ...(title ? { gridColumn: "1 / -1" } : {}) }} title={title} data-prism={title ? "panel-tone-fit" : undefined}>
       <p style={styles.quickValue}>{value}</p>
       <p style={styles.small}>{label}</p>
     </div>

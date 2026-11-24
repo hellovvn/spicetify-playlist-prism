@@ -21,7 +21,19 @@ import {
   saveMoodCacheText,
   savePlaylistRecordsText,
   saveTagCacheText,
+  loadTonesText,
+  saveTonesText,
 } from "./storage";
+import {
+  parseTones,
+  scoreAgainstTone,
+  toneSummary,
+  withTone,
+  TONES_CHANGED_EVENT,
+  type PlaylistTone,
+  type PlaylistTones,
+  type ToneSummary,
+} from "./tone/tone";
 import { RECORDS_CHANGED_EVENT } from "./ui/prismRows";
 import {
   addRecord,
@@ -118,6 +130,18 @@ export async function runScan(
   const lists = await Promise.all(sources.map((source) => getSourceTracks(source.uri)));
   const { tracks, duplicates } = mergeTracks(lists);
   console.log(`${LOG_PREFIX} scanning ${tracks.length} songs (${duplicates} duplicates removed)`);
+  const result = await scanTracks(tracks, apiKey, onProgress, shouldStop);
+  return { ...result, duplicates };
+}
+
+// Tags, BPM/key and lyrics mood for these songs (cached songs need no
+// Last.fm request). Shared by every scan: Grow, Remix and playlist tones.
+async function scanTracks(
+  tracks: ScanTrack[],
+  apiKey: string,
+  onProgress: (progress: ScanProgress) => void,
+  shouldStop: () => boolean
+) {
   onProgress({ done: 0, total: tracks.length, fromCache: 0, failed: 0 });
 
   const fetchers = shareArtistLookups(lastfmFetchers(apiKey, createRateLimiter(LASTFM_REQUESTS_PER_SECOND)));
@@ -153,7 +177,62 @@ export async function runScan(
       (Date.now() - started) / 1000
     )} s`
   );
-  return { ...result, duplicates };
+  return result;
+}
+
+// ----- Playlist tones (src/tone/tone.ts) -----
+// The playlist's songs with their tags, BPM and lyrics mood, for the tone
+// editor and the Tone view. READ-ONLY. Songs scanned before come from the
+// caches at once; the rest are looked up (Last.fm + Spotify) and cached.
+// Without a Last.fm key it only uses what's cached.
+export async function loadToneSongs(
+  uri: string,
+  onProgress: (progress: ScanProgress) => void = () => {},
+  shouldStop: () => boolean = () => false
+): Promise<ScannedSong[]> {
+  const tracks = await getSourceTracks(uri);
+  const apiKey = getLastfmKey();
+  if (apiKey) return (await scanTracks(tracks, apiKey, onProgress, shouldStop)).songs;
+  const now = Date.now();
+  const tagCache = new TagCache(loadTagCacheText());
+  const moodCache = new MoodCache(loadMoodCacheText());
+  const audio = await getAudioAttributes(tracks.map((t) => t.uri)).catch(() => new Map());
+  return tracks.map((track) => {
+    const tags = tagCache.get(track.uri, now)?.tags ?? [];
+    return { ...track, tags, audio: audio.get(track.uri) ?? null, mood: moodCache.get(track.uri, now) ?? null, tagStatus: tagStatusOf(tags) };
+  });
+}
+
+export function loadTones(): PlaylistTones {
+  return parseTones(loadTonesText());
+}
+
+// Saves (or, with null, removes) a playlist's tone. Only in LocalStorage on
+// this computer; the playlist itself is never touched.
+export function saveTone(uri: string, tone: PlaylistTone | null): void {
+  saveTonesText(JSON.stringify(withTone(loadTones(), uri, tone)));
+  window.dispatchEvent(new Event(TONES_CHANGED_EVENT));
+}
+
+export { TONES_CHANGED_EVENT };
+
+// "Tone fit" for the stats page and side panel: the playlist's songs scored
+// against its tone (null = no tone set). Uses loadToneSongs, so songs are
+// usually cached by the Tone view already. Remembered per tone version.
+const toneFitCache = new Map<string, Promise<ToneSummary | null>>();
+
+export function loadToneFit(uri: string): Promise<ToneSummary | null> {
+  const tone = loadTones()[uri];
+  if (!tone) return Promise.resolve(null);
+  const key = `${uri}|${tone.updatedAt}`;
+  const cached = toneFitCache.get(key);
+  if (cached) return cached;
+  const fit = loadToneSongs(uri).then((songs) =>
+    toneSummary(songs.map((s) => scoreAgainstTone(tone, { tags: s.tags, bpm: s.audio?.bpm ?? null, mood: s.mood })))
+  );
+  toneFitCache.set(key, fit);
+  fit.catch(() => toneFitCache.delete(key)); // a failure isn't remembered
+  return fit;
 }
 
 // ----- DISCOVER: new finds (build plan 14e) -----

@@ -16,7 +16,8 @@ import React from "react";
 import { builtFromTags, chartRows, FAST_FROM, SLOW_BELOW, topMood, type PrismPlaylistRecord } from "../stats/playlistStats";
 import { Fingerprint } from "./Fingerprint";
 import { moodColour, tagColours } from "./tagLabels";
-import { ExtraStats, useExtras } from "./ExtraStats";
+import { ExtraStats, toneFitText, useExtras, useToneFit } from "./ExtraStats";
+import type { ToneSummary } from "../tone/tone";
 import { artworkUrls } from "./sidePanel";
 import type { PlaylistExtras } from "../stats/playlistExtras";
 import { TagLabels } from "./GenreLabels";
@@ -30,11 +31,12 @@ export interface StatsScreenProps {
   onMinimize?: (uri: string) => void;
   // Loads artists / eras / key (read-only, live from the playlist).
   loadExtras?: (uri: string) => Promise<PlaylistExtras>;
+  loadToneFit?: (uri: string) => Promise<ToneSummary | null>;
   // Loads the playlist's cover address (read-only).
   loadCover?: (uri: string) => Promise<string | null>;
 }
 
-export function StatsScreen({ load, onOpenPlaylist, onMinimize, loadExtras, loadCover }: StatsScreenProps) {
+export function StatsScreen({ load, onOpenPlaylist, onMinimize, loadExtras, loadToneFit, loadCover }: StatsScreenProps) {
   const [record, setRecord] = React.useState<PrismPlaylistRecord | null>(null);
   const [failed, setFailed] = React.useState(false);
 
@@ -67,7 +69,7 @@ export function StatsScreen({ load, onOpenPlaylist, onMinimize, loadExtras, load
       </div>
     );
   }
-  return <StatsContent record={record} onOpenPlaylist={onOpenPlaylist} onMinimize={onMinimize} loadExtras={loadExtras} loadCover={loadCover} />;
+  return <StatsContent record={record} onOpenPlaylist={onOpenPlaylist} onMinimize={onMinimize} loadExtras={loadExtras} loadToneFit={loadToneFit} loadCover={loadCover} />;
 }
 
 function StatsContent({
@@ -75,15 +77,18 @@ function StatsContent({
   onOpenPlaylist,
   onMinimize,
   loadExtras,
+  loadToneFit,
   loadCover,
 }: {
   record: PrismPlaylistRecord;
   onOpenPlaylist?: (uri: string) => void;
   onMinimize?: (uri: string) => void;
   loadExtras?: (uri: string) => Promise<PlaylistExtras>;
+  loadToneFit?: (uri: string) => Promise<ToneSummary | null>;
   loadCover?: (uri: string) => Promise<string | null>;
 }) {
   const extras = useExtras(record.uri, loadExtras);
+  const toneFit = useToneFit(record.uri, loadToneFit);
   const [cover, setCover] = React.useState<string[]>([]);
   React.useEffect(() => {
     let closed = false;
@@ -158,11 +163,15 @@ function StatsContent({
         </section>
       )}
 
-      <div style={styles.cards}>
+      {/* 5 cards in one row when the playlist has a tone ("Tone fit"). */}
+      <div style={{ ...styles.cards, ...(toneFit && toneFit.average !== null ? { gridTemplateColumns: "repeat(5, minmax(0, 1fr))" } : {}) }}>
         <StatCard label="Songs" value={String(record.songCount)} />
         <StatCard label="Length" value={record.length && record.length.known ? formatLength(record.length.totalMs) : "–"} />
         <StatCard label="Average tempo" value={record.averageBpm ? String(record.averageBpm) : "–"} unit={record.averageBpm ? "BPM" : ""} />
         <StatCard label="Top mood" value={mood ?? "–"} />
+        {toneFit && toneFit.average !== null && (
+          <StatCard label="Tone fit" value={`${Math.round(toneFit.average * 100)}%`} title={toneFitText(toneFit)} />
+        )}
       </div>
 
       <section className="prism-glass-panel" style={styles.chart} data-prism="stats-chart">
@@ -374,9 +383,9 @@ function formatClock(ms: number): string {
 }
 
 
-function StatCard({ label, value, unit = "" }: { label: string; value: string; unit?: string }) {
+function StatCard({ label, value, unit = "", title }: { label: string; value: string; unit?: string; title?: string }) {
   return (
-    <div className="prism-glass-panel" style={styles.card}>
+    <div className="prism-glass-panel" style={styles.card} title={title} data-prism={title ? "stats-tone-fit" : undefined}>
       <span style={styles.cardLabel}>{label}</span>
       {/* Every summary value the same size (numbers and words alike). */}
       <span style={styles.cardValue}>
