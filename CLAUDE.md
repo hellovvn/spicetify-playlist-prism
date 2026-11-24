@@ -457,9 +457,9 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   (`src/ui/tonePopup.tsx`, host inside .Root__main-view, overlay has `prism-cosmos` for Prism's
   colours); right-click > Prism tone still opens it on the Prism page. Pure strip/ring helpers
   are in `src/ui/toneView.ts` (toneRows imports React via the pop-up, which tests can't load).
-  On = a 32px score ring in every song row (in .main-trackList-rowSectionEnd) and rows under 50%
-  fade. Songs with no Last.fm tags are scored on mood + tempo only ("partial", a FADED ring at
-  half strength, row never fades; developer's pick); no mood/tempo either = "–".
+  On = a 32px score ring in every song row (in .main-trackList-rowSectionEnd); songs under 50%
+  get a GREY ring (rows are never faded, developer's request 2026-11-24). Songs with no Last.fm tags are scored on mood + tempo only ("partial", a FADED ring at
+  half strength; developer's pick); no mood/tempo either = "–".
   "Tone fit" (`loadToneFit` in flow.ts, `toneSummary`) shows as a 5th stat card on the stats page
   and a 5th number cell in the side panel (average of all scores; hover = breakdown; fits/drift
   count full scores only). Reloads on TONES_CHANGED_EVENT (defined in tone.ts). Rows have NO song ID in the HTML:

@@ -60,7 +60,7 @@ it. The rules for changing or adding elements are in CLAUDE.md under "UI element
 | List row | `.prism-row` (+ `.is-clickable`, `.is-glass` for the seed, `.is-head` for "Select all") | 8px corners, thin line between rows | Clickable rows: faint white hover |
 | New find row | `.prism-row` + `.prism-new-find`, `.prism-new-pill` "✦ New find", `.prism-sparkle` round the score ring | Mint glass | Sparkles twinkle (they stay visible but still with reduced motion) |
 | Score ring | `ScoreRing` in PreviewScreen | 52px ring, lavender-to-pink arc, % in the middle | Static |
-| Tone ring (approved 2026-11-24, mockup "A") | `ringSvg` in `src/ui/toneRows.ts`, a `.prism-tone-ring` span put into Spotify's own track rows (before the duration) | The score ring at 32px: lavender-to-pink arc, % (no sign) in the middle. Rough guess (no Last.fm tags, mood + tempo only): the same ring at half strength ("faded ring", developer's pick). Not scored: dashed ring with "–" | Tooltip says the % and what fits / is off ("~58% … a rough guess" for faded ones). Songs under 50% fade their row (`.prism-tone-drift`, opacity 0.45, back to 1 on hover); rough guesses never fade their row |
+| Tone ring (approved 2026-11-24, mockup "A") | `ringSvg` in `src/ui/toneRows.ts`, a `.prism-tone-ring` span put into Spotify's own track rows (before the duration) | The score ring at 32px: lavender-to-pink arc, % (no sign) in the middle. Rough guess (no Last.fm tags, mood + tempo only): the same ring at half strength ("faded ring", developer's pick). Not scored: dashed ring with "–" | Tooltip says the % and what fits / is off ("~58% … a rough guess" for faded ones). Songs under 50% get a GREY ring (grey arc and %); the song's row is never faded |
 | Tone strip (approved 2026-11-24, mockup "E") | `[data-prism-tone-strip]` div put right after Spotify's playlist action bar row (`src/ui/toneRows.ts`, own CSS: outside the Prism page) | Slim glass band (12px corners, faint lavender glass): Toggle, "✦ Tone", the tone's labels as read-only tag labels (4 max, then "+N", then "slow tempo"), quiet "Edit" button at the right end (opens the tone editor in a wide pop-up over the playlist) | Toggle (or clicking "✦ Tone") shows/hides the rings. Only while they load: "Scoring songs: 12 of 39…" before Edit (or "Couldn't score the songs"). No summary text (removed at the developer's request; the overall fit is the stats page's "Tone fit"). Edit opens the tone editor. Only on playlists with a tone |
 | Panel / box | `.prism-glass-panel` | Glass, 16px corners | Static |
 | Clickable card | `.prism-glass-panel` + `.prism-builder-group` | Glass card | Standard hover + 2px lift. Chosen group (`.on`): `--prism-picked` pink edge + inner glow |
@@ -94,6 +94,8 @@ it. The rules for changing or adding elements are in CLAUDE.md under "UI element
 
 ## History
 
+- 2026-11-24: Tone ring: songs under 50% no longer fade their whole row; the ring turns grey
+  instead (developer's request).
 - 2026-11-24: Pop-up got a WIDE variant (`.is-wide`) for the tone editor opened from the tone
   strip's Edit (it used to open the Prism page).
 - 2026-11-24: NEW Toggle (instant on/off, `.prism-toggle`) and Tone strip (mockup "E"), which
