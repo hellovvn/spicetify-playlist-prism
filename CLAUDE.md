@@ -478,8 +478,10 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   suggestTone), view switched ON. Local only; a failure leaves the playlist fine.
   Not built yet (suggested): drifters first, Grow from a tone, split the drifters into a new
   playlist. Open question: switch Settings' On/Off segmented choices to the Toggle too.
-- PLAYLIST THEMES (2026-11-24, developer's picks after mockup rounds D-H; not committed yet,
-  waiting for the developer's test). Settings > "Playlist theme": No theme (default) /
+- PLAYLIST THEMES (2026-11-24, developer's picks after mockup rounds D-H; tested by the developer,
+  committed 2026-11-24 in PR #10). Spotify's grey sticky bars (top bar + song-list column header)
+  become twilight glass and its green accents (play buttons, liked ticks, playing title)
+  Prism pastels, on themed playlist pages only. Settings > "Playlist theme": No theme (default) /
   Northern lights / Starry night / Bubble nebula (segmented choice, saved as
   `prism:playlistTheme`, PLAYLIST_THEME_CHANGED_EVENT applies it at once). With a theme on,
   EVERY playlist page (developer's choice) gets: a moving sky behind the page
