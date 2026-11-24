@@ -437,8 +437,8 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   DUPLICATES LIST (2026-11-24, mockup "A", developer's pick): "▾ Show duplicates" after the summary
   opens an in-place glass list; each row = the left-out copy + its playlist, and the copy kept
   ("kept \"Snooze\" from Dark Romance", or "already in …" for the same URI). Data: `dropped` from mergeSongs.
-- PLAYLIST TONE (2026-11-24, mockup "A", developer's pick; built, not committed, waiting for the
-  developer's test). Right-click a playlist > "Prism tone" opens the tone editor
+- PLAYLIST TONE (2026-11-24, mockup "A", developer's pick; tested by the developer in Spotify,
+  committed and merged 2026-11-24). Right-click a playlist > "Prism tone" opens the tone editor
   (`?go=tone&playlist=...`, `src/ui/ToneEditor.tsx`; the menu item says "Add Prism tone" when the
   playlist has no tone yet: two registered items, each shown by its shouldAdd check): key genres (search + tag switches,
   PickChip from GroupBuilder), lyrics moods, tempo Any/Slow/Mid/Fast. A new tone starts from
