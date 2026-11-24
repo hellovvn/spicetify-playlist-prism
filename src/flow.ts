@@ -27,7 +27,6 @@ import {
 import {
   parseTones,
   scoreAgainstTone,
-  toneFromGrow,
   toneSummary,
   withTone,
   TONES_CHANGED_EVENT,
@@ -388,20 +387,7 @@ export async function createFromPreview(choice: {
   const playlistUri = await createPrismPlaylist(name, trackUris);
   console.log(`${LOG_PREFIX} created ${playlistUri}`);
   rememberPlaylist(playlistUri, choice);
-  giveGrowTone(playlistUri, choice);
   return playlistUri;
-}
-
-// A grown playlist starts with a tone made from the choices behind it (kept
-// chips, the seed's moods, a shared tempo band): see toneFromGrow. Local only
-// (prism:tones); if it fails, the playlist is still fine.
-function giveGrowTone(uri: string, choice: { seed: SeedData; kept: SourcedTag[]; songs: RankedSong[] }) {
-  try {
-    const bpms = [choice.seed.audio?.bpm ?? null, ...choice.songs.map((s) => s.audio?.bpm ?? null)];
-    saveTone(uri, toneFromGrow({ kept: choice.kept, seedMood: choice.seed.mood, bpms, now: Date.now() }));
-  } catch (error) {
-    console.warn(`${LOG_PREFIX} couldn't save the playlist's tone`, error);
-  }
 }
 
 // Saves how this playlist was made (tags, counts) for the stats page. Only

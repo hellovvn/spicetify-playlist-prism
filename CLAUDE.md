@@ -472,10 +472,6 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   that (the Recommended rows) are remembered and never trigger a re-read again.
   Testing note: the CDP "keep the page active" emulation only lasts while THAT debug connection
   is open, so set it in the same connection that runs a check (or timers crawl while hidden).
-  GROWN PLAYLISTS START WITH A TONE (2026-11-24, not committed): createFromPreview saves
-  `toneFromGrow` (tone.ts, tested): genres = the chips kept ON, moods = the seed's main lyrics
-  moods, tempo = a band if 70% of seed + picks share one (`commonTempo`, also used by
-  suggestTone), view switched ON. Local only; a failure leaves the playlist fine.
   Not built yet (suggested): drifters first, Grow from a tone, split the drifters into a new
   playlist. Open question: switch Settings' On/Off segmented choices to the Toggle too.
 - 15 (to-do): rename the internal ids from "playlist-prism" / "Playlist Prism" to just "prism"
