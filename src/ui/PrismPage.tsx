@@ -384,7 +384,7 @@ export function PrismPage() {
               <>
                 {view.kind !== "home" && (
                   <ButtonSecondary buttonSize="sm" onClick={startPageClicked} data-prism="nav-home">
-                    Start page
+                    Home
                   </ButtonSecondary>
                 )}
                 <ButtonSecondary buttonSize="sm" onClick={() => setSettings({})} data-prism="nav-settings">
