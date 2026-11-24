@@ -100,6 +100,34 @@ async function screenshot(name) {
 
 const cdp = await connect();
 cdpForShots = cdp;
+
+// The playlist the scan / Remix checks use. Picked by its Spotify ID (URI),
+// NOT its name: the developer renames playlists during development (Merge
+// adds "[merged] "), and the ID never changes. Set it in
+// scripts/smoke.local.json (gitignored: it's the developer's own library):
+//   { "playlistUri": "spotify:playlist:..." }
+// Its name and song count are read live, so nothing here assumes either.
+let local = {};
+try {
+  local = JSON.parse(await readFile(new URL("./smoke.local.json", import.meta.url), "utf8"));
+} catch {
+  console.error("Missing scripts/smoke.local.json with { \"playlistUri\": \"spotify:playlist:...\" } (a playlist of yours with ~25 songs that Prism has scanned).");
+  process.exit(2);
+}
+const TEST = await cdp.evaluate(`(async () => {
+  const uri = ${JSON.stringify(local.playlistUri)};
+  const meta = await Spicetify.Platform.PlaylistAPI.getMetadata(uri);
+  const page = await Spicetify.Platform.PlaylistAPI.getContents(uri, { limit: 10000 });
+  const songs = (page?.items ?? []).filter((i) => typeof i?.uri === "string" && i.uri.startsWith("spotify:track:") && !i.isLocal).length;
+  return { uri, name: meta?.name ?? null, count: songs, listed: meta?.totalLength ?? songs };
+})()`);
+if (!TEST?.name || !TEST.count) {
+  console.error(`The smoke playlist ${local.playlistUri} wasn't found or is empty.`);
+  process.exit(2);
+}
+console.log(`Test playlist: "${TEST.name}" (${TEST.count} songs, ${TEST.uri})`);
+const ROW = (scope) => `${scope}.querySelector('[data-uri=${JSON.stringify(TEST.uri)}]')`;
+
 try {
   console.log("\n[1] Extension loaded");
   // After a reload the hook can take a moment to appear, so wait up to 10 s.
@@ -343,11 +371,11 @@ try {
       info(`${names.length} sources: ${names.join(", ")}`);
       check("nothing picked yet: 'Next: scan songs' disabled", await cdp.evaluate(`${SCAN}.disabled`));
 
-      // Tick Dark Romance by clicking its row (the whole row is a label).
-      await cdp.evaluate(`${rows}.find((r) => r.textContent.includes("Dark Romance")).click()`);
+      // Tick the test playlist by clicking its row (the whole row is a label).
+      await cdp.evaluate(`${ROW(SOURCES)}.click()`);
       await sleep(200);
       const sum = await cdp.evaluate(summary);
-      check("ticking Dark Romance updates the summary", sum.startsWith("1 picked · up to 25 songs"), sum);
+      check(`ticking ${TEST.name} updates the summary`, sum.startsWith(`1 picked · up to ${TEST.listed} songs`), sum);
       check("scan button enabled once something is picked", !(await cdp.evaluate(`${SCAN}.disabled`)));
 
       // Search filters the list. Setting a React input's value needs the
@@ -368,7 +396,7 @@ try {
       check("Back returns to the chips, with 'sexy' still off", (await cdp.evaluate(chipStates))[0] === "false");
       await cdp.evaluate(`${NEXT}.click()`);
       await waitFor(`!!${SOURCES}`);
-      check("Next again: Dark Romance is still ticked", JSON.stringify(await cdp.evaluate(tickedNames)) === JSON.stringify(["Dark Romance"]));
+      check(`Next again: ${TEST.name} is still ticked`, JSON.stringify(await cdp.evaluate(tickedNames)) === JSON.stringify([TEST.name]));
 
       // Select all / clear
       const SELECT_ALL = `${SOURCES}.querySelector('[data-prism="select-all"]')`;
@@ -427,7 +455,7 @@ try {
   if (await waitFor(READY)) {
     await cdp.evaluate(clickButton("Next"));
     await waitFor(`!!${SOURCES} && ${rows}.length > 0`);
-    await cdp.evaluate(tick("Dark Romance"));
+    await cdp.evaluate(`${ROW(SOURCES)}.click()`);
     await sleep(200);
 
     // First scan: real Last.fm lookups (unless cached by an earlier smoke run).
@@ -439,13 +467,13 @@ try {
     await screenshot("scan-progress.png");
     const done1 = await waitFor(`!!document.querySelector('[data-prism-state="scan-done"]')`, 120000);
     const firstSeconds = ((Date.now() - t0) / 1000).toFixed(1);
-    check("scan of Dark Romance finishes", done1, `${firstSeconds} s`);
+    check(`scan of ${TEST.name} finishes`, done1, `${firstSeconds} s`);
     if (done1) {
       const title = await cdp.evaluate(SCAN_TITLE);
-      check("summary says 25 songs scanned", title === "Scanned 25 songs", title);
+      check(`summary says ${TEST.count} songs scanned`, title === `Scanned ${TEST.count} songs`, title);
       const subline = await cdp.evaluate(`document.querySelector('[data-prism-state="scan-done"] p').textContent`);
       const moodCount = Number(/lyrics mood for (\d+)/.exec(subline)?.[1] ?? -1);
-      check("lyrics mood found for most Dark Romance songs", moodCount >= 15, `${moodCount} of 25`);
+      check(`lyrics mood found for most ${TEST.name} songs`, moodCount >= Math.ceil(TEST.count * 0.6), `${moodCount} of ${TEST.count}`);
       info(`summary: ${await cdp.evaluate(`document.querySelector('[data-prism="scan-summary"]').innerText.replace(/\\s+/g, " ")`)}`);
       await screenshot("scan-done.png");
 
@@ -732,8 +760,8 @@ try {
   check("Remix opens on the shared playlist picker", await waitFor(`!!${ORG}?.querySelector('[data-prism="source-list"] label')`, 15000));
   check("the picker has no settings panel any more (they moved to More options)", await cdp.evaluate(`!${ORG}.querySelector('[data-prism="organize-settings"]')`));
   await screenshot("organize-setup.png");
-  // Tick Dark Romance (cached, so the scan is quick) and scan.
-  await cdp.evaluate(`[...${ORG}.querySelectorAll('[data-prism="source-list"] label')].find((r) => r.textContent.includes("Dark Romance")).click()`);
+  // Tick the test playlist (cached, so the scan is quick) and scan.
+  await cdp.evaluate(`${ROW(ORG)}.click()`);
   await sleep(200);
   await cdp.evaluate(`${ORG}.querySelector('[data-prism="sources-next"]').click()`);
   const scanned = await waitFor(`!!document.querySelector('[data-prism-state="scan-done"]')`, 120000);
@@ -754,7 +782,7 @@ try {
     const GROUPS = `document.querySelector('[data-prism-state="organize-groups"]')`;
     const CARDS = `[...document.querySelectorAll('[data-prism="organize-group"]')]`;
     const intro0 = shown ? await cdp.evaluate(`${GROUPS}.querySelector('p').innerText`) : "";
-    check("it says how the songs were grouped (Auto, balanced by default)", /25 songs/.test(intro0) && /genre, mood and tempo together/.test(intro0), intro0);
+    check("it says how the songs were grouped (Auto, balanced by default)", intro0.startsWith(`${TEST.count} songs`) && /genre, mood and tempo together/.test(intro0), intro0);
     // More options: 3 playlists, group by genre, overlap on and off again.
     check("More options starts closed", await cdp.evaluate(`!${GROUPS}.querySelector('[data-prism="organize-settings"]')`));
     await cdp.evaluate(`${GROUPS}.querySelector('[data-prism="more-options"]').click()`);
@@ -910,12 +938,12 @@ try {
     if (sortedOne) {
       const line = await cdp.evaluate(`${GROUPS}.querySelector('p').innerText`);
       info(line);
-      const matched = parseInt((line.match(/(\d+) of 25/) || [])[1] ?? "-1");
+      const matched = parseInt((line.match(new RegExp(`(\\d+) of ${TEST.count} `)) || [])[1] ?? "-1");
       check("it says how many songs match your picks", matched >= 0, line);
       check("one playlist has no More options", await cdp.evaluate(`!${GROUPS}.querySelector('[data-prism="more-options"]')`));
       check("one playlist says \"Create playlist\"", await cdp.evaluate(`${GROUPS}.querySelector('[data-prism="open-create"]').textContent.trim() === "Create playlist"`));
-      if (matched < 25) {
-        check(`the ${25 - matched} songs that don't match show as Not included`, await cdp.evaluate(`!!${LEFTCARD} && new RegExp("\\\\b${25 - matched} songs?\\\\b").test(${LEFTCARD}.innerText)`));
+      if (matched < TEST.count) {
+        check(`the ${TEST.count - matched} songs that don't match show as Not included`, await cdp.evaluate(`!!${LEFTCARD} && new RegExp("\\\\b${TEST.count - matched} songs?\\\\b").test(${LEFTCARD}.innerText)`));
         await screenshot("organize-one-playlist.png");
         await cdp.evaluate(`${LEFTCARD}.click()`);
         await waitFor(`!!${LEFT}`, 3000);
@@ -927,7 +955,7 @@ try {
         check("Add all puts every one in", await cdp.evaluate(`${LEFT}.querySelectorAll('[data-prism="not-included-song"]').length === 0`));
         await cdp.evaluate(`${LEFT}.querySelector('[data-prism="not-included-back"]').click()`);
         await sleep(300);
-        check("the playlist now has all 25 songs", (await cardCount(0)) === 25 && (await cdp.evaluate(`!${LEFTCARD}`)));
+        check(`the playlist now has all ${TEST.count} songs`, (await cardCount(0)) === TEST.count &&(await cdp.evaluate(`!${LEFTCARD}`)));
       } else {
         info("every song matched the picked genre: Not included not tested with one playlist");
       }
@@ -946,7 +974,7 @@ try {
       const custom = await cdp.evaluate(`${CARDS}.map((g) => g.innerText.replace(/\\s+/g, " ").slice(0, 70))`);
       custom.forEach((g) => info(`your group: ${g}`));
       const total = await cdp.evaluate(`${CARDS}.reduce((n, c) => n + parseInt(c.innerText.match(/(\\d+) songs?/)[1]), 0)`);
-      check("3 groups, and every song is in one", custom.length === 3 && total >= 25 && (await cdp.evaluate(`!${LEFTCARD}`)), `${custom.length} groups, ${total} places`);
+      check("3 groups, and every song is in one", custom.length === 3 && total >= TEST.count && (await cdp.evaluate(`!${LEFTCARD}`)), `${custom.length} groups, ${total} places`);
       // More options for your own groups: no How many (that's how many you made).
       await cdp.evaluate(`${GROUPS}.querySelector('[data-prism="more-options"]').click()`);
       await sleep(200);

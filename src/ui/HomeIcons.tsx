@@ -155,3 +155,19 @@ export function OrganizeIcon() {
     </svg>
   );
 }
+
+// Merge playlists (the start page's glass bar): two little tapes, pink and
+// sky, whose lines flow together into one mint tape. Same matte finish.
+// Still (no animation): the bar only gets the standard hover.
+export function MergeIcon() {
+  return (
+    <svg viewBox="0 0 64 40" width={56} height={35} aria-hidden="true" style={{ flexShrink: 0 }}>
+      <MatteBox x={2} y={3} w={18} h={12} r={3} color={PINK} />
+      <MatteBox x={2} y={25} w={18} h={12} r={3} color={SKY} />
+      <path d="M21 9 C32 9 32 20 40 20 M21 31 C32 31 32 20 40 20" fill="none" stroke="#ffffff" strokeOpacity={0.55} strokeWidth={1.6} strokeLinecap="round" />
+      <MatteBox x={41} y={12} w={21} h={16} r={3.5} color={MINT} />
+      <circle cx={47} cy={20} r={2.2} fill="#ffffff" fillOpacity={0.6} />
+      <circle cx={56} cy={20} r={2.2} fill="#ffffff" fillOpacity={0.6} />
+    </svg>
+  );
+}

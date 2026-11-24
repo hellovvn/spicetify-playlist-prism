@@ -405,6 +405,21 @@ const CSS = `
 .prism-door.on, .prism-door.on:hover { border-color: var(--prism-picked); box-shadow: var(--prism-picked-glow); }
 .prism-door:focus-visible { outline: 2px solid #cdb8ff; outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { .prism-door, .prism-door:hover { transition: none; transform: none; } }
+/* Start page: the wide glass bar under the flip tiles (Merge playlists,
+   mockup "B"). A clickable card: same glass as the tiles, standard hover + lift. */
+.prism-home-bar {
+  display: flex; align-items: center; gap: 14px; width: 100%; min-height: 64px; box-sizing: border-box;
+  padding: 10px 18px; border-radius: 16px; text-align: left; color: #ffffff; cursor: pointer; font: inherit;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: var(--prism-glass-panel);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(12px);
+  transition: transform 150ms ease-out, border-color 150ms ease-out, box-shadow 150ms ease-out;
+}
+.prism-home-bar:hover { transform: translateY(-2px); border-color: var(--prism-hover-rim); box-shadow: var(--prism-hover-glow); }
+.prism-home-bar:active { transform: scale(0.97); }
+.prism-home-bar:focus-visible { outline: 2px solid #cdb8ff; outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .prism-home-bar, .prism-home-bar:hover, .prism-home-bar:active { transition: none; transform: none; } }
 /* "Start from scratch" builder (step 13c-2). The chosen group in the list
    gets a lavender edge; genre/mood labels are buttons you turn on and off
    (on = the bright .shared look). Moods have a dashed edge. */

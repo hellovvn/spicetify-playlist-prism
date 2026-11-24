@@ -4,6 +4,9 @@
 // The only writes allowed are:
 //   1. create a NEW playlist
 //   2. add songs to THAT new playlist
+//   3. ONE exception, Merge playlists only (createMergedPlaylist): after the
+//      merged playlist was made, put "[merged] " in front of the NAME of the
+//      playlists that went into it, if the user left that switch on.
 // Every add checks that its target is a playlist created by this module in
 // this session (assertCreatedThisSession). Anything else is refused with an
 // error, even if a bug elsewhere passes the wrong playlist.
@@ -17,6 +20,8 @@
 export interface WriteApi {
   createPlaylist: (name: string) => Promise<string | null>;
   addToPlaylist: (playlistUri: string, trackUris: string[]) => Promise<void>;
+  // Merge only (see the top of this file). Optional, so fakes in older tests still fit.
+  renamePlaylist?: (playlistUri: string, name: string) => Promise<void>;
 }
 
 // The real thing. Arguments copied from how Spotify's own app calls them
@@ -26,6 +31,9 @@ export function spotifyWriteApi(): WriteApi {
   return {
     createPlaylist: (name) => Spicetify.Platform.RootlistAPI.createPlaylist(name, { before: "start" }),
     addToPlaylist: (playlistUri, trackUris) => Spicetify.Platform.PlaylistAPI.add(playlistUri, trackUris, { after: "end" }),
+    // Spotify's own "Edit details" dialog uses this. Only the name is passed,
+    // so the description and cover stay as they are.
+    renamePlaylist: (playlistUri, name) => Spicetify.Platform.PlaylistAPI.updateDetails(playlistUri, { name }),
   };
 }
 
@@ -91,6 +99,66 @@ async function addToNewPlaylist(playlistUri: string, trackUris: string[], api: W
     assertCreatedThisSession(playlistUri); // checked before EVERY write, not just once
     await api.addToPlaylist(playlistUri, trackUris.slice(start, start + BATCH_SIZE));
   }
+}
+
+// ----- Merge playlists (the one rename exception) -----
+
+export const MERGED_PREFIX = "[merged] ";
+
+// The name an original gets after a merge. Never adds the tag twice.
+export function mergedName(name: string): string {
+  return name.startsWith(MERGED_PREFIX.trim()) ? name : `${MERGED_PREFIX}${name}`;
+}
+
+export interface MergeSource {
+  uri: string;
+  name: string; // its name now
+  canRename: boolean; // Spotify says the user may edit it (not followed, not Liked Songs)
+}
+
+export interface MergeResult {
+  uri: string; // the new merged playlist
+  renamed: string[]; // names (before) of the originals that got the tag
+  notRenamed: { name: string; reason: string }[];
+}
+
+// Creates the merged playlist (same checks as createPrismPlaylist), THEN, if
+// asked, tags the originals' names. A failed rename never undoes the merge:
+// it's reported in notRenamed instead.
+export async function createMergedPlaylist(
+  name: string,
+  trackUris: string[],
+  sources: MergeSource[],
+  renameSources: boolean,
+  api: WriteApi = spotifyWriteApi()
+): Promise<MergeResult> {
+  const uri = await createPrismPlaylist(name, trackUris, api);
+  const result: MergeResult = { uri, renamed: [], notRenamed: [] };
+  if (!renameSources) return result;
+  for (const source of sources) {
+    if (source.uri === uri || !source.uri.startsWith("spotify:playlist:")) {
+      result.notRenamed.push({ name: source.name, reason: "Liked Songs can't be renamed" });
+      continue;
+    }
+    if (!source.canRename) {
+      result.notRenamed.push({ name: source.name, reason: "you don't own it" });
+      continue;
+    }
+    const next = mergedName(source.name);
+    if (next === source.name) {
+      result.notRenamed.push({ name: source.name, reason: "already tagged" });
+      continue;
+    }
+    try {
+      if (!api.renamePlaylist) throw new Error("rename isn't available");
+      await api.renamePlaylist(source.uri, next);
+      result.renamed.push(source.name);
+    } catch (error) {
+      console.error("[Playlist Prism] renaming a merged playlist failed", error);
+      result.notRenamed.push({ name: source.name, reason: "Spotify refused the rename" });
+    }
+  }
+  return result;
 }
 
 // Unit tests only: forget the session so each test starts clean.

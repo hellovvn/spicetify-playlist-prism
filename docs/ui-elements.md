@@ -36,6 +36,7 @@ it. The rules for changing or adding elements are in CLAUDE.md under "UI element
 | Secondary button | Spotify `ButtonSecondary` | Glass pill, white text. 48px in an action row (`.prism-actions`), 32px elsewhere | Standard hover/press |
 | Glass button (outside Spotify's buttons) | `.prism-glass-button` | Same as the 32px secondary button | Same |
 | Quiet button | `.prism-quiet-button` | Lavender text, no box | Hover: text turns white |
+| Show/hide list (approved 2026-11-24, mockup "A") | A quiet button "▾ Show …" / "▴ Hide …" (`aria-expanded`, `aria-controls`) right after the line it explains; the list opens IN PLACE below it as a `.prism-glass-panel` of `.prism-row`s, max ~190px then scrolls inside | Same as the quiet button; the list is a still glass box | Click toggles; content below moves down. Starts closed. Used for Merge's duplicates |
 | Icon button | `.prism-icon-button` | 28px glass circle, e.g. × | Standard hover/press |
 | Action row | `.prism-actions`, right-aligned, at the bottom of a screen | Secondary buttons first, main button last | Always in the same place on a screen |
 
@@ -82,11 +83,18 @@ it. The rules for changing or adding elements are in CLAUDE.md under "UI element
 | Twilight background | `.prism-cosmos` (PrismPage, side panel) | Gradient, drifting glows, rainbow light waves, sparkles |
 | Header | `.prism-header` + `PrismIcon` | Glass bar, diamond icon with twinkling sparkles, title, 32px secondary buttons |
 | Start tiles | `FlipTile` + `HomeIcons` | The ONLY place with the rainbow-swirl hover. Click flips to details, which have a quiet "← Back" |
+| Start bar (approved 2026-11-23, mockup "B") | `button.prism-home-bar` + `MergeIcon` (HomeIcons), under the start tiles | Wide glass card (tile glass, 16px corners, min 64px tall): still matte icon, 15px label, one 13px line. Standard hover + 2px lift, press 0.97, NO flip and NO rainbow swirl. Used for Merge playlists |
 | Loading | `.prism-spinner` (small), `ScanningPrism` (scan) | Spinner ring; big diamond with a star halo while scanning |
 | Side-panel stats | `PanelStats` | Same elements as the stats page, compact |
 | Top-bar icon | `src/assets/prism.svg` + `headerIcon.ts` | Spotify's top bar; spins on hover with a star halo and rainbow ring |
 
 ## History
+
+- 2026-11-24: NEW Show/hide list (quiet button + in-place glass list) for Merge's duplicates.
+
+- 2026-11-23: NEW Start bar (`.prism-home-bar`) for Merge playlists. The playlist picker
+  (`SourcePicker`) got an optional `minPicked` (default 1, so Grow and Remix are unchanged;
+  Merge needs 2).
 
 - 2026-11-23 (v2, developer's decisions): ONE checkbox, the square, now with a WHITE tick
   (the Remix round bubble is gone; "Start names with Prism" uses the square). Cards: standard
