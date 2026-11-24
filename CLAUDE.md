@@ -1,10 +1,13 @@
 # Prism (Spicetify extension)
-Repo: github.com/hellovvn/spicetify-prism, folder Documents\Projects\spicetify-prism (renamed from Playlist Prism 2026-11-23).
+Repo: github.com/hellovvn/spicetify-prism, folder Documents\Projects\spicetify-prism.
 
 ## Goal
-Build a NEW Spotify playlist around the vibe of 1–2 "seed" songs, using only songs
-from the playlists the user picks (never new songs from Spotify's catalog). Songs are
-scored on **song-level** signals (see "Scoring signals"), not Spotify's artist-level genres.
+Prism is a Spotify companion that helps people get more out of the music they already
+have: grow a fresh playlist from a favourite song, remix messy playlists into tidy ones
+by genre and mood, and see what each playlist is made of, all inside a page that feels
+nicer than plain Spotify. It works from the user's own library (never touching existing
+playlists) and judges songs on **song-level** signals (see "Scoring signals"), not
+Spotify's artist-level genres.
 
 ## User flow
 1. Right-click a song, then choose **Start a Prism playlist** (option to add a second seed).
@@ -96,8 +99,8 @@ Since step 12a this is a Spicetify CUSTOM APP (src/settings.json has an "icon"),
 - `src/ui/`: React components (chips, playlist picker, preview)
 
 ## Name
-The app is called "Prism" everywhere users see it (renamed 2026-11-23: src/settings.json
-displayName, page title, Settings title, profile-menu item, messages). Internal ids stay
+The app is called "Prism" everywhere users see it (src/settings.json displayName, page
+title, Settings title, profile-menu item, messages). For now, internal ids stay
 "playlist-prism" (custom app nameId, storage keys "prism:*", data-prism attributes, the
 `[Playlist Prism]` console prefix), so saved settings and playlists keep working.
 The start page has no "What would you like to do?" heading any more (Prism will start
@@ -366,6 +369,11 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   (.prism-head-sparkle). The Spotify top-bar icon (src/assets/prism.svg) is unchanged.
 - Smoke note: "Cancel stops the scan part-way" can fail as a race when nearly every song is
   cached (the scan finishes before the Cancel click lands); a re-run reports it as SKIPPED.
+- 15 (to-do): rename the internal ids from "playlist-prism" / "Playlist Prism" to just "prism"
+  (custom app nameId and folder, `window.__playlistPrism` hook, `[Playlist Prism]` console
+  prefix, "playlist-prism:*" window events, the header icon's aria-label). Storage keys are
+  already "prism:*". The nameId change needs a `spicetify config custom_apps` swap + apply,
+  and the smoke test's selectors must follow.
 - 11: Cleanup: remove the debug hook, README, release (after 12).
 
 ## Dev loop (Claude runs this, not the developer)
@@ -394,10 +402,9 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
 - `window.__playlistPrism` debug hook must be removed or dev-only before any public release.
 
 ## Working style
-- **Explain what you change and why**,
-  including any new concepts (APIs, React patterns, TypeScript features).
-- Work in **small steps**. Do one step of the build plan at a time, then **stop** so the
-  developer can test it before moving on.
+- Keep explanations short: a few lines on what changed and why. No need to teach basic
+  concepts unless asked.
+- Do one step of the build plan at a time, then stop so the developer can test it.
 - Prefer simple, readable code over clever code. Add unit tests for pure logic.
 - For visual/UI changes: show 3-4 clearly different mockup options first (an interactive widget,
   animated if motion matters), let the developer pick, then build it and check it with zoomed
