@@ -495,6 +495,15 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   (developer's choice). Code: `src/theme/playlistTheme.ts` (pure, tests/playlistTheme.test.ts),
   `src/ui/playlistTheme.ts` (always-on). Densities scale with the window (mockups were 680px).
   This covers part of 14a (themes); 14a's per-page theme picker is still open.
+- LIBRARY PANEL THEME (2026-11-24, developer's picks after 4 mockup rounds; built, not committed):
+  with a playlist theme on, Spotify's left panel gets a STILL background (the developer hated a
+  frozen copy of the page sky): Northern lights + Bubble nebula = "top glow", Starry night =
+  "rising dusk". ONLY the open playlist's row moves (`[role=row][aria-selected=true]`, layer
+  `.prism-lib-sky` inside its `[data-encore-id=listRow]` box): Northern lights = "soft veil"
+  (streaky curtains/ribbons in a row looked wrong), stars = sparkles, nebula = clouds + bubbles.
+  Green -> pink in the panel too. `src/theme/libraryTheme.ts` (pure, tests/libraryTheme.test.ts),
+  `src/ui/libraryTheme.ts` (always-on). Panel grey = `.main-yourLibraryX-entryPoints` +
+  `.main-yourLibraryX-libraryContainer`.
 - 15 (to-do): rename the internal ids from "playlist-prism" / "Playlist Prism" to just "prism"
   (custom app nameId and folder, `window.__playlistPrism` hook, `[Playlist Prism]` console
   prefix, "playlist-prism:*" window events, the header icon's aria-label). Storage keys are
