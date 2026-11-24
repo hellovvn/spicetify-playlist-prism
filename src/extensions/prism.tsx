@@ -31,6 +31,7 @@ import { startPanelStats } from "../ui/panelHost";
 import { startToneRows } from "../ui/toneRows";
 import { startPlaylistTheme } from "../ui/playlistTheme";
 import { startLibraryTheme } from "../ui/libraryTheme";
+import { startChromeTheme } from "../ui/chromeTheme";
 import { loadTones } from "../flow";
 import { injectStyles } from "../ui/styles";
 
@@ -53,6 +54,7 @@ async function main() {
   startToneRows(); // "✦ Tone" switch + score rings on playlists with a tone
   startPlaylistTheme(); // playlist page themes: sky, colour rail, genre mix (Settings, off by default)
   startLibraryTheme(); // the same theme on the left panel: still background, moving open-playlist row
+  startChromeTheme(); // and on Spotify's bars: "Quiet night" (deep purple, pastel instead of green)
   registerSettingsMenu();
   exposeDebugHook();
 

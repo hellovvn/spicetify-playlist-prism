@@ -95,9 +95,13 @@ it. The rules for changing or adding elements are in CLAUDE.md under "UI element
 | Loading | `.prism-spinner` (small), `ScanningPrism` (scan) | Spinner ring; big diamond with a star halo while scanning |
 | Side-panel stats | `PanelStats` | Same elements as the stats page, compact |
 | Playlist themes (approved 2026-11-24, mockups H1/H2/H3) | `.prism-pl-sky` behind Spotify's playlist pages (`src/ui/playlistTheme.ts`), picked in Settings with a segmented choice | "Northern lights": soft blurred aurora streaks (mint edge, violet/pink tops) swaying over a night sky. "Starry night": four-point sparkle stars at random spots, each moving somewhere new after it fades. "Bubble nebula": slow pastel clouds, tiny stars and rising glass bubbles. Spotify's cover-colour washes are cleared; while scrolling, the top bar and the song list's sticky column header are the same nearly solid twilight glass (Spotify paints the header grey). Spotify's green turns Prism: play buttons get the pink-to-lavender gradient with a dark purple triangle; liked ticks, the playing title and toggled icons turn pink; the playing equaliser is hue-shifted to pink. Densities scale with the window size. Reduced motion: still |
+| Spotify's bars, "Quiet night" (approved 2026-11-24, mockup "C") | `src/ui/chromeTheme.ts`, CSS on while `<html data-prism-chrome>` (any playlist theme on), on EVERY page | Top bar, player bar and the gaps between panels #0b0817; right-hand panel #151029 with #1d1638 cards; top-bar buttons and search box #1d1638. Spotify's green there turns Prism: play/pause gets the pink-to-lavender gradient (dark purple icon), progress and volume fills the same gradient, toggled icons and the liked tick pink. "Playing on iPhone" = no green band: a 3px pastel rainbow line along its bottom with lavender text | Still (no motion). Off with "No theme" |
 | Top-bar icon | `src/assets/prism.svg` + `headerIcon.ts` | Spotify's top bar; spins on hover with a star halo and rainbow ring |
 
 ## History
+
+- 2026-11-24: NEW "Quiet night" look for Spotify's bars (top bar, right-hand panel, player bar,
+  "Playing on ..." strip), mockup "C" of four. Follows the playlist theme switch.
 
 - 2026-11-24: NEW Library panel theme (still background, moving open-playlist row, Liked Songs
   included) and Library row hover "rainbow edge" for every row while a theme is on. REMOVED the
