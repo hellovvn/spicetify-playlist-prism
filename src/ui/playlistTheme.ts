@@ -2,6 +2,10 @@
 // 2026-11-24: mockups H1 "Northern lights", H2 "Starry night", H3 "Bubble
 // nebula", plus "No theme"). Picked in Prism Settings.
 //
+// Album, artist and Liked Songs pages get the same sky, cleared washes,
+// glass bars and pastel play button, but no rail or genre mix (step 16,
+// developer's pick "A, full sky"; which page gets what: themedPageKind).
+//
 // With a theme on, EVERY playlist page gets:
 //   - a moving background (the "sky") behind the whole page,
 //   - the COLOUR RAIL: a thin glowing bar down the left of the song list,
@@ -23,7 +27,7 @@ import { loadPlaylistThemeSetting, loadTagCacheText } from "../storage";
 import { getSourceTracks } from "../spotify/read";
 import { TagCache } from "../scan/tagCache";
 import { LOG_PREFIX } from "../log";
-import { genreColours, genreMix, mainGenre, mixCaption, parsePlaylistTheme, PLAYLIST_THEME_CHANGED_EVENT, type PlaylistThemeId } from "../theme/playlistTheme";
+import { genreColours, genreMix, mainGenre, mixCaption, parsePlaylistTheme, PLAYLIST_THEME_CHANGED_EVENT, themedPageKind, type PlaylistThemeId } from "../theme/playlistTheme";
 import { playlistUriFromPath } from "./toneView";
 
 const STYLE_ID = "playlist-prism-playlist-theme";
@@ -50,8 +54,17 @@ const CSS = `
 .${SKY_CLASS} * { position: absolute; }
 /* Spotify's cover-colour washes (header, action bar, page) go see-through. */
 [${THEME_ATTR}] .main-entityHeader-backgroundColor,
-[${THEME_ATTR}] .playlist-playlist-actionBarBackground-background { background: none !important; }
+[${THEME_ATTR}] .playlist-playlist-actionBarBackground-background,
+[${THEME_ATTR}] .main-actionBarBackground-background { background: none !important; }
 [${THEME_ATTR}] .playlist-playlist-playlistContent { background-color: transparent !important; }
+/* Artist pages: the cover-colour wash behind the banner and the solid
+   #121212 block under it (generated class names, so found by structure). */
+[${THEME_ATTR}] [data-testid="overscroll-background"] { background: none !important; }
+[${THEME_ATTR}] [data-testid="artist-page"] div:has(> .playlist-playlist-actionBarBackground-background) { background-color: transparent !important; }
+/* The artist photo is pinned behind the page (it never scrolls) and Spotify
+   hides it under that #121212 block. With the block see-through, the photo
+   fades out instead as you scroll (--prism-banner-fade, set on scroll). */
+.Root__main-view[${THEME_ATTR}]:has([data-testid="artist-page"]) .before-scroll-node { opacity: var(--prism-banner-fade, 1); }
 /* While scrolling, two bars stick to the top: Spotify's top bar and the song
    list's column header (# / Title / Album, solid grey in Spotify). Both get
    the same twilight glass so they read as one panel (nearly solid: the sky
@@ -311,6 +324,7 @@ export function startPlaylistTheme(): void {
   let theme = parsePlaylistTheme(loadPlaylistThemeSetting());
   let data: PlaylistData | null = null;
   let scheduled = false;
+  let lastPath: string | undefined;
 
   const load = (uri: string) => {
     const mine: PlaylistData = data?.uri === uri ? data : { uri, mains: new Map(), colours: new Map(), mixHtml: "", loadedAt: 0, loading: false, notInPlaylist: new Set() };
@@ -345,8 +359,14 @@ export function startPlaylistTheme(): void {
     scheduled = false;
     scheduleHeader();
     const main = document.querySelector(".Root__main-view");
-    const uri = playlistUriFromPath(Spicetify.Platform.History.location?.pathname);
-    if (!main || !uri || theme === "none") {
+    const path = Spicetify.Platform.History.location?.pathname;
+    const kind = themedPageKind(path);
+    if (path !== lastPath) {
+      lastPath = path;
+      (main as HTMLElement | null)?.style.removeProperty("--prism-banner-fade"); // a new page starts at the top
+    }
+    const uri = playlistUriFromPath(path);
+    if (!main || !kind || theme === "none") {
       clear(main);
       if (!uri) data = null;
       return;
@@ -360,6 +380,13 @@ export function startPlaylistTheme(): void {
       sky = null;
     }
     if (!sky) main.insertBefore(buildSky(theme, main), main.firstChild);
+
+    // Album, artist and Liked Songs pages: the sky only.
+    if (kind !== "playlist" || !uri) {
+      data = null;
+      main.querySelectorAll(`.${RAIL_CLASS}, [${MIX_ATTR}]`).forEach((el) => el.remove());
+      return;
+    }
 
     // Song data: on a new playlist, and again now and then (new scans).
     if (data?.uri !== uri || (!data.loading && Date.now() - data.loadedAt > CACHE_REFRESH_MS)) load(uri);
@@ -432,16 +459,18 @@ export function startPlaylistTheme(): void {
       header.toggleAttribute(HEADER_STUCK_ATTR, offset <= stickyTop + 1);
     });
 
-    // The big photo header scrolls away with the page (see the CSS).
+    // The big photo header of a PLAYLIST scrolls away with the page (see the
+    // CSS). Artist pages keep their own photo fade (--prism-banner-fade).
     const main = document.querySelector(".Root__main-view");
+    const onPlaylist = !!main?.hasAttribute(THEME_ATTR) && themedPageKind(Spicetify.Platform.History.location?.pathname) === "playlist";
     const photo = main?.querySelector<HTMLElement>('.before-scroll-node > div:has([data-testid="background-image"])');
     document.querySelectorAll<HTMLElement>(`[${PHOTO_ATTR}]`).forEach((old) => {
-      if (old !== photo || !main?.hasAttribute(THEME_ATTR)) {
+      if (old !== photo || !onPlaylist) {
         old.removeAttribute(PHOTO_ATTR);
         old.style.removeProperty("transform");
       }
     });
-    if (photo && main?.hasAttribute(THEME_ATTR)) {
+    if (photo && main && onPlaylist) {
       const scroller = main.querySelector(".main-view-container__scroll-node [data-overlayscrollbars-viewport]");
       const transform = `translateY(${-(scroller?.scrollTop ?? 0)}px)`;
       photo.setAttribute(PHOTO_ATTR, "");
@@ -469,11 +498,23 @@ export function startPlaylistTheme(): void {
     const ours = mutations.every((m) => isOurs(m.target) || (m.type === "childList" && [...m.addedNodes, ...m.removedNodes].every(isOurs)));
     if (!ours) schedule();
   });
+  // Artist pages: fade the pinned photo out over its own height while scrolling.
+  const onScroll = (event: Event) => {
+    const main = event.currentTarget as HTMLElement;
+    const banner = main.querySelector(".before-scroll-node [data-testid='background-image']");
+    const target = event.target as Element;
+    if (!banner || !(target instanceof Element) || !target.matches(".main-view-container__scroll-node, .main-view-container__scroll-node *")) return;
+    const height = banner.getBoundingClientRect().height || 1;
+    const fade = Math.max(0, Math.min(1, 1 - target.scrollTop / height));
+    main.style.setProperty("--prism-banner-fade", fade.toFixed(2));
+  };
+
   const watchMainView = () => {
     const main = document.querySelector(".Root__main-view");
     if (main && !(main as any).__prismThemeWatched) {
       (main as any).__prismThemeWatched = true;
       observer.observe(main, { childList: true, subtree: true });
+      main.addEventListener("scroll", onScroll, { capture: true, passive: true });
     }
   };
 

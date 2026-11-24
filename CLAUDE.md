@@ -544,6 +544,13 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   4. Your Library (/collection)    7. Settings (/preferences): grey, green switches
   5. Album pages (/album/...): cover-colour header, green play   8. Listening history (/history)
   9. Genre / category pages (/genre/...)
+  16a (2026-11-24, developer's pick "A, full sky" of four mockups; built, not committed):
+  album (/album/), artist (/artist/<id>, not its sub-pages) and Liked Songs (/collection/tracks)
+  get the playlist theme's sky, cleared washes, glass bars and pastel play button, but NO colour
+  rail or genre mix (developer's decision: those stay PLAYLIST-ONLY) (`themedPageKind` in src/theme/playlistTheme.ts, tested). Artist pages:
+  their #121212 block is found by structure (generated class names), and the artist photo sits
+  in `.before-scroll-node` (pinned, never scrolls), so it fades out on scroll via
+  --prism-banner-fade. Next: Home, Search, Your Library, Settings, history, genre pages.
   Not checked yet: search results, podcast/episode/show pages, profile (/user/...), right-click
   menus and Spotify's dialogs. Check them as part of this step.
   Facts found: every page above has `.Root__main-view` at #121212 and no data-prism-theme;

@@ -1,7 +1,7 @@
 // Unit tests for playlist themes (pure parts). Run with: npm test
 
 import { describe, expect, test } from "vitest";
-import { genreColours, genreMix, mainGenre, mixCaption, parsePlaylistTheme } from "../src/theme/playlistTheme";
+import { genreColours, genreMix, mainGenre, mixCaption, parsePlaylistTheme, themedPageKind } from "../src/theme/playlistTheme";
 
 const tag = (name: string, weight: number) => ({ name, weight, source: "track" as const });
 
@@ -69,5 +69,22 @@ describe("mixCaption", () => {
   });
   test("all scanned: no 'from' part", () => {
     expect(mixCaption(genreMix(["pop", "pop"]))).toBe("pop 100%");
+  });
+});
+
+describe("themedPageKind", () => {
+  test("playlist pages get the full theme", () => {
+    expect(themedPageKind("/playlist/37i9dQZF1DXcBWIGoYBM5M")).toBe("playlist");
+    expect(themedPageKind("/playlist/37i9dQZF1DXcBWIGoYBM5M/")).toBe("playlist");
+  });
+  test("album, artist and Liked Songs pages get the sky", () => {
+    expect(themedPageKind("/album/363sBb7ASwFL2Af2hNLu2l")).toBe("sky");
+    expect(themedPageKind("/artist/09BQyf74gmKlaDkWdbdbqY")).toBe("sky");
+    expect(themedPageKind("/collection/tracks")).toBe("sky");
+  });
+  test("other pages are left alone", () => {
+    for (const path of [undefined, "", "/", "/search", "/collection", "/artist/09BQyf74gmKlaDkWdbdbqY/discography", "/playlist-prism", "/genre/x"]) {
+      expect(themedPageKind(path)).toBeNull();
+    }
   });
 });
