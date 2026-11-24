@@ -485,8 +485,21 @@ behaves. The goal is a consistent app. Rules:
 - Say clearly what was verified and what wasn't.
 
 ## Git
-- "Commit" means commit AND push to `origin/main`.
+- "Commit" means commit AND push to the chat's own branch (its PR), not to `main`.
 - No `Co-Authored-By` or other AI attribution lines in commit messages or PR descriptions.
 - On Windows PowerShell 5.1, write the message to a file and use `git commit -F <file>`:
   double quotes inside `-m "..."` get mangled and the commit can fail silently.
-  Afterwards check that `git rev-parse HEAD` matches `origin/main`.
+  Afterwards check that `git rev-parse HEAD` matches the pushed branch on `origin`.
+
+## One PR per chat
+- Every chat that changes files works on its own branch and has exactly ONE pull request.
+  Open it as a draft with the first commit (`gh pr create --draft`), then link it to the chat
+  (ccd_pr `bind_pr`) so the app shows its number, title and status (draft / open / merged /
+  closed).
+- Name the chat after its PR: `#<number> <PR title>` (e.g. "#12 Themes picker in Settings").
+- The PR title says in plain words what the chat is doing. If the task changes while
+  developing (new scope, different fix, a step dropped), rename the PR right away
+  (`gh pr edit <number> --title "..."`) and rename the chat to match. Update the PR
+  description too if it no longer fits.
+- Mark the PR ready for review once the developer has tested it. Only merge when the
+  developer asks.
