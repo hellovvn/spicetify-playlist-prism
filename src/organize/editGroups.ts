@@ -50,7 +50,17 @@ export function mergeGroups(groups: EditableGroup[], keepId: string, otherId: st
     .map((g) => (g.id === keepId ? { ...g, songs: [...g.songs, ...other.songs.filter((s) => !g.songs.includes(s))] } : g));
 }
 
-// Songs that are no longer in any group (all removed), to show the user.
+// Puts "Not included" songs back: each { uri, toId } adds that song to the
+// end of that group (once: a song the group already has is skipped).
+export function addSongs(groups: EditableGroup[], placements: { uri: string; toId: string }[]): EditableGroup[] {
+  return groups.map((g) => {
+    const adding = placements.filter((p) => p.toId === g.id && !g.songs.includes(p.uri)).map((p) => p.uri);
+    const fresh = adding.filter((uri, i) => adding.indexOf(uri) === i); // the same song twice = once
+    return fresh.length ? { ...g, songs: [...g.songs, ...fresh] } : g;
+  });
+}
+
+// Songs that are in no group (left out or removed), to show the user.
 export function songsInNoGroup(groups: EditableGroup[], allSongs: string[]): string[] {
   const placed = new Set(groups.reduce<string[]>((acc, g) => acc.concat(g.songs), []));
   return allSongs.filter((s) => !placed.has(s));

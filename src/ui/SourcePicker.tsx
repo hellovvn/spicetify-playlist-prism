@@ -102,7 +102,7 @@ export function SourcePicker({ loadSources, describeError, selected, setSelected
               if (el) el.indeterminate = someSelected && !allSelected;
             }}
             onChange={() => setSelected(allSelected ? clearShown(shown, selected) : selectShown(shown, selected))}
-            className="prism-check"
+            className="prism-checkbox"
           />
           <span style={styles.name}>
             {query.trim() ? `Select all ${shown.length} shown` : `Select all (${shown.length})`}
@@ -119,7 +119,7 @@ export function SourcePicker({ loadSources, describeError, selected, setSelected
               type="checkbox"
               checked={selected.includes(source.uri)}
               onChange={() => setSelected(toggleInList(selected, source.uri))}
-              className="prism-check"
+              className="prism-checkbox"
             />
             <span style={styles.rowText}>
               <span style={styles.name}>{source.name}</span>

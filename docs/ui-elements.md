@@ -42,7 +42,9 @@ it. The rules for changing or adding elements are in CLAUDE.md under "UI element
 
 | Element | How to make it | Look | Behaviour |
 |---|---|---|---|
-| Checkbox (approved 2026-11-23) | `<input type="checkbox" className="prism-check">` | 18px glass square, 5px corners. On: lavender, dark tick, glow. Some: dash. Locked: `<span className="prism-check is-locked">`, dimmed tick | Standard hover. The whole row (`<label>`) toggles it |
+| Checkbox (approved 2026-11-23) | `<input type="checkbox" className="prism-checkbox">` | 18px glass square, 5px corners. On: lavender, dark tick, glow. Some: dash. Locked: `<span className="prism-checkbox is-locked">`, dimmed tick | Standard hover. The whole row (`<label>`) toggles it |
+| Check bubble (from the Remix work) | `<label className="prism-check">` + hidden input + `.prism-check-bubble` (CreatePlaylists "Start names with Prism") | 22px ROUND glass bubble; ticked fills lavender and a white tick draws in | Hover: grows 1.08 (not the standard hover). **OPEN: a second checkbox style; developer to decide** |
+| Door tile (pick ONE big path) | `.prism-glass-panel.prism-door` (+ `.on`), Remix's "Sort them for me" / "I'll pick the vibes" | Big glass tile; picked = pink edge + soft inner pink glow | Hover: 2px lift + lavender rim (no glow). Picked uses PINK (not the lavender accent). **OPEN** |
 | Segmented choice (pick ONE) | `.prism-seg` holding `<button className="on">` with `aria-pressed` | Glass pill split into parts; the chosen one is lavender | Hover on unchosen parts: faint white. Used for counts, On/Off settings, "Group mostly by" |
 | Tag switch (pick MANY) | `.prism-tag.prism-tag-pick` (+ `.shared` when on, + `.mood` for moods) | Frosted pill with a colour dot. On: bright lavender. Off: faint with a dim dot. Seed screen adds `.prism-tag-big` (13px) | Standard hover. `role="checkbox"`+`aria-checked`, or `aria-pressed` |
 | Drop-down menu | `GlassMenu` component (`src/ui/GlassMenu.tsx`) | Small glass pill with ▾. Its list is a dark glass card | Standard hover. The list is a portal in `<body>`. Never use a native `<select>` |
@@ -57,7 +59,9 @@ it. The rules for changing or adding elements are in CLAUDE.md under "UI element
 | New find row | `.prism-row` + `.prism-new-find`, `.prism-new-pill` "✦ New find", `.prism-sparkle` round the score ring | Mint glass | Sparkles twinkle (they stay visible but still with reduced motion) |
 | Score ring | `ScoreRing` in PreviewScreen | 52px ring, lavender-to-pink arc, % in the middle | Static |
 | Panel / box | `.prism-glass-panel` | Glass, 16px corners | Static |
-| Clickable card | `.prism-glass-panel` + `.prism-group-card` (or `.prism-builder-group`) | Glass card; chosen builder group has a lavender edge | Standard hover + 2px lift |
+| Clickable card | `.prism-glass-panel` + `.prism-builder-group` | Glass card; chosen builder group has a lavender edge | Standard hover + 2px lift |
+| Group card (Remix, "door tile" look) | `.prism-glass-panel.prism-group-card` | Wide glass tile with album covers | Hover: 2px lift + PINK edge + inner pink glow (developer's pick on the Remix work, same as `.prism-door.on`). **OPEN: differs from the standard lavender hover** |
+| "Not included" card | `.prism-group-card.prism-left-card` | Dashed edge, less fill | Hover: pink edge |
 | Album-cover mosaic | `CoverMosaic` | 2x2 album art | Static |
 | Stat card | `StatCard` in StatsScreen | Glass panel, 12px label, 24px value | Static |
 | Bar (stats) | `.prism-bar-track` + `.prism-bar-fill` with `--tag` | 14px glass track, glossy bar in the genre colour | Bars grow in one after another |
@@ -84,5 +88,9 @@ it. The rules for changing or adding elements are in CLAUDE.md under "UI element
 
 ## History
 
+- 2026-11-23: merged with the Remix "two doors" work, which added a round check bubble,
+  door tiles and a pink hover on group cards. These differ from v1 and are marked OPEN until
+  the developer decides. The v1 checkbox class was renamed `.prism-check` -> `.prism-checkbox`
+  because the bubble already uses `.prism-check`.
 - 2026-11-23: v1 of every element above (UI standardization). Before this, buttons,
   checkboxes, hover, inputs, corners and titles came in several styles.

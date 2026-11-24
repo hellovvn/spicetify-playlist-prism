@@ -1,41 +1,27 @@
-// Organize playlists (step 13): pick several playlists and split ALL their
-// songs into new playlists by genre and mood. Your playlists are only READ.
+// Remix into moods (step 13, "Organize playlists" in the code): pick several
+// playlists and sort ALL their songs into new playlists by genre and mood.
+// Your playlists are only READ.
 //
-// Screens:
-//   setup    the SAME playlist picker as the Prism flow, plus Organize's own
-//            settings panel: how many new playlists, overlap on/off, and
-//            "Group mostly by" (Balanced / Genre / Mood / Energy)
+// Screens ("two doors" flow, mockup A, 2026-11-23):
+//   setup    the SAME playlist picker as the Prism flow, and nothing else
 //   scan     the same scan screen as the Prism flow (tags, BPM/key, mood)
-//   groups   the suggested groups as album-cover cards you can open and
-//            edit: rename, move/remove songs, merge (src/ui/GroupReview.tsx),
-//            or "Start from scratch" with your own groups (GroupBuilder.tsx)
+//   choose   ONE question, two big cards: "Sort them for me" (Prism suggests
+//            the groups) or "I'll pick the vibes" (you pick genres/moods per
+//            group; one group = one playlist)
+//   groups   the album-cover cards (src/ui/GroupReview.tsx): edit, "More
+//            options" (how many / group mostly by / overlap), "Not included"
 
 import React from "react";
 import type { SourceOption } from "../sources/sources";
 import { summarize } from "../scan/scan";
 import { groupSongs, type GroupFocus } from "../organize/grouping";
-import { GroupReview, type GroupReviewProps } from "./GroupReview";
+import { GroupReview, type GroupReviewProps, type RemixMode } from "./GroupReview";
+import { DEFAULT_SETTINGS, type OrganizeSettings } from "./RemixOptions";
 import { SourcePicker } from "./SourcePicker";
 import { ScanScreen, type ScanOutcome, type ScanScreenProps } from "./ScanScreen";
 import { SCREEN_HEIGHT } from "./styles";
 
-// How many new playlists: a number, or "auto" (Prism decides, step 13b).
-export type GroupCount = number | "auto";
-// 1 = one playlist of the songs matching the genres/moods you pick (no suggestions).
-export const GROUP_COUNTS: GroupCount[] = [1, 2, 3, 4, 5, 6, 8, "auto"];
-
-export interface OrganizeSettings {
-  count: GroupCount;
-  overlap: boolean; // may a song go into more than one new playlist?
-  focus: GroupFocus; // "Group mostly by"
-}
-
-const FOCUS_CHOICES: [GroupFocus, string][] = [
-  ["balanced", "Balanced"],
-  ["genre", "Genre"],
-  ["mood", "Mood"],
-  ["energy", "Energy"],
-];
+export type { GroupCount, OrganizeSettings } from "./RemixOptions";
 
 export interface OrganizeFlowProps {
   loadSources: () => Promise<SourceOption[]>;
@@ -49,11 +35,12 @@ export interface OrganizeFlowProps {
 
 export function OrganizeFlow(props: OrganizeFlowProps) {
   const { loadSources, runScan, describeError, onCancel, onScanningChange } = props;
-  const [screen, setScreen] = React.useState<"setup" | "scan" | "groups">("setup");
+  const [screen, setScreen] = React.useState<"setup" | "scan" | "choose" | "groups">("setup");
   // Kept here (not in the screens) so going Back keeps the user's choices.
   const [selected, setSelected] = React.useState<string[]>([]);
   const [picked, setPicked] = React.useState<SourceOption[]>([]);
-  const [settings, setSettings] = React.useState<OrganizeSettings>({ count: 5, overlap: false, focus: "balanced" });
+  const [settings, setSettings] = React.useState<OrganizeSettings>(DEFAULT_SETTINGS);
+  const [mode, setMode] = React.useState<RemixMode | null>(null);
   const [scan, setScan] = React.useState<ScanOutcome | null>(null);
 
   let body: React.ReactNode;
@@ -69,8 +56,7 @@ export function OrganizeFlow(props: OrganizeFlowProps) {
           setPicked(sources);
           setScreen("scan");
         }}
-        intro="Pick the playlists to organize. Prism sorts all their songs into new playlists by genre and mood. Your playlists are never changed."
-        extra={<SettingsPanel settings={settings} setSettings={setSettings} />}
+        intro="Pick the playlists to remix. Prism sorts their songs into new playlists by genre and mood. Your playlists are never changed."
         nextLabel="Next: scan songs"
       />
     );
@@ -84,9 +70,19 @@ export function OrganizeFlow(props: OrganizeFlowProps) {
         onBack={() => setScreen("setup")}
         onNext={(outcome) => {
           setScan(outcome);
-          setScreen("groups");
+          setScreen("choose");
         }}
-        nextLabel="Next: group songs"
+        nextLabel="Next"
+      />
+    );
+  } else if (screen === "choose") {
+    body = (
+      <ChooseMode
+        songCount={scan?.songs.length ?? 0}
+        mode={mode}
+        setMode={setMode}
+        onBack={() => setScreen("setup")}
+        onNext={() => setScreen("groups")}
       />
     );
   } else {
@@ -94,8 +90,10 @@ export function OrganizeFlow(props: OrganizeFlowProps) {
       <Groups
         scan={scan}
         sources={picked}
+        mode={mode ?? "auto"}
         settings={settings}
-        onBack={() => setScreen("setup")}
+        setSettings={setSettings}
+        onBack={() => setScreen("choose")}
         create={props.createPlaylist}
         describeError={describeError}
         onOpenPlaylist={props.onOpenPlaylist}
@@ -107,87 +105,100 @@ export function OrganizeFlow(props: OrganizeFlowProps) {
   return (
     // key on the screen: each screen fades in when it appears.
     <div key={screen} className="prism-fade-in" data-prism="organize" data-prism-organize={screen}>
-      <h2 className="prism-screen-title" style={styles.title}>Organize playlists</h2>
+      <h2 className="prism-screen-title" style={styles.title}>Remix into moods</h2>
       {body}
     </div>
   );
 }
 
-// ----- The settings panel under the playlist list -----
+// ----- The two doors: how do you want to remix? -----
 
-function SettingsPanel({ settings, setSettings }: { settings: OrganizeSettings; setSettings: (s: OrganizeSettings) => void }) {
+const DOORS: { mode: RemixMode; title: string; text: string; icon: React.ReactNode }[] = [
+  {
+    mode: "auto",
+    title: "Sort them for me",
+    text: "Prism finds the groups by genre, mood and tempo. You can rename them, move songs and combine groups after.",
+    icon: (
+      // A big sparkle and a small one.
+      <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round">
+        <path d="M10 3l1.8 5.2L17 10l-5.2 1.8L10 17l-1.8-5.2L3 10l5.2-1.8z" />
+        <path d="M18 14l.9 2.1L21 17l-2.1.9L18 20l-.9-2.1L15 17l2.1-.9z" />
+      </svg>
+    ),
+  },
+  {
+    mode: "me",
+    title: "I'll pick the vibes",
+    text: "Choose the genres and moods for each new playlist. Make just one playlist, or several.",
+    icon: (
+      // Three sliders.
+      <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+        <path d="M5 4v16M12 4v16M19 4v16" />
+        <circle cx="5" cy="15" r="2.2" fill="#2a1d55" />
+        <circle cx="12" cy="8" r="2.2" fill="#2a1d55" />
+        <circle cx="19" cy="13" r="2.2" fill="#2a1d55" />
+      </svg>
+    ),
+  },
+];
+
+function ChooseMode({
+  songCount,
+  mode,
+  setMode,
+  onBack,
+  onNext,
+}: {
+  songCount: number;
+  mode: RemixMode | null;
+  setMode: (mode: RemixMode) => void;
+  onBack: () => void;
+  onNext: () => void;
+}) {
+  const { ButtonPrimary, ButtonSecondary } = Spicetify.ReactComponent as any;
   return (
-    <div className="prism-glass-panel" style={styles.panel} data-prism="organize-settings">
-      <div style={styles.setting}>
-        <span style={styles.settingLabel} id="prism-count-label">
-          New playlists
-        </span>
-        {/* A "segmented control": a row of buttons where one is chosen.
-            aria-pressed tells screen readers which one. */}
-        <div className="prism-seg" role="group" aria-labelledby="prism-count-label">
-          {GROUP_COUNTS.map((count) => (
-            <button
-              key={String(count)}
-              type="button"
-              className={settings.count === count ? "on" : ""}
-              aria-pressed={settings.count === count}
-              onClick={() => setSettings({ ...settings, count })}
-              data-prism={`count-${count}`}
-            >
-              {count === "auto" ? "Auto" : count}
-            </button>
-          ))}
-        </div>
-      </div>
-      <div style={styles.setting}>
-        <span style={styles.settingLabel} id="prism-overlap-label">
-          A song in more than one?
-        </span>
-        <div className="prism-seg" role="group" aria-labelledby="prism-overlap-label">
+    <div style={styles.screen} data-prism-state="organize-choose">
+      <p style={styles.question}>How do you want to remix {songCount} songs?</p>
+      {/* role="radiogroup": two choices, one picked (arrow keys aren't wired,
+          Tab + Space/Enter works like any button). */}
+      <div style={styles.doors} role="radiogroup" aria-label="How to remix">
+        {DOORS.map((door) => (
           <button
+            key={door.mode}
             type="button"
-            className={!settings.overlap ? "on" : ""}
-            aria-pressed={!settings.overlap}
-            onClick={() => setSettings({ ...settings, overlap: false })}
-            data-prism="overlap-off"
+            role="radio"
+            aria-checked={mode === door.mode}
+            className={`prism-glass-panel prism-door${mode === door.mode ? " on" : ""}`}
+            style={styles.door}
+            onClick={() => setMode(door.mode)}
+            onDoubleClick={onNext}
+            data-prism={`mode-${door.mode}`}
           >
-            One each
+            <span style={styles.doorIcon}>{door.icon}</span>
+            <span style={styles.doorTitle}>{door.title}</span>
+            <span style={styles.doorText}>{door.text}</span>
           </button>
-          <button
-            type="button"
-            className={settings.overlap ? "on" : ""}
-            aria-pressed={settings.overlap}
-            onClick={() => setSettings({ ...settings, overlap: true })}
-            data-prism="overlap-on"
-          >
-            Allow overlap
-          </button>
-        </div>
+        ))}
       </div>
-      <div style={styles.setting}>
-        <span style={styles.settingLabel} id="prism-focus-label">
-          Group mostly by
-        </span>
-        <div className="prism-seg" role="group" aria-labelledby="prism-focus-label">
-          {FOCUS_CHOICES.map(([focus, label]) => (
-            <button
-              key={focus}
-              type="button"
-              className={settings.focus === focus ? "on" : ""}
-              aria-pressed={settings.focus === focus}
-              onClick={() => setSettings({ ...settings, focus })}
-              data-prism={`focus-${focus}`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+      <span style={styles.middle} />
+      <div className="prism-actions" style={styles.buttons}>
+        <ButtonSecondary buttonSize="sm" onClick={onBack}>
+          Back
+        </ButtonSecondary>
+        <span style={{ flex: 1 }} />
+        {/* Next only once a door is picked (Spotify's button has no
+            "disabled" look we can rely on, so it's simply not shown). */}
+        {mode && (
+          <ButtonPrimary buttonSize="sm" onClick={onNext} data-prism="choose-next">
+            Next
+          </ButtonPrimary>
+        )}
       </div>
     </div>
   );
 }
 
-// ----- The suggested groups (13b) -----
+// ----- The groups screen -----
 
 const FOCUS_WORDS: Record<GroupFocus, string> = {
   balanced: "genre, mood and tempo together",
@@ -199,36 +210,43 @@ const FOCUS_WORDS: Record<GroupFocus, string> = {
 function Groups({
   scan,
   sources,
+  mode,
   settings,
+  setSettings,
   onBack,
   ...creating
 }: {
   scan: ScanOutcome | null;
   sources: SourceOption[];
+  mode: RemixMode;
   settings: OrganizeSettings;
+  setSettings: (s: OrganizeSettings) => void;
   onBack: () => void;
 } & Pick<GroupReviewProps, "create" | "describeError" | "onOpenPlaylist" | "onFinish">) {
   const songs = scan?.songs ?? [];
   const s = summarize(songs);
-  // useMemo: group once, not again on every re-render (it's real work).
+  // useMemo: group once, not again on every re-render (it's real work). Only
+  // the "Sort them for me" door needs Prism's suggestions.
   const grouping = React.useMemo(
-    () => groupSongs(songs, { count: settings.count, overlap: settings.overlap, focus: settings.focus }),
-    [scan, settings]
+    () => (mode === "auto" ? groupSongs(songs, { count: settings.count, overlap: settings.overlap, focus: settings.focus }) : null),
+    [scan, settings, mode]
   );
-  const placed = grouping.groups.reduce((n, g) => n + g.songs.length, 0);
-  // The album-cover cards and editing live in GroupReview (step 13c).
+  const suggested = grouping?.groups ?? [];
+  const placed = suggested.reduce((n, g) => n + g.songs.length, 0);
   return (
     <GroupReview
       songs={songs}
-      suggested={grouping.groups}
+      suggested={suggested}
+      mode={mode}
       settings={settings}
+      setSettings={setSettings}
       onBack={onBack}
       sourceNames={sources.map((source) => source.name)}
       {...creating}
       intro={
         <>
           {s.total} songs from {sources.length} playlist{sources.length === 1 ? "" : "s"} into{" "}
-          <b style={{ color: "#fff" }}>{grouping.groups.length} groups</b>, grouped by {FOCUS_WORDS[settings.focus]}
+          <b style={{ color: "#fff" }}>{suggested.length} groups</b>, grouped by {FOCUS_WORDS[settings.focus]}
           {settings.overlap && placed > s.total ? ` · ${placed - s.total} songs are in more than one` : ""}.
         </>
       }
@@ -238,11 +256,16 @@ function Groups({
 
 const styles: Record<string, React.CSSProperties> = {
   title: { margin: "0 0 12px", height: 34, lineHeight: "34px" },
-  panel: { display: "flex", flexWrap: "wrap", gap: "10px 24px", padding: "12px 14px" },
-  setting: { display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" },
-  settingLabel: { color: "var(--spice-text)", fontSize: 13, fontWeight: 600 },
   screen: { display: "flex", flexDirection: "column", gap: 12, height: SCREEN_HEIGHT },
-  sub: { margin: 0, color: "var(--spice-subtext)", fontSize: 13 },
+  question: { margin: "8px 0 4px", color: "#ffffff", fontSize: 16, fontWeight: 600 },
+  doors: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14 },
+  door: {
+    display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 8, padding: "22px 20px", minHeight: 170,
+    textAlign: "left", cursor: "pointer", color: "inherit", font: "inherit",
+  },
+  doorIcon: { color: "#f4c0d1", display: "flex" },
+  doorTitle: { color: "#ffffff", fontSize: 16, fontWeight: 700 },
+  doorText: { color: "var(--spice-subtext)", fontSize: 13, lineHeight: 1.5 },
   middle: { flex: 1 },
   buttons: { display: "flex", justifyContent: "flex-end", gap: 8 },
 };

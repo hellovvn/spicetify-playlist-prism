@@ -173,7 +173,7 @@ export function PreviewScreen({ seed, kept, songs, onBack, onCreate, describeErr
         type="checkbox"
         checked={picked.includes(song.uri)}
         onChange={() => setPicked(toggleInList(picked, song.uri))}
-        className="prism-check"
+        className="prism-checkbox"
       />
       {song.newFind ? (
         <span className="prism-ring-wrap">
@@ -301,7 +301,7 @@ export function PreviewScreen({ seed, kept, songs, onBack, onCreate, describeErr
 
       {/* The seed: always first in the playlist, can't be unticked. */}
       <div className="prism-row is-glass" style={{ ...styles.row, ...styles.seedRow }} data-prism="preview-seed">
-        <span className="prism-check is-locked" role="img" aria-label="Always included" title="The seed song is always included" />
+        <span className="prism-checkbox is-locked" role="img" aria-label="Always included" title="The seed song is always included" />
         <span style={styles.rowText}>
           <span style={styles.name}>
             {seed.track.name} <span style={styles.artist}>· {seed.track.artists.join(", ")} · seed song, always first</span>
@@ -320,7 +320,7 @@ export function PreviewScreen({ seed, kept, songs, onBack, onCreate, describeErr
               if (el) el.indeterminate = someTicked && !allTicked;
             }}
             onChange={() => setPicked(allTicked ? clearShown(asRows, picked) : selectShown(asRows, picked))}
-            className="prism-check"
+            className="prism-checkbox"
           />
           <span style={styles.name}>All recommended ({recommended.length})</span>
         </label>
