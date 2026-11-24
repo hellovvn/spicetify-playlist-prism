@@ -72,6 +72,10 @@ const CSS = `
   --prism-hover-rim: rgba(205, 184, 255, 0.75);
   --prism-hover-glow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 0 12px rgba(205, 184, 255, 0.4);
   --prism-ease: 150ms ease-out;
+  /* PICKED big tile (a Remix door, the chosen builder group): pink edge +
+     a soft pink glow inside. Pink means "you picked this tile" and nothing else. */
+  --prism-picked: #f4c0d1;
+  --prism-picked-glow: inset 0 1px 0 rgba(255, 255, 255, 0.35), inset 0 0 24px rgba(244, 192, 209, 0.18), 0 0 0 1px #f4c0d1;
   /* Corners: pop-up 20, box 16, input/row 12 (list rows 8), pill 999. */
 }
 /* Spotify's green "primary" buttons get their colours from a colour set
@@ -294,7 +298,7 @@ const CSS = `
   content: "";
   width: 4px; height: 8px;
   margin-top: -2px;
-  border: solid var(--prism-on-accent);
+  border: solid #ffffff;
   border-width: 0 2px 2px 0;
   transform: rotate(45deg) scale(0);
   transition: transform 120ms ease-out;
@@ -384,71 +388,21 @@ const CSS = `
 .prism-seg button.on { background: #b794ff; color: #1b0b33; }
 .prism-seg button:focus-visible { outline: 2px solid #cdb8ff; outline-offset: -2px; }
 
-/* ----- Check bubble (the "Start names with Prism" choice) -----
-   A round liquid-glass bubble: see-through with a bright rim (no shine spot
-   inside, developer's request). Ticked, it fills with a lavender-pink glow and a white tick draws in.
-   The real checkbox is hidden but stays focusable for the keyboard. */
-.prism-check { position: relative; cursor: pointer; user-select: none; width: fit-content; }
-.prism-check input {
-  position: absolute;
-  opacity: 0;
-  width: 1px;
-  height: 1px;
-  pointer-events: none;
-}
-.prism-check-bubble {
-  position: relative;
-  flex-shrink: 0;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.45), inset 0 -2px 4px rgba(20, 0, 50, 0.25), 0 2px 6px rgba(10, 0, 30, 0.3);
-  backdrop-filter: blur(6px) saturate(1.4);
-  transition: background 200ms ease-out, border-color 200ms ease-out, box-shadow 200ms ease-out, transform 150ms ease-out;
-}
-.prism-check-bubble svg {
-  position: relative;
-  fill: none;
-  stroke: #ffffff;
-  stroke-width: 2.4;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-dasharray: 14;
-  stroke-dashoffset: 14;
-  transition: stroke-dashoffset 220ms ease-out 40ms;
-}
-.prism-check:hover .prism-check-bubble { transform: scale(1.08); border-color: rgba(255, 255, 255, 0.6); }
-.prism-check:active .prism-check-bubble { transform: scale(0.94); }
-.prism-check input:checked + .prism-check-bubble {
-  background: rgba(183, 148, 255, 0.75);
-  border-color: rgba(255, 255, 255, 0.65);
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.6), inset 0 -2px 4px rgba(60, 20, 120, 0.35), 0 0 10px rgba(205, 170, 255, 0.55);
-}
-.prism-check input:checked + .prism-check-bubble svg { stroke-dashoffset: 0; }
-.prism-check input:focus-visible + .prism-check-bubble { outline: 2px solid #cdb8ff; outline-offset: 2px; }
-@media (prefers-reduced-motion: reduce) {
-  .prism-check-bubble, .prism-check-bubble svg { transition: none; }
-}
-
 /* ----- Organize review (step 13c) -----
    Group cards lift a little on hover; the x button is glass. */
 .prism-group-card { transition: transform 150ms ease-out, border-color 150ms ease-out, box-shadow 150ms ease-out; }
 /* Hover = the two doors' look: pink edge, a soft pink glow inside, a lift. */
-.prism-group-card:hover { transform: translateY(-2px); border-color: #f4c0d1; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), inset 0 0 24px rgba(244, 192, 209, 0.18), 0 0 0 1px #f4c0d1; }
+.prism-group-card:hover { transform: translateY(-2px); border-color: var(--prism-hover-rim); box-shadow: var(--prism-hover-glow); }
 .prism-group-card:focus-visible { outline: 2px solid #cdb8ff; outline-offset: 2px; }
 /* Remix "Not included" card: same glass card, but a dashed edge and less
    fill, so it reads as "not a playlist (yet)". */
 .prism-glass-panel.prism-left-card { border-style: dashed; border-color: rgba(255, 255, 255, 0.35); background: rgba(255, 255, 255, 0.03); }
-.prism-glass-panel.prism-left-card:hover { border-color: #f4c0d1; }
+.prism-glass-panel.prism-left-card:hover { border-color: var(--prism-hover-rim); }
 /* Remix's two doors ("Sort them for me" / "I'll pick the vibes"): lift on
    hover; the picked one gets a pink edge and a soft pink glow inside. */
 .prism-door { transition: transform 150ms ease-out, border-color 150ms ease-out, box-shadow 150ms ease-out; }
-.prism-door:hover { transform: translateY(-2px); border-color: rgba(205, 184, 255, 0.6); }
-.prism-door.on { border-color: #f4c0d1; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), inset 0 0 24px rgba(244, 192, 209, 0.18), 0 0 0 1px #f4c0d1; }
+.prism-door:hover { transform: translateY(-2px); border-color: var(--prism-hover-rim); box-shadow: var(--prism-hover-glow); }
+.prism-door.on, .prism-door.on:hover { border-color: var(--prism-picked); box-shadow: var(--prism-picked-glow); }
 .prism-door:focus-visible { outline: 2px solid #cdb8ff; outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { .prism-door, .prism-door:hover { transition: none; transform: none; } }
 /* "Start from scratch" builder (step 13c-2). The chosen group in the list
@@ -456,7 +410,7 @@ const CSS = `
    (on = the bright .shared look). Moods have a dashed edge. */
 .prism-builder-group { transition: border-color 150ms ease-out, background 150ms ease-out, box-shadow 150ms ease-out, transform 150ms ease-out; }
 .prism-builder-group:hover { transform: translateY(-2px); border-color: var(--prism-hover-rim); box-shadow: var(--prism-hover-glow); }
-.prism-builder-group.on { border-color: #cdb8ff; background: linear-gradient(145deg, rgba(205, 184, 255, 0.24), rgba(255, 255, 255, 0.06)); }
+.prism-builder-group.on, .prism-builder-group.on:hover { border-color: var(--prism-picked); box-shadow: var(--prism-picked-glow); }
 .prism-builder-group:focus-visible { outline: 2px solid #cdb8ff; outline-offset: 2px; }
 .prism-tag-pick { font-family: inherit; cursor: pointer; transition: background 150ms ease-out, border-color 150ms ease-out, color 150ms ease-out, box-shadow 150ms ease-out; }
 .prism-tag.prism-tag-pick:hover { color: #ffffff; border-color: var(--prism-hover-rim); box-shadow: var(--prism-hover-glow); }
