@@ -469,7 +469,11 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   `spicetify refresh -a` and reload. Check: grep a new CSS class in CustomApps\playlist-prism\prism.js.
 - Type check: `npx -y -p typescript@5.6.3 tsc --noEmit -p .` (TypeScript isn't a local dependency;
   plain `npx tsc` fetches an unrelated package).
-- Before handing over a step, run `npm test` and `npm run smoke` and report results.
+- TESTING SCOPE (developer's rule, 2026-11-24): while developing, test only the AFFECTED AREA:
+  the unit tests for the changed code (`npx vitest run tests/<file>.test.ts`) and the smoke checks
+  or a quick in-Spotify check for the screens touched. The FULL run (`npm test` + `npm run smoke`)
+  happens only when the developer confirms a commit, before committing. Report results either way,
+  and say which parts were not tested.
   Smoke test is READ-ONLY (uses `window.__playlistPrism` debug hook in src/extensions/prism.tsx); it never
   prints the API key. Screenshots go to `smoke-output/` (gitignored; they show the user's library).
 - Test fixtures in `tests/fixtures/` are real recorded Last.fm data: don't "fix" them.
