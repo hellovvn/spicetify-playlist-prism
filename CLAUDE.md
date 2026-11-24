@@ -496,7 +496,8 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   (developer's choice). Code: `src/theme/playlistTheme.ts` (pure, tests/playlistTheme.test.ts),
   `src/ui/playlistTheme.ts` (always-on). Densities scale with the window (mockups were 680px).
   This covers part of 14a (themes); 14a's per-page theme picker is still open.
-- LIBRARY PANEL THEME (2026-11-24, developer's picks after 4 mockup rounds; built, not committed):
+- LIBRARY PANEL THEME (2026-11-24, developer's picks after 4 mockup rounds; committed and merged
+  2026-11-24 in PR #11):
   with a playlist theme on, Spotify's left panel gets a STILL background (the developer hated a
   frozen copy of the page sky): Northern lights + Bubble nebula = "top glow", Starry night =
   "rising dusk". ONLY the open playlist's row moves (`[role=row][aria-selected=true]`, layer
