@@ -473,6 +473,16 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   Smoke test is READ-ONLY (uses `window.__playlistPrism` debug hook in src/extensions/prism.tsx); it never
   prints the API key. Screenshots go to `smoke-output/` (gitignored; they show the user's library).
 - Test fixtures in `tests/fixtures/` are real recorded Last.fm data: don't "fix" them.
+- SMOKE TEST PLAYLIST (developer's rule, 2026-11-24): playlist names change all the time during
+  development (e.g. Merge adds "[merged] "), so tests must NEVER find a playlist by its name or
+  assume its song count. The smoke test's playlist is pinned by its Spotify ID in
+  `scripts/smoke.local.json` (gitignored: `{ "playlistUri": "spotify:playlist:..." }`; now the
+  original 25-song Dark Romance, currently named "[merged] Dark Romance"); its name and song count
+  are read live. Picker rows carry `data-uri` so tests can click them by ID.
+- BUILDING: never run `npm run build` while `spicetify watch -a` is running: both touch the
+  CustomApps folder, the build crashes half-way (Node error after "Moving files out of folders")
+  and Spotify then shows "not found" for every custom app. Stop the watcher, build, then
+  `spicetify refresh -a` and reload. Check the build's last line says "Build succeeded."
 - `window.__playlistPrism` debug hook must be removed or dev-only before any public release.
 
 ## UI elements (developer's rule, 2026-11-23)

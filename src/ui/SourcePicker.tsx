@@ -115,7 +115,7 @@ export function SourcePicker({ loadSources, describeError, selected, setSelected
       <div style={styles.list} data-prism="source-list">
         {shown.length === 0 && <p style={{ ...styles.subtext, padding: "8px 4px" }}>No playlists match "{query}".</p>}
         {shown.map((source) => (
-          <label key={source.uri} className="prism-row is-clickable" style={styles.row}>
+          <label key={source.uri} className="prism-row is-clickable" style={styles.row} data-uri={source.uri}>
             <input
               type="checkbox"
               checked={selected.includes(source.uri)}

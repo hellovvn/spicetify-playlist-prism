@@ -145,3 +145,5 @@ out
 
 # Smoke test screenshots (scripts/smoke.mjs)
 smoke-output/
+# Smoke test's own settings: which of the developer's playlists it uses (by ID)
+scripts/smoke.local.json
