@@ -103,7 +103,7 @@ export function ScanScreen({ sources, runScan, describeError, onBack, onNext, on
     return (
       <div className="prism-fade-in" style={styles.screen} data-prism-state="scan-done">
         <div>
-          <div style={styles.title}>
+          <div className="prism-screen-title">
             {outcome.cancelled ? `Stopped after ${s.total} songs` : `Scanned ${s.total} songs`}
           </div>
           <p style={styles.subtext}>
@@ -148,19 +148,19 @@ export function ScanScreen({ sources, runScan, describeError, onBack, onNext, on
         <div style={styles.prism}>
           <ScanningPrism size={168} />
         </div>
-        <div style={{ ...styles.title, ...styles.titleSlot }}>
+        <div className="prism-screen-title" style={styles.titleSlot}>
           {progress ? `Scanning ${progress.total} songs` : "Reading your playlists..."}
         </div>
         {/* role="progressbar" + aria values: screen readers announce the percentage. */}
         <div
-          style={styles.barTrack}
+          className="prism-progress"
           role="progressbar"
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={percent}
           data-prism="scan-bar"
         >
-          <div style={{ ...styles.barFill, width: `${percent}%` }} />
+          <div className="prism-progress-fill" style={{ width: `${percent}%` }} />
         </div>
         {/* Each text below sits in a FIXED-height slot and never wraps, so
             changing text ("575 of 704", "about 3 min left"...) can't change
@@ -219,7 +219,6 @@ export function ScanDemo({ onRunningChange }: { onRunningChange?: (running: bool
 const styles: Record<string, React.CSSProperties> = {
   screen: { display: "flex", flexDirection: "column", gap: 16, height: SCREEN_HEIGHT },
   middle: { flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", gap: 12 },
-  title: { fontSize: 20, fontWeight: 700, color: "var(--spice-text)" },
   titleSlot: { height: "1.4em", lineHeight: "1.4em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
   text: { color: "var(--spice-text)", margin: 0 },
   subtext: { color: "var(--spice-subtext)", margin: 0, minHeight: "1.4em" },
@@ -232,9 +231,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   // Room for exactly two lines, whether the note is long or just "Stopping...".
   slotNote: { color: "var(--spice-subtext)", margin: 0, fontSize: 13, height: "3em", lineHeight: "1.5em", overflow: "hidden" },
-  barTrack: { height: 8, borderRadius: 4, background: "var(--spice-card)", overflow: "hidden" },
   // The width animates smoothly between updates instead of jumping.
-  barFill: { height: "100%", background: "var(--spice-button)", borderRadius: 4, transition: "width 300ms ease-out" },
   prism: { display: "flex", justifyContent: "center", marginBottom: 8 },
   table: { borderCollapse: "collapse", width: "100%" },
   count: { color: "var(--spice-text)", fontWeight: 700, padding: "6px 12px 6px 0", textAlign: "right", width: 48 },

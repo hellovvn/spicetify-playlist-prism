@@ -78,3 +78,20 @@ export function labelsFor(matchedTags: string[], songTags: SourcedTag[], max = 4
     .map((tag) => ({ name: tag.name, colour: tagColour(tag.name), shared: false }));
   return [...shared, ...extra].slice(0, max);
 }
+
+// A colour per lyrics mood, from the same pastel family as the genres.
+const MOOD_COLOURS: Record<string, string> = {
+  love: "#ffb8d9",
+  heartbreak: "#d5c2ff",
+  desire: "#f5baff",
+  party: "#ffe2a8",
+  anger: "#ffc6ad",
+  dark: "#a9cdff",
+  hopeful: "#a8ecc9",
+  numb: "#a6eaf2",
+};
+
+// A lyrics mood's colour (lavender for a mood not on the list).
+export function moodColour(mood: string): string {
+  return MOOD_COLOURS[mood] ?? "#d5c2ff";
+}

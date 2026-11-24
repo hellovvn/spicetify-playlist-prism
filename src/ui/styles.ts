@@ -51,6 +51,28 @@ const CSS = `
      re-defined as lavender inside the page. */
   --spice-button: #b794ff;
   --spice-button-active: #c6a8ff;
+
+  /* ----- The Prism look, in one place (UI standard, 2026-11-23) -----
+     Every control on the page takes its colours from these, so a future
+     theme (14a) only has to swap them. */
+  --prism-accent: #b794ff;        /* main buttons, ticked boxes, chosen options */
+  --prism-accent-hover: #c6a8ff;
+  --prism-accent-soft: #cdb8ff;   /* rims, focus rings, quiet buttons */
+  --prism-on-accent: #1b0b33;     /* text on the accent */
+  --prism-error: #ffb3d1;
+  --prism-new: #9fe1cb;           /* New finds */
+  --prism-rainbow: linear-gradient(90deg, #ffb3d1, #ffd6a5, #fdffb6, #caffbf, #9bf6ff, #bdb2ff);
+  /* Glass: control (buttons, inputs), panel (boxes), raised (pop-ups). */
+  --prism-glass-control: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.05));
+  --prism-glass-control-hover: linear-gradient(180deg, rgba(255, 255, 255, 0.24), rgba(205, 184, 255, 0.1));
+  --prism-glass-panel: linear-gradient(145deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.04));
+  --prism-rim: rgba(255, 255, 255, 0.28);
+  --prism-shine: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  /* THE hover, for everything you can click: lavender rim + soft glow. */
+  --prism-hover-rim: rgba(205, 184, 255, 0.75);
+  --prism-hover-glow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 0 12px rgba(205, 184, 255, 0.4);
+  --prism-ease: 150ms ease-out;
+  /* Corners: pop-up 20, box 16, input/row 12 (list rows 8), pill 999. */
 }
 /* Spotify's green "primary" buttons get their colours from a colour set
    called encore-bright-accent-set. Re-defining it here (only inside our
@@ -165,7 +187,7 @@ const CSS = `
   position: relative;
   margin: 0;
   padding: 8px 12px 8px 16px;
-  border-radius: 6px;
+  border-radius: 12px;
   background: var(--spice-card);
   color: var(--spice-text);
 }
@@ -174,7 +196,7 @@ const CSS = `
   position: absolute;
   left: 0; top: 0; bottom: 0;
   width: 3px;
-  border-radius: 3px;
+  border-radius: 12px 0 0 12px;
   background: linear-gradient(180deg, #ffb3c7, #ffd1a6, #fff1a8, #b8f2c9, #a8d8ff, #cdb8ff);
 }
 
@@ -193,9 +215,9 @@ const CSS = `
   transition: background 150ms ease-out, border-color 150ms ease-out, box-shadow 150ms ease-out, transform 100ms ease-out;
 }
 .prism-cosmos [data-encore-id="buttonSecondary"]:hover:not(:disabled) {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.24), rgba(205, 184, 255, 0.1)) !important;
-  border-color: rgba(205, 184, 255, 0.7) !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 0 12px rgba(205, 184, 255, 0.35) !important;
+  background: var(--prism-glass-control-hover) !important;
+  border-color: var(--prism-hover-rim) !important;
+  box-shadow: var(--prism-hover-glow) !important;
 }
 .prism-cosmos [data-encore-id="buttonSecondary"]:active:not(:disabled) { transform: scale(0.97); }
 
@@ -213,6 +235,129 @@ const CSS = `
   padding-inline: 20px;
 }
 .prism-cosmos [data-encore-id="buttonSecondary"]:disabled { opacity: 0.45; }
+
+/* MAIN button (Spotify's ButtonPrimary, lavender via encore-bright-accent-set
+   above). Spotify grows it on hover; the Prism standard is the same as every
+   other control: no growing, a soft lavender glow, and a 3% press. The colour
+   is drawn by the inner span, so the glow goes there. */
+.prism-cosmos [data-encore-id="buttonPrimary"],
+.prism-cosmos [data-encore-id="buttonPrimary"] > span { transform: none !important; }
+.prism-cosmos [data-encore-id="buttonPrimary"] > span {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  transition: background-color var(--prism-ease), box-shadow var(--prism-ease);
+}
+.prism-cosmos [data-encore-id="buttonPrimary"]:hover:not(:disabled) > span {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 0 14px rgba(205, 184, 255, 0.55);
+}
+.prism-cosmos [data-encore-id="buttonPrimary"]:active:not(:disabled) > span { transform: scale(0.97) !important; }
+.prism-cosmos [data-encore-id="buttonPrimary"]:disabled { opacity: 0.45; }
+
+/* QUIET button: lavender text only ("← Back" on the start tiles, "Show more"). */
+.prism-quiet-button {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  padding: 4px 2px;
+  color: var(--prism-accent-soft);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: color var(--prism-ease);
+}
+.prism-quiet-button:hover { color: #ffffff; }
+.prism-quiet-button:focus-visible { outline: 2px solid var(--prism-accent-soft); outline-offset: 2px; border-radius: 4px; }
+
+/* ----- Checkbox: one glass box everywhere -----
+   A real <input type="checkbox"> (so keyboard, labels and "indeterminate"
+   keep working) with the browser's own look switched off (appearance: none).
+   Off = clear glass; on = lavender with a dark tick; some = a dash.
+   .prism-check.is-locked is a <span> version for the seed song (always in). */
+.prism-check {
+  appearance: none;
+  -webkit-appearance: none;
+  margin: 0;
+  width: 18px; height: 18px;
+  flex-shrink: 0;
+  display: inline-grid;
+  place-content: center;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  cursor: pointer;
+  transition: background var(--prism-ease), border-color var(--prism-ease), box-shadow var(--prism-ease);
+}
+/* The tick: a small rotated L drawn with two borders. */
+.prism-check::before {
+  content: "";
+  width: 4px; height: 8px;
+  margin-top: -2px;
+  border: solid var(--prism-on-accent);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg) scale(0);
+  transition: transform 120ms ease-out;
+}
+.prism-check:checked, .prism-check:indeterminate, .prism-check.is-locked {
+  background: var(--prism-accent);
+  border-color: var(--prism-accent-soft);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 0 8px rgba(205, 184, 255, 0.45);
+}
+.prism-check:checked::before, .prism-check.is-locked::before { transform: rotate(45deg) scale(1); }
+/* "Some ticked": a short dash instead of the tick. */
+.prism-check:indeterminate::before { width: 8px; height: 0; margin-top: 0; border-width: 0 0 2px 0; transform: none; }
+.prism-check:hover:not(:disabled) { border-color: var(--prism-hover-rim); box-shadow: var(--prism-hover-glow); }
+.prism-check:focus-visible { outline: 2px solid var(--prism-accent-soft); outline-offset: 2px; }
+.prism-check:disabled { cursor: default; opacity: 0.5; }
+.prism-check.is-locked { opacity: 0.55; cursor: default; }
+
+/* ----- List rows (songs, playlists): one style everywhere -----
+   8px corners, a thin line between rows, a faint white hover. */
+.prism-row {
+  border-radius: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  transition: background 120ms ease-out;
+}
+.prism-row:first-child { border-top-color: transparent; }
+.prism-row.is-clickable { cursor: pointer; }
+.prism-row.is-clickable:hover { background: rgba(255, 255, 255, 0.06); }
+/* A row that stands out (the seed song): glass. */
+.prism-row.is-glass { background: var(--prism-glass-panel); border: 1px solid rgba(255, 255, 255, 0.18); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25); }
+/* "Select all" heads a list: a line under it instead of above. */
+.prism-row.is-head { border-radius: 0; border-top: none; border-bottom: 1px solid rgba(255, 255, 255, 0.12); }
+.prism-row.is-head:hover { background: transparent; }
+
+/* ----- Progress bar: the same glass track as the stats bars ----- */
+.prism-progress {
+  height: 10px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.07);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+.prism-progress-fill {
+  height: 100%;
+  border-radius: 5px;
+  background: var(--prism-rainbow);
+  background-size: 100% 100%;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 0 10px rgba(205, 184, 255, 0.35);
+  transition: width 300ms ease-out;
+}
+
+/* ----- Screen title: the same on every screen -----
+   Light 22px display font in white (section headings are 13px bold). */
+.prism-screen-title {
+  margin: 0;
+  font-family: "Segoe UI Variable Display", "Segoe UI", sans-serif;
+  font-size: 22px;
+  font-weight: 300;
+  letter-spacing: 0.02em;
+  line-height: 1.3;
+  color: #ffffff;
+}
+/* Section heading inside a screen ("Song tags", "Lyrics"): 13px bold. */
+.prism-heading { margin: 0 0 8px; font-size: 13px; font-weight: 700; color: #e9dcff; }
 
 /* ----- Segmented control (Organize settings) -----
    A row of glass buttons in one pill; the chosen one is lavender. */
@@ -242,21 +387,26 @@ const CSS = `
 /* ----- Organize review (step 13c) -----
    Group cards lift a little on hover; the x button is glass. */
 .prism-group-card { transition: transform 150ms ease-out, border-color 150ms ease-out, box-shadow 150ms ease-out; }
-.prism-group-card:hover { transform: translateY(-2px); border-color: rgba(205, 184, 255, 0.6); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 8px 24px rgba(10, 0, 30, 0.35); }
+.prism-group-card:hover { transform: translateY(-2px); border-color: var(--prism-hover-rim); box-shadow: var(--prism-hover-glow); }
 .prism-group-card:focus-visible { outline: 2px solid #cdb8ff; outline-offset: 2px; }
 /* "Start from scratch" builder (step 13c-2). The chosen group in the list
    gets a lavender edge; genre/mood labels are buttons you turn on and off
    (on = the bright .shared look). Moods have a dashed edge. */
-.prism-builder-group { transition: border-color 150ms ease-out, background 150ms ease-out; }
-.prism-builder-group:hover { border-color: rgba(205, 184, 255, 0.5); }
+.prism-builder-group { transition: border-color 150ms ease-out, background 150ms ease-out, box-shadow 150ms ease-out, transform 150ms ease-out; }
+.prism-builder-group:hover { transform: translateY(-2px); border-color: var(--prism-hover-rim); box-shadow: var(--prism-hover-glow); }
 .prism-builder-group.on { border-color: #cdb8ff; background: linear-gradient(145deg, rgba(205, 184, 255, 0.24), rgba(255, 255, 255, 0.06)); }
 .prism-builder-group:focus-visible { outline: 2px solid #cdb8ff; outline-offset: 2px; }
-.prism-tag-pick { font-family: inherit; cursor: pointer; transition: background 120ms ease-out, border-color 120ms ease-out, color 120ms ease-out; }
-.prism-tag-pick:hover:not(.shared) { color: #ffffff; border-color: rgba(255, 255, 255, 0.32); }
+.prism-tag-pick { font-family: inherit; cursor: pointer; transition: background 150ms ease-out, border-color 150ms ease-out, color 150ms ease-out, box-shadow 150ms ease-out; }
+.prism-tag.prism-tag-pick:hover { color: #ffffff; border-color: var(--prism-hover-rim); box-shadow: var(--prism-hover-glow); }
 .prism-tag-pick:focus-visible { outline: 2px solid #cdb8ff; outline-offset: 1px; }
 /* 3 classes, so it beats .prism-tag.shared further down this file. */
 .prism-tag.prism-tag-pick.shared { background: rgba(205, 184, 255, 0.3); border-color: #cdb8ff; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 0 10px rgba(205, 184, 255, 0.35); }
 .prism-tag.mood { border-style: dashed; }
+/* The seed screen's tag switches are the main thing there: a bigger pill.
+   Off = faint with a dimmed dot. */
+.prism-tag.prism-tag-big { font-size: 13px; line-height: 20px; padding: 4px 12px; gap: 7px; }
+.prism-tag.prism-tag-big::before { width: 8px; height: 8px; }
+.prism-tag-pick:not(.shared)::before { opacity: 0.45; box-shadow: none; }
 .prism-tag-pick.shared.mood { border-style: dashed; }
 .prism-glass-input::placeholder { color: rgba(255, 255, 255, 0.5); }
 .prism-tag-count { font-weight: 400; opacity: 0.6; }
@@ -270,10 +420,10 @@ const CSS = `
   border: 1px solid rgba(255, 255, 255, 0.28);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
   cursor: pointer; white-space: nowrap;
-  transition: border-color 150ms ease-out, background 150ms ease-out;
+  transition: border-color 150ms ease-out, background 150ms ease-out, box-shadow 150ms ease-out;
 }
 .prism-menu-button span:first-child { overflow: hidden; text-overflow: ellipsis; }
-.prism-menu-button:hover, .prism-menu-button[aria-expanded="true"] { border-color: rgba(205, 184, 255, 0.7); background: linear-gradient(180deg, rgba(255, 255, 255, 0.24), rgba(205, 184, 255, 0.1)); }
+.prism-menu-button:hover, .prism-menu-button[aria-expanded="true"] { border-color: var(--prism-hover-rim); background: var(--prism-glass-control-hover); box-shadow: var(--prism-hover-glow); }
 .prism-menu-button:focus-visible { outline: 2px solid #cdb8ff; outline-offset: 2px; }
 .prism-menu-chevron { font-size: 10px; opacity: 0.8; }
 .prism-menu-list {
@@ -302,8 +452,11 @@ const CSS = `
   color: #ffffff;
   font-size: 16px; line-height: 1;
   cursor: pointer;
+  transition: border-color 150ms ease-out, background 150ms ease-out, box-shadow 150ms ease-out;
 }
-.prism-icon-button:hover { border-color: rgba(255, 179, 209, 0.8); background: rgba(255, 179, 209, 0.15); }
+.prism-icon-button:hover { border-color: var(--prism-hover-rim); background: rgba(255, 255, 255, 0.12); box-shadow: var(--prism-hover-glow); }
+.prism-icon-button:active { transform: scale(0.97); }
+.prism-icon-button:focus-visible { outline: 2px solid var(--prism-accent-soft); outline-offset: 2px; }
 
 @media (prefers-reduced-motion: reduce) { .prism-group-card, .prism-group-card:hover { transition: none; transform: none; } }
 
@@ -536,19 +689,6 @@ const CSS = `
   transition: visibility 0s 320ms;
 }
 .prism-flip.is-flipped .prism-flip-back { visibility: visible; transition: visibility 0s 0s; }
-.prism-flip-close {
-  align-self: flex-start;
-  background: none;
-  border: none;
-  padding: 2px 0;
-  color: #cdb8ff;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-}
-.prism-flip-close:hover { color: #ffffff; }
-.prism-flip-close:focus-visible { outline: 2px solid #cdb8ff; outline-offset: 2px; border-radius: 4px; }
-
 /* The front: a glass button with the icon and label in the very centre. */
 .prism-mode-tile {
   display: flex;
@@ -794,26 +934,30 @@ const CSS = `
 .prism-artwork.mosaic img:nth-child(4) { border-bottom-right-radius: 12px; }
 @keyframes prism-ring-turn { to { --prism-ring-angle: 360deg; } }
 
-/* A glass pill button, like the rest of the UI ("View full stats"). */
+/* A glass pill button for places outside Spotify's own buttons (the side
+   panel's "View full stats", the stats page's "Back to playlist"). It looks
+   exactly like the secondary button: 32px, glass, the standard hover. */
 .prism-glass-button {
-  padding: 8px 20px;
+  height: 32px;
+  padding: 0 18px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.06));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 4px 14px rgba(20, 8, 40, 0.25);
+  border: 1px solid var(--prism-rim);
+  background: var(--prism-glass-control);
+  box-shadow: var(--prism-shine), 0 2px 10px rgba(10, 0, 30, 0.25);
   backdrop-filter: blur(10px);
-  color: #f3e8ff;
+  color: #ffffff;
+  font-family: inherit;
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
-  transition: background 160ms, border-color 160ms, box-shadow 160ms, transform 160ms;
+  transition: background 150ms ease-out, border-color 150ms ease-out, box-shadow 150ms ease-out, transform 100ms ease-out;
 }
 .prism-glass-button:hover {
-  background: linear-gradient(145deg, rgba(205, 184, 255, 0.34), rgba(255, 255, 255, 0.1));
-  border-color: rgba(222, 205, 255, 0.8);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 0 18px rgba(205, 184, 255, 0.45);
-  transform: translateY(-1px);
+  background: var(--prism-glass-control-hover);
+  border-color: var(--prism-hover-rim);
+  box-shadow: var(--prism-hover-glow);
 }
+.prism-glass-button:active { transform: scale(0.97); }
 .prism-glass-button:focus-visible { outline: 2px solid #cdb8ff; outline-offset: 2px; }
 
 

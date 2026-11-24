@@ -15,7 +15,7 @@
 import React from "react";
 import { builtFromTags, chartRows, FAST_FROM, SLOW_BELOW, topMood, type PrismPlaylistRecord } from "../stats/playlistStats";
 import { Fingerprint } from "./Fingerprint";
-import { tagColours } from "./tagLabels";
+import { moodColour, tagColours } from "./tagLabels";
 import { ExtraStats, useExtras } from "./ExtraStats";
 import { artworkUrls } from "./sidePanel";
 import type { PlaylistExtras } from "../stats/playlistExtras";
@@ -211,17 +211,6 @@ function StatsContent({
 
 // ----- Panels -----
 
-// A colour per lyrics mood, from the same pastel family as the genres.
-const MOOD_COLOURS: Record<string, string> = {
-  love: "#ffb8d9",
-  heartbreak: "#d5c2ff",
-  desire: "#f5baff",
-  party: "#ffe2a8",
-  anger: "#ffc6ad",
-  dark: "#a9cdff",
-  hopeful: "#a8ecc9",
-  numb: "#a6eaf2",
-};
 
 // Lyrics moods as small glass bars (longest = the most common mood).
 function MoodMix({ record }: { record: PrismPlaylistRecord }) {
@@ -236,7 +225,7 @@ function MoodMix({ record }: { record: PrismPlaylistRecord }) {
           <span className="prism-bar-track">
             <span
               className="prism-bar-fill"
-              style={{ width: `${(count / most) * 100}%`, ["--tag" as any]: MOOD_COLOURS[mood] ?? "#d5c2ff", ["--delay" as any]: `${300 + i * 60}ms` }}
+              style={{ width: `${(count / most) * 100}%`, ["--tag" as any]: moodColour(mood), ["--delay" as any]: `${300 + i * 60}ms` }}
             />
           </span>
           <span style={styles.smallCount}>{count}</span>

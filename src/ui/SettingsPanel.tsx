@@ -73,7 +73,7 @@ export function SettingsPanel({ notice, onSaved }: SettingsPanelProps) {
 
   return (
     <div className="prism-fade-in" style={{ display: "flex", flexDirection: "column", gap: 12 }} data-prism="settings">
-      <h2 style={{ margin: 0, fontSize: 24, fontWeight: 700 }}>Prism settings</h2>
+      <h2 className="prism-screen-title">Prism settings</h2>
       {notice && (
         <p role="status" data-prism="settings-notice" className="prism-notice">
           {notice}
@@ -86,7 +86,7 @@ export function SettingsPanel({ notice, onSaved }: SettingsPanelProps) {
         </a>
         , then paste the "API key" (not the "shared secret") below.
       </p>
-      <p style={{ opacity: 0.7, fontSize: 13 }}>
+      <p style={{ color: "var(--spice-subtext)", fontSize: 13 }}>
         The key is stored only in Spotify on this computer. It is never added to the code or git.
       </p>
       <input
@@ -95,7 +95,8 @@ export function SettingsPanel({ notice, onSaved }: SettingsPanelProps) {
         placeholder="Last.fm API key"
         // onChange runs on every keystroke; we copy the input's text into state.
         onChange={(event) => setKey(event.target.value)}
-        style={{ padding: 8, borderRadius: 4, border: "1px solid #555", background: "#222", color: "#fff" }}
+        className="prism-glass-input"
+        style={{ fontSize: 14 }}
       />
       <div className="prism-actions" style={{ display: "flex", gap: 8 }}>
         {/* Spotify's own buttons, so they match the rest of the app. */}
@@ -109,7 +110,7 @@ export function SettingsPanel({ notice, onSaved }: SettingsPanelProps) {
       {/* Only show the status line when there is something to say. */}
       {status && <p>{status}</p>}
 
-      <h3 style={{ margin: "12px 0 0", fontSize: 18, fontWeight: 700 }}>Lyrics</h3>
+      <h3 className="prism-heading" style={{ margin: "12px 0 0" }}>Lyrics</h3>
       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
         <span style={{ fontSize: 13, fontWeight: 600 }} id="prism-lyrics-label">
           Prism look for lyrics
@@ -123,12 +124,12 @@ export function SettingsPanel({ notice, onSaved }: SettingsPanelProps) {
           </button>
         </div>
       </div>
-      <p style={{ opacity: 0.7, fontSize: 13, margin: 0 }}>
+      <p style={{ color: "var(--spice-subtext)", fontSize: 13, margin: 0 }}>
         On: Spotify's lyrics get Prism's twilight sky, and the top and bottom bars always stay (no full screen or
         immersive mode). Off: Spotify's own lyrics, exactly as Spotify makes them.
       </p>
 
-      <h3 style={{ margin: "12px 0 0", fontSize: 18, fontWeight: 700 }}>Side panel</h3>
+      <h3 className="prism-heading" style={{ margin: "12px 0 0" }}>Side panel</h3>
       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
         <span style={{ fontSize: 13, fontWeight: 600 }} id="prism-panel-label">
           Prism stats in the side panel
@@ -142,7 +143,7 @@ export function SettingsPanel({ notice, onSaved }: SettingsPanelProps) {
           </button>
         </div>
       </div>
-      <p style={{ opacity: 0.7, fontSize: 13, margin: 0 }}>
+      <p style={{ color: "var(--spice-subtext)", fontSize: 13, margin: 0 }}>
         On: when a playlist Prism made or organized is open, the right-hand Now Playing panel shows its stats (with the
         song playing now at the top). Off: the panel stays as Spotify makes it. Right-click a playlist &gt; Prism stats
         always opens the full stats page.

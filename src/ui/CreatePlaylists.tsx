@@ -77,7 +77,7 @@ export function CreatePlaylists(props: CreatePlaylistsProps) {
   return (
     <div style={styles.screen} data-prism-state={`organize-create-${phase}`}>
       <div>
-        <p style={styles.title} data-prism="create-title">
+        <p className="prism-screen-title" data-prism="create-title">
           {phase === "confirm"
             ? `Ready to create ${n} playlist${n === 1 ? "" : "s"}`
             : phase === "creating"
@@ -115,7 +115,7 @@ export function CreatePlaylists(props: CreatePlaylistsProps) {
           const st = status[p.groupId];
           const uri = uriOf(p.groupId);
           return (
-            <div key={p.groupId} style={styles.row} data-prism="create-row" data-status={st ?? "ready"}>
+            <div key={p.groupId} className="prism-row" style={styles.row} data-prism="create-row" data-status={st ?? "ready"}>
               <CoverMosaic songs={groupSongs} summary={summarize(groupSongs)} size={44} />
               <span style={styles.rowText}>
                 <span style={styles.rowName} data-prism="create-name">
@@ -184,12 +184,11 @@ const statusStyle: Record<CreateStatus, React.CSSProperties> = {
 
 const styles: Record<string, React.CSSProperties> = {
   screen: { display: "flex", flexDirection: "column", gap: 12, height: 560 },
-  title: { margin: 0, color: "#ffffff", fontSize: 18, fontWeight: 700 },
   sub: { margin: "2px 0 0", color: "var(--spice-subtext)", fontSize: 13 },
   setting: { display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" },
   settingLabel: { color: "var(--spice-text)", fontSize: 13, fontWeight: 600 },
-  list: { flex: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", padding: "4px 14px" },
-  row: { display: "flex", alignItems: "center", gap: 12, padding: "8px 0", borderTop: "1px solid rgba(255,255,255,0.06)" },
+  list: { flex: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", padding: "4px 6px" },
+  row: { display: "flex", alignItems: "center", gap: 12, padding: "8px" },
   rowText: { display: "flex", flexDirection: "column", minWidth: 0, flex: 1 },
   rowName: { color: "#ffffff", fontSize: 14, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
   rowSub: { color: "var(--spice-subtext)", fontSize: 12 },

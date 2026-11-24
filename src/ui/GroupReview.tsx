@@ -304,7 +304,7 @@ function GroupDetail({ group, groupSongs, others, onClose, onRename, onMove, onR
       <div style={styles.songList} data-prism="group-song-list">
         {groupSongs.length === 0 && <p style={styles.sub}>No songs left in this group.</p>}
         {groupSongs.map((song) => (
-          <div key={song.uri} style={styles.songRow} data-prism="group-song">
+          <div key={song.uri} className="prism-row is-clickable" style={styles.songRow} data-prism="group-song">
             {song.coverSmall ? <img src={song.coverSmall} alt="" style={styles.thumb} loading="lazy" /> : <span style={styles.thumb} />}
             <span style={styles.songText}>
               <span style={styles.songName}>{song.name}</span>
@@ -398,7 +398,7 @@ const styles: Record<string, React.CSSProperties> = {
   detailText: { display: "flex", flexDirection: "column", gap: 6, minWidth: 0, flex: 1 },
   nameInput: { fontSize: 18, fontWeight: 600, padding: "6px 12px" },
   songList: { flex: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 2, paddingRight: 4 },
-  songRow: { display: "flex", alignItems: "center", gap: 10, padding: "5px 4px", borderTop: "1px solid rgba(255,255,255,0.06)" },
+  songRow: { display: "flex", alignItems: "center", gap: 10, padding: "5px 8px" },
   thumb: { width: 36, height: 36, borderRadius: 4, objectFit: "cover", flexShrink: 0, background: "rgba(255,255,255,0.08)" },
   songText: { display: "flex", flexDirection: "column", minWidth: 0, flex: 1 },
   songName: { color: "var(--spice-text)", fontSize: 14, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },

@@ -348,6 +348,8 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   underneath. The side panel's host (solid twilight background) is placed at once on a page
   change, and its stats are drawn when the browser is idle, so Spotify's own panel never
   flashes. Checked with a Chrome screencast (frames keep coming every ~10 ms).
+- UI STANDARD (developer approved 2026-11-23, built, not committed): one look per element,
+  documented in `docs/ui-elements.md` (see "UI elements" below).
 - Stats page text sizes (kept consistent): summary values 24px, a panel's headline value 16px,
   counts beside bars 13px, section headings 13px, smaller lines 12px.
 - Stats cover ring (.prism-artwork in styles.ts): a MOVING pastel neon ring. A registered
@@ -432,6 +434,22 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   prints the API key. Screenshots go to `smoke-output/` (gitignored; they show the user's library).
 - Test fixtures in `tests/fixtures/` are real recorded Last.fm data: don't "fix" them.
 - `window.__playlistPrism` debug hook must be removed or dev-only before any public release.
+
+## UI elements (developer's rule, 2026-11-23)
+`docs/ui-elements.md` is the catalogue of every UI element: how to make it, how it looks, how it
+behaves. The goal is a consistent app. Rules:
+1. REUSE: whenever an element already exists (button, checkbox, chip, row, panel, input, menu,
+   pop-up...), use it exactly as the catalogue says (same class or component). No one-off
+   inline restyles.
+2. NEW ELEMENT: before adding any UI element that isn't in the catalogue, STOP and tell the
+   developer. Show mockup options and get their OK on the design. Then build it, add it to
+   the catalogue, and use that same design every time it appears after that.
+3. CHANGING AN ELEMENT: if a request would change how an existing element looks or behaves
+   (even as a side effect, even on one screen), STOP before building and say so. Name the
+   element, what would change, and every place that uses it. The developer then picks:
+   (a) change the element everywhere (update the catalogue and add a History line), (b) add a
+   new documented variant/version of the element, or (c) don't change it.
+4. Keep `docs/ui-elements.md` up to date in the same change as the code.
 
 ## Working style
 - Keep explanations short: a few lines on what changed and why. No need to teach basic

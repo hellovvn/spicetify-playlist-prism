@@ -84,14 +84,14 @@ export function SourcePicker({ loadSources, describeError, selected, setSelected
         placeholder="Search your playlists"
         aria-label="Search your playlists"
         onChange={(event) => setQuery(event.target.value)}
-        style={styles.search}
+        className="prism-glass-input"
       />
 
       {/* "Select all" row: acts on the SHOWN rows, so with a search typed it
           only ticks the matches. Its checkbox shows a dash ("indeterminate")
           when only some shown rows are ticked. It's always there (just
           disabled when nothing matches), so the layout never jumps. */}
-      <label style={{ ...styles.row, ...styles.selectAllRow, opacity: shown.length ? 1 : 0.5 }} data-prism="select-all">
+      <label className="prism-row is-clickable is-head" style={{ ...styles.row, paddingBottom: 10, opacity: shown.length ? 1 : 0.5 }} data-prism="select-all">
           <input
             type="checkbox"
             disabled={shown.length === 0}
@@ -102,7 +102,7 @@ export function SourcePicker({ loadSources, describeError, selected, setSelected
               if (el) el.indeterminate = someSelected && !allSelected;
             }}
             onChange={() => setSelected(allSelected ? clearShown(shown, selected) : selectShown(shown, selected))}
-            style={styles.checkbox}
+            className="prism-check"
           />
           <span style={styles.name}>
             {query.trim() ? `Select all ${shown.length} shown` : `Select all (${shown.length})`}
@@ -114,12 +114,12 @@ export function SourcePicker({ loadSources, describeError, selected, setSelected
       <div style={styles.list} data-prism="source-list">
         {shown.length === 0 && <p style={{ ...styles.subtext, padding: "8px 4px" }}>No playlists match "{query}".</p>}
         {shown.map((source) => (
-          <label key={source.uri} style={styles.row}>
+          <label key={source.uri} className="prism-row is-clickable" style={styles.row}>
             <input
               type="checkbox"
               checked={selected.includes(source.uri)}
               onChange={() => setSelected(toggleInList(selected, source.uri))}
-              style={styles.checkbox}
+              className="prism-check"
             />
             <span style={styles.rowText}>
               <span style={styles.name}>{source.name}</span>
@@ -172,19 +172,12 @@ const styles: Record<string, React.CSSProperties> = {
   },
   text: { color: "var(--spice-text)", margin: 0 },
   subtext: { color: "var(--spice-subtext)", margin: 0 },
-  search: {
-    padding: "8px 12px", borderRadius: 4, border: "1px solid var(--spice-subtext)",
-    background: "var(--spice-main)", color: "var(--spice-text)",
-  },
   // minHeight: 0 lets a flex child shrink below its content and scroll instead.
   list: { flex: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 2 },
   // Keep the summary to one line so it can't change the layout either.
   summary: { color: "var(--spice-subtext)", margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" },
-  row: { display: "flex", alignItems: "center", gap: 12, padding: "8px 4px", borderRadius: 4, cursor: "pointer" },
-  // A thin line under "Select all" separates it from the playlists.
-  selectAllRow: { borderBottom: "1px solid var(--spice-card)", borderRadius: 0, paddingBottom: 10 },
-  // accent-color paints the native checkbox in Spotify's green.
-  checkbox: { width: 18, height: 18, accentColor: "var(--spice-button)", cursor: "pointer", flexShrink: 0 },
+  // Look (corners, lines, hover) comes from .prism-row in styles.ts.
+  row: { display: "flex", alignItems: "center", gap: 12, padding: "8px" },
   rowText: { display: "flex", flexDirection: "column", minWidth: 0 },
   name: { color: "var(--spice-text)", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
   meta: { color: "var(--spice-subtext)", fontSize: 13 },

@@ -17,6 +17,7 @@ import { formatAudio, type AudioAttributes } from "../spotify/audio";
 import { formatMood, type MoodProfile } from "../mood/lyricsMood";
 import type { SourcedTag } from "../tags/combineTags";
 import { canContinue, keptTags, seedStatus, splitBySource, toggleTag } from "./tagSelection";
+import { tagColour } from "./tagLabels";
 import type { SourceOption } from "../sources/sources";
 import { SourcePicker } from "./SourcePicker";
 import { ScanScreen, type ScanOutcome, type ScanScreenProps } from "./ScanScreen";
@@ -191,9 +192,8 @@ interface SeedContentProps {
 function SeedContent({ data, offNames, setOffNames, onNext, onCancel }: SeedContentProps) {
   // Read Spotify's components here, not at the top of the file: the file can
   // load before Spicetify is ready, but this runs only when the panel shows.
-  // `as any`: Chip exists in Spotify (checked in the running app) but is
-  // missing from Spicetify's type definitions file.
-  const { Chip, ButtonPrimary, ButtonSecondary } = Spicetify.ReactComponent as any;
+  // `as any`: the buttons are missing from Spicetify's type definitions file.
+  const { ButtonPrimary, ButtonSecondary } = Spicetify.ReactComponent as any;
 
   const { track, tags, audio, mood } = data;
   const kept = keptTags(tags, offNames);
@@ -201,27 +201,36 @@ function SeedContent({ data, offNames, setOffNames, onNext, onCancel }: SeedCont
   const status = seedStatus(tags, kept);
   const allowed = canContinue(status);
 
-  // One chip per tag. `key` helps React tell list items apart.
+  // One switchable tag label per tag: the same frosted pill with a colour dot
+  // as the Remix builder (bright = on). role="checkbox" + aria-checked tell
+  // screen readers (and the smoke test) whether it's on.
   const renderChips = (list: SourcedTag[]) => (
     <div style={styles.chipRow}>
-      {list.map((tag) => (
-        <Chip
-          key={tag.name}
-          selected={!offNames.includes(tag.name)}
-          // A "functional update": React passes the LATEST list, so quick clicks
-          // in a row all count (offNames from this render could be out of date).
-          onClick={() => setOffNames((previous) => toggleTag(previous, tag.name))}
-        >
-          {tag.name}
-        </Chip>
-      ))}
+      {list.map((tag) => {
+        const on = !offNames.includes(tag.name);
+        return (
+          <button
+            key={tag.name}
+            type="button"
+            role="checkbox"
+            aria-checked={on}
+            className={`prism-tag prism-tag-pick prism-tag-big${on ? " shared" : ""}`}
+            style={{ ["--tag" as any]: tagColour(tag.name) }}
+            // A "functional update": React passes the LATEST list, so quick clicks
+            // in a row all count (offNames from this render could be out of date).
+            onClick={() => setOffNames((previous) => toggleTag(previous, tag.name))}
+          >
+            <span className="prism-tag-text">{tag.name}</span>
+          </button>
+        );
+      })}
     </div>
   );
 
   return (
     <div className="prism-fade-in" style={styles.panel} data-prism-state="ready">
       <div>
-        <div style={styles.songName}>{track.name}</div>
+        <div className="prism-screen-title">{track.name}</div>
         <div style={styles.subtext}>{track.artists.join(", ")}</div>
         <div style={styles.subtext}>{formatAudio(audio)}</div>
         <div style={styles.subtext} data-prism="seed-mood">
@@ -234,13 +243,13 @@ function SeedContent({ data, offNames, setOffNames, onNext, onCancel }: SeedCont
           <p style={styles.subtext}>Switch off any tags that don't fit the vibe you want.</p>
           {song.length > 0 && (
             <section>
-              <h3 style={styles.heading}>Song tags</h3>
+              <h3 className="prism-heading">Song tags</h3>
               {renderChips(song)}
             </section>
           )}
           {artist.length > 0 && (
             <section>
-              <h3 style={styles.heading}>From the artist (less specific)</h3>
+              <h3 className="prism-heading">From the artist (less specific)</h3>
               {renderChips(artist)}
             </section>
           )}
@@ -275,10 +284,8 @@ function SeedContent({ data, offNames, setOffNames, onNext, onCancel }: SeedCont
 const styles: Record<string, React.CSSProperties> = {
   panel: { display: "flex", flexDirection: "column", gap: 16 },
   centered: { display: "flex", flexDirection: "column", alignItems: "center", gap: 12, padding: "32px 0" },
-  songName: { fontSize: 20, fontWeight: 700, color: "var(--spice-text)" },
   text: { color: "var(--spice-text)", margin: 0, textAlign: "center" },
   subtext: { color: "var(--spice-subtext)", margin: 0 },
-  heading: { fontSize: 14, fontWeight: 700, margin: "0 0 8px", color: "var(--spice-text)" },
   chipRow: { display: "flex", flexWrap: "wrap", gap: 8 },
   buttons: { display: "flex", justifyContent: "flex-end", gap: 8 },
 };

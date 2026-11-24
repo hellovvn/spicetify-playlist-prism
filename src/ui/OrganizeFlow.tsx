@@ -107,7 +107,7 @@ export function OrganizeFlow(props: OrganizeFlowProps) {
   return (
     // key on the screen: each screen fades in when it appears.
     <div key={screen} className="prism-fade-in" data-prism="organize" data-prism-organize={screen}>
-      <h2 style={styles.title}>Organize playlists</h2>
+      <h2 className="prism-screen-title" style={styles.title}>Organize playlists</h2>
       {body}
     </div>
   );
@@ -237,10 +237,7 @@ function Groups({
 }
 
 const styles: Record<string, React.CSSProperties> = {
-  title: {
-    margin: "0 0 12px", height: 34, lineHeight: "34px", fontSize: 22, fontWeight: 300, letterSpacing: "0.02em", color: "#ffffff",
-    fontFamily: '"Segoe UI Variable Display", "Segoe UI", sans-serif',
-  },
+  title: { margin: "0 0 12px", height: 34, lineHeight: "34px" },
   panel: { display: "flex", flexWrap: "wrap", gap: "10px 24px", padding: "12px 14px" },
   setting: { display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" },
   settingLabel: { color: "var(--spice-text)", fontSize: 13, fontWeight: 600 },

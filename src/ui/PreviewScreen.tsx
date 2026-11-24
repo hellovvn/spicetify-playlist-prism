@@ -163,8 +163,8 @@ export function PreviewScreen({ seed, kept, songs, onBack, onCreate, describeErr
     <label
       key={song.uri}
       style={styles.row}
+      className={`prism-row is-clickable${song.newFind ? " prism-new-find" : ""}`}
       // New finds: mint glass row + "New find" pill + sparkles (styles.ts).
-      className={song.newFind ? "prism-new-find" : undefined}
       data-prism={song.newFind ? "new-find" : undefined}
       // A tooltip with the full breakdown, on hover.
       title={breakdown(song)}
@@ -173,7 +173,7 @@ export function PreviewScreen({ seed, kept, songs, onBack, onCreate, describeErr
         type="checkbox"
         checked={picked.includes(song.uri)}
         onChange={() => setPicked(toggleInList(picked, song.uri))}
-        style={styles.checkbox}
+        className="prism-check"
       />
       {song.newFind ? (
         <span className="prism-ring-wrap">
@@ -300,8 +300,8 @@ export function PreviewScreen({ seed, kept, songs, onBack, onCreate, describeErr
       )}
 
       {/* The seed: always first in the playlist, can't be unticked. */}
-      <div style={{ ...styles.row, ...styles.seedRow }} data-prism="preview-seed">
-        <span style={styles.lockedTick}>✓</span>
+      <div className="prism-row is-glass" style={{ ...styles.row, ...styles.seedRow }} data-prism="preview-seed">
+        <span className="prism-check is-locked" role="img" aria-label="Always included" title="The seed song is always included" />
         <span style={styles.rowText}>
           <span style={styles.name}>
             {seed.track.name} <span style={styles.artist}>· {seed.track.artists.join(", ")} · seed song, always first</span>
@@ -312,7 +312,7 @@ export function PreviewScreen({ seed, kept, songs, onBack, onCreate, describeErr
       </div>
 
       {recommended.length > 0 && (
-        <label style={{ ...styles.row, ...styles.selectAllRow }} data-prism="preview-select-all">
+        <label className="prism-row is-clickable is-head" style={styles.row} data-prism="preview-select-all">
           <input
             type="checkbox"
             checked={allTicked}
@@ -320,7 +320,7 @@ export function PreviewScreen({ seed, kept, songs, onBack, onCreate, describeErr
               if (el) el.indeterminate = someTicked && !allTicked;
             }}
             onChange={() => setPicked(allTicked ? clearShown(asRows, picked) : selectShown(asRows, picked))}
-            style={styles.checkbox}
+            className="prism-check"
           />
           <span style={styles.name}>All recommended ({recommended.length})</span>
         </label>
@@ -335,6 +335,7 @@ export function PreviewScreen({ seed, kept, songs, onBack, onCreate, describeErr
           <>
             <button
               type="button"
+              className="prism-quiet-button"
               style={styles.moreToggle}
               data-prism="preview-more-toggle"
               aria-expanded={showMore}
@@ -419,7 +420,7 @@ function NamePopup({ name, setName, songCount, seedName, creating, error, onCanc
       data-prism="name-popup"
     >
       <div className="prism-glass-card" role="dialog" aria-modal="true" aria-labelledby="prism-name-title">
-        <h2 id="prism-name-title" style={styles.popupTitle}>Name your playlist</h2>
+        <h2 id="prism-name-title" className="prism-screen-title">Name your playlist</h2>
         <p style={styles.popupSub}>
           {songCount} songs, starting with {seedName}, then the rest in shuffled order
         </p>
@@ -514,7 +515,6 @@ function breakdown(song: RankedSong): string {
 const styles: Record<string, React.CSSProperties> = {
   // position: relative so the naming popup can cover exactly this screen.
   screen: { display: "flex", flexDirection: "column", gap: 10, height: SCREEN_HEIGHT, position: "relative" },
-  popupTitle: { margin: 0, fontSize: 22, fontWeight: 300, letterSpacing: "0.02em", fontFamily: '"Segoe UI Variable Display", "Segoe UI", sans-serif', color: "#ffffff" },
   popupSub: { margin: "0 0 4px", color: "var(--spice-subtext)", fontSize: 13 },
   subtext: { color: "var(--spice-subtext)", margin: 0 },
   countRow: { display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" },
@@ -524,11 +524,9 @@ const styles: Record<string, React.CSSProperties> = {
   newStatus: { fontSize: 12, color: "#bff3e1" },
   note: { color: "var(--spice-subtext)", margin: 0, fontSize: 13, height: "3em", overflow: "hidden" },
   list: { flex: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 2 },
-  row: { display: "flex", alignItems: "center", gap: 12, padding: "6px 4px", borderRadius: 6, cursor: "pointer", borderTop: "1px solid rgba(255,255,255,0.06)" },
-  seedRow: { background: "var(--spice-card)", cursor: "default" },
-  selectAllRow: { borderBottom: "1px solid var(--spice-card)", borderRadius: 0 },
-  lockedTick: { width: 18, textAlign: "center", color: "var(--spice-button)", fontWeight: 700, flexShrink: 0 },
-  checkbox: { width: 18, height: 18, accentColor: "var(--spice-button)", cursor: "pointer", flexShrink: 0 },
+  // Look (corners, lines, hover) comes from .prism-row in styles.ts.
+  row: { display: "flex", alignItems: "center", gap: 12, padding: "6px 8px" },
+  seedRow: { cursor: "default", marginBottom: 2 },
   rowText: { display: "flex", flexDirection: "column", gap: 4, minWidth: 0, flex: 1 },
   artist: { color: "var(--spice-subtext)", fontWeight: 400, fontSize: 13 },
   side: { display: "flex", flexDirection: "column", alignItems: "flex-end", color: "var(--spice-subtext)", fontSize: 12, flexShrink: 0, whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" },
@@ -536,8 +534,5 @@ const styles: Record<string, React.CSSProperties> = {
   buttons: { display: "flex", justifyContent: "flex-end", gap: 8 },
   // Box + rainbow edge come from the prism-notice class (styles.ts).
   error: { fontSize: 13, padding: "6px 10px 6px 14px" },
-  moreToggle: {
-    background: "none", border: "none", padding: "10px 4px", textAlign: "left", cursor: "pointer",
-    color: "var(--spice-subtext)", fontWeight: 600, fontSize: 14,
-  },
+  moreToggle: { padding: "10px 8px", fontSize: 14 },
 };

@@ -16,7 +16,7 @@
 import React from "react";
 import { builtFromTags, chartRows, genreCounts, topMood, FAST_FROM, SLOW_BELOW, type PrismPlaylistRecord } from "../stats/playlistStats";
 import { Fingerprint } from "./Fingerprint";
-import { tagColours } from "./tagLabels";
+import { moodColour, tagColours } from "./tagLabels";
 import { ExtraStats, useExtras } from "./ExtraStats";
 import type { PlaylistExtras } from "../stats/playlistExtras";
 import { formatClock, formatLength, madeOn, panelSubtitle } from "./sidePanel";
@@ -177,8 +177,9 @@ export function PanelStats({ record, nowPlaying, onOpenStats, loadExtras }: Pane
             <p style={styles.cardTitle}>Mood mix</p>
             <div style={styles.chips}>
               {moods.map(([mood, count]) => (
-                <span key={mood} style={styles.chip}>
-                  {mood} {count}
+                <span key={mood} className="prism-tag shared mood" style={{ ["--tag" as any]: moodColour(mood) }}>
+                  <span className="prism-tag-text">{mood}</span>
+                  <span className="prism-tag-count">{count}</span>
                 </span>
               ))}
             </div>
@@ -238,5 +239,4 @@ const styles: Record<string, React.CSSProperties> = {
   dot: { width: 8, height: 8, borderRadius: "50%" },
   line: { margin: 0, fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
   big: { margin: 0, fontSize: 16, fontWeight: 700 },
-  chip: { fontSize: 12, padding: "2px 9px", borderRadius: 999, background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.25)" },
 };

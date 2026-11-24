@@ -199,7 +199,7 @@ export function FlipTile({ id, icon, label, tip, children }: FlipTileProps) {
           <span className="prism-mode-tip">{tip}</span>
         </button>
         <section className="prism-flip-face prism-flip-back prism-glass-panel" aria-label={label}>
-          <button ref={backRef} type="button" className="prism-flip-close" onClick={() => turn(false)} data-prism={`unflip-${id.replace("mode-", "")}`}>
+          <button ref={backRef} type="button" className="prism-quiet-button" onClick={() => turn(false)} data-prism={`unflip-${id.replace("mode-", "")}`}>
             ← Back
           </button>
           {children}

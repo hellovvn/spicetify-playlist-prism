@@ -399,7 +399,7 @@ function HomeScreen({ onStart, onOrganize }: { onStart: (seed: string) => void; 
           details and buttons on the back (FlipTile.tsx). */}
       <div style={styles.modes}>
         <FlipTile id="mode-prism" icon={<PrismTileIcon />} label="Grow a playlist" tip="Turn one favourite song into a whole playlist">
-          <h3 style={styles.cardTitle}>Make a Prism playlist</h3>
+          <h3 className="prism-screen-title">Make a Prism playlist</h3>
           <p style={styles.subtext}>Start with a favourite song and grow a playlist of songs that feel like it.</p>
 
           <div style={styles.option}>
@@ -432,6 +432,7 @@ function HomeScreen({ onStart, onOrganize }: { onStart: (seed: string) => void; 
                   setLinkError(null);
                 }}
                 onKeyDown={(event) => event.key === "Enter" && startFromLink()}
+                className="prism-glass-input"
                 style={styles.input}
                 data-prism="link-input"
                 aria-label="Spotify song link"
@@ -451,7 +452,7 @@ function HomeScreen({ onStart, onOrganize }: { onStart: (seed: string) => void; 
         </FlipTile>
 
         <FlipTile id="mode-organize" icon={<OrganizeIcon />} label="Remix into moods" tip="Split playlists by genre and mood">
-          <h3 style={styles.cardTitle}>Organize playlists</h3>
+          <h3 className="prism-screen-title">Organize playlists</h3>
           <p style={styles.subtext}>
             Shuffle your playlists into fresh ones sorted by genre and mood. Make several, or just the one you want.
           </p>
@@ -513,20 +514,17 @@ const styles: Record<string, React.CSSProperties> = {
   title: { margin: 0, fontFamily: '"Segoe UI Variable Display", "Segoe UI", sans-serif', fontSize: 32, fontWeight: 300, letterSpacing: "0.04em", lineHeight: 1.2, whiteSpace: "nowrap" },
   headerButtons: { display: "flex", gap: 8, whiteSpace: "nowrap", flexShrink: 0 },
   column: { display: "flex", flexDirection: "column", gap: 16 },
-  heading: { margin: "0 0 6px", fontSize: 22, fontWeight: 700 },
-  card: { background: "var(--spice-card)", borderRadius: 8, padding: 16, display: "flex", flexDirection: "column", gap: 8 },
   // The two mode tiles: side by side, wrapping to stacked in a narrow window.
   modes: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 14, alignItems: "stretch" },
   option: { display: "flex", flexDirection: "column", gap: 6 },
   optionLabel: { color: "var(--spice-text)", fontSize: 13, fontWeight: 600 },
   hint: { margin: 0, color: "var(--spice-subtext)", fontSize: 12 },
   points: { margin: 0, paddingLeft: 18, color: "var(--spice-subtext)", fontSize: 13, display: "flex", flexDirection: "column", gap: 6 },
-  cardTitle: { margin: 0, fontSize: 17, fontWeight: 700 },
   row: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 },
   text: { color: "var(--spice-text)" },
   keepWhole: { flexShrink: 0, whiteSpace: "nowrap" },
   subtext: { color: "var(--spice-subtext)", margin: 0 },
-  input: { flex: 1, padding: 8, borderRadius: 4, border: "1px solid var(--spice-subtext)", background: "transparent", color: "var(--spice-text)" },
+  input: { flex: 1, width: "auto", minWidth: 0, fontSize: 13, padding: "7px 12px" },
   // Soft pink instead of Spotify's red, which clashes with the purple theme.
   error: { margin: 0, color: "#ffb3d1" },
 };
