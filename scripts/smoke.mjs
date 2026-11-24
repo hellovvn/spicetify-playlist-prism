@@ -664,7 +664,7 @@ try {
   );
   await cdp.evaluate("window.__playlistPrism.goHome()");
 
-  console.log("\n[12] Organize playlists (step 13a, read-only: setup + scan, nothing is created)");
+  console.log("\n[12] Remix into moods: setup, scan, the two doors, Prism's groups (read-only, nothing is created)");
   await sleep(600);
   check(
     "the start page shows both modes",
@@ -675,44 +675,65 @@ try {
   check("the Organize tile flips to its details", await faceShown('[data-prism="mode-organize"] .prism-flip-back'));
   await cdp.evaluate(`document.querySelector('[data-prism="start-organize"]').click()`);
   const ORG = `document.querySelector('[data-prism="organize"]')`;
-  check(
-    "Organize opens on the shared playlist picker with its settings panel",
-    await waitFor(`!!${ORG}?.querySelector('[data-prism="source-list"] label') && !!${ORG}.querySelector('[data-prism="organize-settings"]')`, 15000)
-  );
-  // Settings: pick 3 playlists-to-make and overlap on; the chosen buttons say so.
-  await cdp.evaluate(`${ORG}.querySelector('[data-prism="count-3"]').click()`);
-  await cdp.evaluate(`${ORG}.querySelector('[data-prism="overlap-on"]').click()`);
-  await cdp.evaluate(`${ORG}.querySelector('[data-prism="focus-genre"]').click()`);
-  await sleep(200);
-  check(
-    "the settings buttons switch (3 playlists, overlap on, group by genre)",
-    await cdp.evaluate(
-      `${ORG}.querySelector('[data-prism="count-3"]').getAttribute("aria-pressed") === "true" && ${ORG}.querySelector('[data-prism="overlap-on"]').getAttribute("aria-pressed") === "true" && ${ORG}.querySelector('[data-prism="count-5"]').getAttribute("aria-pressed") === "false" && ${ORG}.querySelector('[data-prism="focus-genre"]').getAttribute("aria-pressed") === "true"`
-    )
-  );
+  check("Remix opens on the shared playlist picker", await waitFor(`!!${ORG}?.querySelector('[data-prism="source-list"] label')`, 15000));
+  check("the picker has no settings panel any more (they moved to More options)", await cdp.evaluate(`!${ORG}.querySelector('[data-prism="organize-settings"]')`));
   await screenshot("organize-setup.png");
   // Tick Dark Romance (cached, so the scan is quick) and scan.
   await cdp.evaluate(`[...${ORG}.querySelectorAll('[data-prism="source-list"] label')].find((r) => r.textContent.includes("Dark Romance")).click()`);
   await sleep(200);
   await cdp.evaluate(`${ORG}.querySelector('[data-prism="sources-next"]').click()`);
   const scanned = await waitFor(`!!document.querySelector('[data-prism-state="scan-done"]')`, 120000);
-  check("Organize scans the picked playlist", scanned);
+  check("Remix scans the picked playlist", scanned);
   if (scanned) {
-    await cdp.evaluate(`[...${ORG}.querySelectorAll("button")].find((b) => b.textContent.includes("group songs")).click()`);
-    const shown = await waitFor(`!!document.querySelector('[data-prism-state="organize-groups"]')`, 5000);
-    const groups = shown
-      ? await cdp.evaluate(`[...document.querySelectorAll('[data-prism="organize-group"]')].map((g) => g.innerText.replace(/\\s+/g, " ").slice(0, 70))`)
-      : [];
+    // The two doors.
+    await cdp.evaluate(`[...${ORG}.querySelectorAll("button")].find((b) => b.textContent.trim() === "Next").click()`);
+    const CHOOSE = `document.querySelector('[data-prism-state="organize-choose"]')`;
+    check("after the scan comes one question with two doors", await waitFor(`!!${CHOOSE}?.querySelector('[data-prism="mode-auto"]') && !!${CHOOSE}.querySelector('[data-prism="mode-me"]')`, 3000));
+    check("Next only shows once a door is picked", await cdp.evaluate(`!${CHOOSE}.querySelector('[data-prism="choose-next"]')`));
+    await cdp.evaluate(`${CHOOSE}.querySelector('[data-prism="mode-auto"]').click()`);
+    await sleep(200);
+    check("picking a door marks it", await cdp.evaluate(`${CHOOSE}.querySelector('[data-prism="mode-auto"]').getAttribute("aria-checked") === "true"`));
+    await screenshot("organize-choose.png");
+    await cdp.evaluate(`${CHOOSE}.querySelector('[data-prism="choose-next"]').click()`);
+    const shown = await waitFor(`!!document.querySelector('[data-prism-view="suggested"]')`, 5000);
+    check("\"Sort them for me\" shows Prism's groups", shown);
+    const GROUPS = `document.querySelector('[data-prism-state="organize-groups"]')`;
+    const CARDS = `[...document.querySelectorAll('[data-prism="organize-group"]')]`;
+    const intro0 = shown ? await cdp.evaluate(`${GROUPS}.querySelector('p').innerText`) : "";
+    check("it says how the songs were grouped (Auto, balanced by default)", /25 songs/.test(intro0) && /genre, mood and tempo together/.test(intro0), intro0);
+    // More options: 3 playlists, group by genre, overlap on and off again.
+    check("More options starts closed", await cdp.evaluate(`!${GROUPS}.querySelector('[data-prism="organize-settings"]')`));
+    await cdp.evaluate(`${GROUPS}.querySelector('[data-prism="more-options"]').click()`);
+    await sleep(200);
+    const SET = `document.querySelector('[data-prism="organize-settings"]')`;
+    check("More options opens with How many, Group mostly by and overlap", await cdp.evaluate(`!!${SET}?.querySelector('[data-prism="count-3"]') && !!${SET}.querySelector('[data-prism="focus-genre"]') && !!${SET}.querySelector('[data-prism="overlap-on"]') && !${SET}.querySelector('[data-prism="count-1"]')`));
+    await cdp.evaluate(`${SET}.querySelector('[data-prism="count-3"]').click()`);
+    await sleep(250);
+    await cdp.evaluate(`${SET}.querySelector('[data-prism="focus-genre"]').click()`);
+    await sleep(250);
+    await cdp.evaluate(`${SET}.querySelector('[data-prism="overlap-on"]').click()`);
+    await sleep(300);
+    check(
+      "the settings buttons switch (3, genre, overlap on)",
+      await cdp.evaluate(`["count-3", "focus-genre", "overlap-on"].every((id) => ${SET}.querySelector('[data-prism="' + id + '"]').getAttribute("aria-pressed") === "true") && ${SET}.querySelector('[data-prism="count-auto"]').getAttribute("aria-pressed") === "false"`)
+    );
+    const groups = await cdp.evaluate(`${CARDS}.map((g) => g.innerText.replace(/\\s+/g, " ").slice(0, 70))`);
     groups.forEach((g) => info(`group: ${g}`));
-    check("after the scan it suggests 3 groups (the number picked)", groups.length === 3, `${groups.length} groups`);
-    const intro = shown ? await cdp.evaluate(`document.querySelector('[data-prism-state="organize-groups"] p').innerText`) : "";
-    check("it says how the songs were grouped", /25 songs/.test(intro) && /mostly genre/.test(intro), intro);
+    check("changing How many regroups straight away (3 groups)", groups.length === 3, `${groups.length} groups`);
+    const intro = await cdp.evaluate(`${GROUPS}.querySelector('p').innerText`);
+    check("the line above says the new grouping", /mostly genre/.test(intro), intro);
     await screenshot("organize-groups.png");
+    // Overlap off again for the editing checks (so a removed song is in no group).
+    await cdp.evaluate(`${SET}.querySelector('[data-prism="overlap-off"]').click()`);
+    await sleep(300);
+    await cdp.evaluate(`${GROUPS}.querySelector('[data-prism="more-options"]').click()`);
+    await sleep(200);
+    check("More options closes again", await cdp.evaluate(`!document.querySelector('[data-prism="organize-settings"]')`));
 
     // 13c: editing on the review screen (all on screen only; nothing is created).
-    const CARDS = `[...document.querySelectorAll('[data-prism="organize-group"]')]`;
-    const cardCount = (i) => cdp.evaluate(`parseInt(${CARDS}[${i}].innerText.match(/(\\d+) songs/)[1])`);
+    const cardCount = (i) => cdp.evaluate(`parseInt(${CARDS}[${i}].innerText.match(/(\\d+) songs?/)[1])`);
     check("each group card shows a 2x2 cover mosaic", await cdp.evaluate(`${CARDS}.every((c) => c.querySelectorAll("img, span[style*='gradient']").length >= 4)`));
+    check("with every song placed there's no Not included card", await cdp.evaluate(`!document.querySelector('[data-prism="organize-not-included"]')`));
     const before0 = await cardCount(0);
     const before1 = await cardCount(1);
     await cdp.evaluate(`${CARDS}[0].click()`);
@@ -729,18 +750,19 @@ try {
       input.dispatchEvent(new FocusEvent("focusout", { bubbles: true }));
     })()`);
     await sleep(200);
-    // Move the first song to the next group (glass menu: open it, pick the
-    // first choice), then remove the (new) first song.
-    const pickFromMenu = async (menu) => {
-      await cdp.evaluate(`${DETAIL}.querySelector('[data-prism="${menu}"]').click()`);
+    // A glass menu: open it, pick the first choice.
+    const pickFromMenu = async (container, menu) => {
+      await cdp.evaluate(`${container}.querySelector('[data-prism="${menu}"]').click()`);
       await sleep(150);
       const opened = await cdp.evaluate(`!!document.querySelector('[role="listbox"] [data-prism="menu-option"]')`);
       await cdp.evaluate(`document.querySelector('[role="listbox"] [data-prism="menu-option"]').dispatchEvent(new MouseEvent("mousedown", { bubbles: true }))`);
       await sleep(200);
       return opened;
     };
-    check("the Move to… glass menu opens with the other groups", await pickFromMenu("move-menu"));
+    // Move the first song to the next group, then remove the (new) first song.
+    check("the Move to… glass menu opens with the other groups", await pickFromMenu(DETAIL, "move-menu"));
     await sleep(200);
+    const removedName = await cdp.evaluate(`${DETAIL}.querySelector('[data-prism="group-song"]').innerText.split("\\n")[0]`);
     await cdp.evaluate(`${DETAIL}.querySelector('[data-prism="remove-song"]').click()`);
     await sleep(200);
     const songsLeft = await cdp.evaluate(`${DETAIL}.querySelectorAll('[data-prism="group-song"]').length`);
@@ -756,15 +778,32 @@ try {
       "the moved song is now in the other group",
       (await cardCount(otherIndex)) >= (otherIndex === 1 ? before1 : before0) || (await cardCount(otherIndex)) > 0
     );
+
+    // Not included: the removed song shows there, with why, and can go back in.
+    const LEFTCARD = `document.querySelector('[data-prism="organize-not-included"]')`;
+    check("the removed song makes a Not included card (1 song)", await cdp.evaluate(`!!${LEFTCARD} && /\\b1 song\\b/.test(${LEFTCARD}.innerText)`));
+    await screenshot("organize-not-included-card.png");
+    await cdp.evaluate(`${LEFTCARD}.click()`);
+    const LEFT = `document.querySelector('[data-prism-state="organize-not-included"]')`;
+    check("opening it lists the song", await waitFor(`${LEFT}?.querySelectorAll('[data-prism="not-included-song"]').length === 1`, 3000));
+    const leftRow = await cdp.evaluate(`${LEFT}.querySelector('[data-prism="not-included-song"]').innerText.replace(/\\s+/g, " ")`);
+    check("it names the song and says why it's there", leftRow.includes(removedName) && /you took it out/.test(leftRow), leftRow);
+    await screenshot("organize-not-included.png");
+    check("Add to… offers the groups", await pickFromMenu(LEFT, "add-to-menu"));
+    check("adding it empties the list", await waitFor(`${LEFT}.querySelectorAll('[data-prism="not-included-song"]').length === 0`, 2000));
+    await cdp.evaluate(`${LEFT}.querySelector('[data-prism="not-included-back"]').click()`);
+    await sleep(300);
+    check("back on the cards, the Not included card is gone", await cdp.evaluate(`!${LEFTCARD} && ${CARDS}.length === 3`));
+
     // Combine: open the renamed group, pick another group, and confirm.
     const groupsBefore = await cdp.evaluate(`${CARDS}.length`);
     await cdp.evaluate(`${CARDS}[${renamedIndex}].click()`);
     await waitFor(`!!${DETAIL}`, 3000);
-    await pickFromMenu("combine-menu");
+    await pickFromMenu(DETAIL, "combine-menu");
     const confirmText = await cdp.evaluate(`${DETAIL}.querySelector('[data-prism="combine-confirm"]')?.innerText ?? ""`);
     check(
       "Combine asks first and says what will happen",
-      /Move all \d+ songs from/.test(confirmText) && /will disappear/.test(confirmText) && (await cdp.evaluate(`${CARDS}.length`)) === 0,
+      /(Add \d+ songs? from|Every song in)/.test(confirmText) && /will disappear/.test(confirmText) && (await cdp.evaluate(`${CARDS}.length`)) === 0,
       confirmText.replace(/\s+/g, " ").slice(0, 120)
     );
     await screenshot("organize-combine-confirm.png");
@@ -773,15 +812,19 @@ try {
     await cdp.evaluate(`${DETAIL}.querySelector('[data-prism="all-groups"]').click()`);
     await sleep(300);
     check("merging leaves one group fewer", (await cdp.evaluate(`${CARDS}.length`)) === groupsBefore - 1, `${groupsBefore} -> ${await cdp.evaluate(`${CARDS}.length`)}`);
-    const suggestedAfterEdits = await cdp.evaluate(`${CARDS}.length`);
 
-    // 13c-2: "Start from scratch" (on screen only; nothing is created).
-    console.log("\n[13] Organize: Start from scratch (step 13c-2, read-only)");
+    // 13c-2: the "I'll pick the vibes" door (on screen only; nothing is created).
+    console.log("\n[13] Remix: I'll pick the vibes (read-only)");
+    await cdp.evaluate(`${GROUPS}.querySelector('[data-prism="groups-back"]').click()`);
+    check("Back on the groups goes to the two doors, door still picked", await waitFor(`${CHOOSE}?.querySelector('[data-prism="mode-auto"]').getAttribute("aria-checked") === "true"`, 3000));
+    await cdp.evaluate(`${CHOOSE}.querySelector('[data-prism="mode-me"]').click()`);
+    await sleep(200);
+    await cdp.evaluate(`${CHOOSE}.querySelector('[data-prism="choose-next"]').click()`);
     const BUILDER = `document.querySelector('[data-prism-state="organize-builder"]')`;
-    await cdp.evaluate(`document.querySelector('[data-prism="start-from-scratch"]').click()`);
-    check("\"Start from scratch\" opens the group builder", await waitFor(`!!${BUILDER}`, 3000));
+    check("\"I'll pick the vibes\" opens the group builder", await waitFor(`!!${BUILDER}`, 3000));
     const builderGroups = await cdp.evaluate(`${BUILDER}.querySelectorAll('[data-prism="builder-group"]').length`);
-    check("it starts with as many empty groups as picked in setup (3)", builderGroups === 3, `${builderGroups}`);
+    check("it starts with one group (one playlist)", builderGroups === 1, `${builderGroups}`);
+    check("it has Back and no \"Use suggestions\"", await cdp.evaluate(`!!${BUILDER}.querySelector('[data-prism="builder-back"]') && !${BUILDER}.querySelector('[data-prism="builder-use-suggestions"]')`));
     const genres = await cdp.evaluate(
       `[...${BUILDER}.querySelectorAll('[data-prism="pick-genre"]')].map((b) => b.dataset.label + " " + b.querySelector(".prism-tag-count").textContent)`
     );
@@ -789,59 +832,84 @@ try {
     info(`genres: ${genres.slice(0, 8).join(", ")}${genres.length > 8 ? ", ..." : ""} (${genres.length} shown)`);
     info(`moods: ${moods.join(", ") || "(none)"}`);
     check("the genres to pick come from the scanned songs, with song counts", genres.length > 0 && genres.every((g) => / \d+$/.test(g)));
-    // Sorting with empty groups says what's missing instead of sorting.
+    // Sorting with an empty group says what's missing instead of sorting.
     await cdp.evaluate(`${BUILDER}.querySelector('[data-prism="builder-sort"]').click()`);
     await sleep(200);
     const problem = await cdp.evaluate(`${BUILDER}?.querySelector('[data-prism="builder-problem"]')?.innerText ?? ""`);
     check("\"Sort songs\" with an empty group says what's missing", /has no genres or moods yet/.test(problem), problem);
-    // Give each group a label: group 1 and 2 a genre each, group 3 a mood (or a 3rd genre).
     const pick = async (groupIndex, selector, labelIndex) => {
       await cdp.evaluate(`${BUILDER}.querySelectorAll('[data-prism="builder-group"]')[${groupIndex}].click()`);
       await sleep(150);
       await cdp.evaluate(`${BUILDER}.querySelectorAll('[data-prism="${selector}"]')[${labelIndex}].click()`);
       await sleep(150);
     };
-    await pick(0, "pick-genre", 0);
+    // One playlist: pick a less common genre, so some songs are left out.
+    const lastGenre = Math.min(genres.length - 1, 4);
+    await pick(0, "pick-genre", lastGenre);
     const firstPressed = await cdp.evaluate(`${BUILDER}.querySelector('[data-prism="pick-genre"][aria-pressed="true"]')?.dataset.label ?? ""`);
     const firstName = await cdp.evaluate(`${BUILDER}.querySelector('[data-prism="builder-name-input"]').value`);
     check("picking a genre turns it on and names the group after it", !!firstPressed && firstName.toLowerCase() === firstPressed.toLowerCase(), `${firstPressed} -> "${firstName}"`);
-    await pick(1, "pick-genre", 1);
-    await pick(2, moods.length ? "pick-mood" : "pick-genre", moods.length ? 0 : 2);
     await screenshot("organize-builder.png");
     await cdp.evaluate(`${BUILDER}.querySelector('[data-prism="builder-sort"]').click()`);
-    const sorted = await waitFor(`document.querySelector('[data-prism-view="custom"]') !== null`, 3000);
-    check("\"Sort songs\" shows the user's groups as album-cover cards", sorted);
-    if (sorted) {
+    const sortedOne = await waitFor(`!!document.querySelector('[data-prism-view="custom"]')`, 3000);
+    check("\"Sort songs\" shows your one playlist as a card", sortedOne && (await cdp.evaluate(`${CARDS}.length`)) === 1);
+    if (sortedOne) {
+      const line = await cdp.evaluate(`${GROUPS}.querySelector('p').innerText`);
+      info(line);
+      const matched = parseInt((line.match(/(\d+) of 25/) || [])[1] ?? "-1");
+      check("it says how many songs match your picks", matched >= 0, line);
+      check("one playlist has no More options", await cdp.evaluate(`!${GROUPS}.querySelector('[data-prism="more-options"]')`));
+      check("one playlist says \"Create playlist\"", await cdp.evaluate(`${GROUPS}.querySelector('[data-prism="open-create"]').textContent.trim() === "Create playlist"`));
+      if (matched < 25) {
+        check(`the ${25 - matched} songs that don't match show as Not included`, await cdp.evaluate(`!!${LEFTCARD} && new RegExp("\\\\b${25 - matched} songs?\\\\b").test(${LEFTCARD}.innerText)`));
+        await screenshot("organize-one-playlist.png");
+        await cdp.evaluate(`${LEFTCARD}.click()`);
+        await waitFor(`!!${LEFT}`, 3000);
+        const why = await cdp.evaluate(`${LEFT}.querySelector('[data-prism="not-included-song"]')?.innerText.replace(/\\s+/g, " ") ?? ""`);
+        check("each one says why (no picked genre/mood, or no tags)", /has none of the genres or moods you picked|no genre tags or lyrics mood found/.test(why), why);
+        check("with one playlist each row has a plain Add button", await cdp.evaluate(`!!${LEFT}.querySelector('[data-prism="add-song"]') && !${LEFT}.querySelector('[data-prism="add-to-menu"]')`));
+        await cdp.evaluate(`${LEFT}.querySelector('[data-prism="add-all"]').click()`);
+        await sleep(200);
+        check("Add all puts every one in", await cdp.evaluate(`${LEFT}.querySelectorAll('[data-prism="not-included-song"]').length === 0`));
+        await cdp.evaluate(`${LEFT}.querySelector('[data-prism="not-included-back"]').click()`);
+        await sleep(300);
+        check("the playlist now has all 25 songs", (await cardCount(0)) === 25 && (await cdp.evaluate(`!${LEFTCARD}`)));
+      } else {
+        info("every song matched the picked genre: Not included not tested with one playlist");
+      }
+      // Several playlists: add two groups in the builder.
+      await cdp.evaluate(`${GROUPS}.querySelector('[data-prism="edit-picks"]').click()`);
+      await waitFor(`!!${BUILDER}`, 3000);
+      check("\"Edit my picks\" goes back to the builder with the pick kept", await cdp.evaluate(`!!${BUILDER}.querySelector('[data-prism="pick-genre"][aria-pressed="true"]')`));
+      await cdp.evaluate(`${BUILDER}.querySelector('[data-prism="builder-add-group"]').click()`);
+      await sleep(150);
+      await cdp.evaluate(`${BUILDER}.querySelector('[data-prism="builder-add-group"]').click()`);
+      await sleep(150);
+      await pick(1, "pick-genre", 0);
+      await pick(2, moods.length ? "pick-mood" : "pick-genre", moods.length ? 0 : 1);
+      await cdp.evaluate(`${BUILDER}.querySelector('[data-prism="builder-sort"]').click()`);
+      await waitFor(`${CARDS}.length === 3`, 3000);
       const custom = await cdp.evaluate(`${CARDS}.map((g) => g.innerText.replace(/\\s+/g, " ").slice(0, 70))`);
       custom.forEach((g) => info(`your group: ${g}`));
-      const total = await cdp.evaluate(`${CARDS}.reduce((n, c) => n + parseInt(c.innerText.match(/(\\d+) songs/)[1]), 0)`);
-      const intro2 = await cdp.evaluate(`document.querySelector('[data-prism-state="organize-groups"] p').innerText`);
-      info(intro2);
-      check("3 groups, and every song is in one (overlap on: at least 25 places)", custom.length === 3 && total >= 25, `${custom.length} groups, ${total} places`);
+      const total = await cdp.evaluate(`${CARDS}.reduce((n, c) => n + parseInt(c.innerText.match(/(\\d+) songs?/)[1]), 0)`);
+      check("3 groups, and every song is in one", custom.length === 3 && total >= 25 && (await cdp.evaluate(`!${LEFTCARD}`)), `${custom.length} groups, ${total} places`);
+      // More options for your own groups: no How many (that's how many you made).
+      await cdp.evaluate(`${GROUPS}.querySelector('[data-prism="more-options"]').click()`);
+      await sleep(200);
+      check("your groups' More options has no How many", await cdp.evaluate(`!!${SET} && !${SET}.querySelector('[data-prism="count-3"]') && !!${SET}.querySelector('[data-prism="overlap-on"]')`));
+      await cdp.evaluate(`${SET}.querySelector('[data-prism="overlap-on"]').click()`);
+      await sleep(300);
+      const intro2 = await cdp.evaluate(`${GROUPS}.querySelector('p').innerText`);
+      check("overlap on sorts your groups again", /can join every group/.test(intro2) && (await cdp.evaluate(`${CARDS}.length`)) === 3, intro2);
       await screenshot("organize-custom-groups.png");
       await cdp.evaluate(`${CARDS}[0].click()`);
       check("your groups open with the same editing tools", await waitFor(`!!${DETAIL}?.querySelector('[data-prism="group-name-input"]')`, 3000));
       await cdp.evaluate(`${DETAIL}.querySelector('[data-prism="all-groups"]').click()`);
       await sleep(300);
-      // Back to the suggestions: the edits made to them earlier are still there.
-      await cdp.evaluate(`document.querySelector('[data-prism="use-suggestions"]').click()`);
-      await sleep(300);
-      check(
-        "\"Use suggestions\" goes back to the suggested groups, edits kept",
-        (await cdp.evaluate(`document.querySelector('[data-prism-view="suggested"]') !== null`)) &&
-          (await cdp.evaluate(`${CARDS}.length`)) === suggestedAfterEdits &&
-          (await cdp.evaluate(`${CARDS}.some((c) => c.innerText.startsWith("Smoke test name"))`))
-      );
-      // And the builder still has the picked labels.
-      await cdp.evaluate(`document.querySelector('[data-prism="start-from-scratch"]').click()`);
-      await sleep(300);
-      check("the builder keeps your groups while you switch", (await cdp.evaluate(`${BUILDER}?.querySelectorAll('[aria-pressed="true"][data-prism^="pick-"]').length ?? 0`)) >= 1);
 
       // 13d: the confirm screen. READ-ONLY: this test NEVER clicks
       // "Create playlists" (data-prism="create-go"); it only looks and goes Back.
-      console.log("\n[14] Organize: confirm screen (step 13d, read-only: nothing is created)");
-      await cdp.evaluate(`${BUILDER}.querySelector('[data-prism="builder-use-suggestions"]').click()`);
-      await sleep(300);
+      console.log("\n[14] Remix: confirm screen (step 13d, read-only: nothing is created)");
       const cardsNow = await cdp.evaluate(`${CARDS}.filter((c) => !/\\b0 songs/.test(c.innerText)).length`);
       await cdp.evaluate(`document.querySelector('[data-prism="open-create"]').click()`);
       const CONFIRM = `document.querySelector('[data-prism-state="organize-create-confirm"]')`;
@@ -852,7 +920,8 @@ try {
       check("names start with \"Prism · \" by default", rowNames.length > 0 && rowNames.every((n) => n.startsWith("Prism · ")));
       check("every row is still \"ready\" (nothing created)", await cdp.evaluate(`[...${CONFIRM}.querySelectorAll('[data-prism="create-row"]')].every((r) => r.dataset.status === "ready")`));
       await screenshot("organize-create-confirm.png");
-      await cdp.evaluate(`${CONFIRM}.querySelector('[data-prism="prefix-off"]').click()`);
+      check("the prefix check bubble is ticked by default", await cdp.evaluate(`${CONFIRM}.querySelector('[data-prism="prefix-check"] input').checked`));
+      await cdp.evaluate(`${CONFIRM}.querySelector('[data-prism="prefix-check"] input').click()`);
       await sleep(200);
       check(
         "turning the prefix off shows the plain names",
