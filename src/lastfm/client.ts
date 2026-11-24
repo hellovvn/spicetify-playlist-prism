@@ -95,3 +95,44 @@ export async function testApiKey(apiKey: string): Promise<string | null> {
     return `Couldn't reach Last.fm: ${String(error)}`;
   }
 }
+
+// ----- Similar songs (DISCOVER, src/discover/discover.ts) -----
+// One similar song: name, artist and Last.fm's match (0..1, 1 = most similar).
+export interface LastfmSimilar {
+  name: string;
+  artist: string;
+  match: number;
+}
+
+// Songs Last.fm thinks are similar to this one (from listening habits).
+export async function getSimilarTracks(artist: string, track: string, apiKey: string, limit = 50): Promise<LastfmSimilar[]> {
+  const data = await callLastfm({ method: "track.getSimilar", artist, track, autocorrect: "1", limit: String(limit) }, apiKey);
+  return parseSimilarTracks(data);
+}
+
+// Fallback when Last.fm knows no similar SONGS: similar ARTISTS (with match)...
+export async function getSimilarArtists(artist: string, apiKey: string, limit = 10): Promise<{ name: string; match: number }[]> {
+  const data = await callLastfm({ method: "artist.getSimilar", artist, autocorrect: "1", limit: String(limit) }, apiKey);
+  return asList(data?.similarartists?.artist)
+    .map((a) => ({ name: String(a?.name ?? ""), match: Number(a?.match) || 0 }))
+    .filter((a) => a.name);
+}
+
+// ...and each one's most played songs.
+export async function getArtistTopTracks(artist: string, apiKey: string, limit = 3): Promise<string[]> {
+  const data = await callLastfm({ method: "artist.getTopTracks", artist, autocorrect: "1", limit: String(limit) }, apiKey);
+  return asList(data?.toptracks?.track).map((t) => String(t?.name ?? "")).filter(Boolean);
+}
+
+// data.similartracks.track: [{ name, match, artist: { name } }, ...]
+export function parseSimilarTracks(data: any): LastfmSimilar[] {
+  return asList(data?.similartracks?.track)
+    .map((t) => ({ name: String(t?.name ?? ""), artist: String(t?.artist?.name ?? ""), match: Number(t?.match) || 0 }))
+    .filter((t) => t.name && t.artist);
+}
+
+// Same quirk as the tag lists: one item may come as an object, not an array.
+function asList(raw: any): any[] {
+  if (raw === undefined || raw === null) return [];
+  return Array.isArray(raw) ? raw : [raw];
+}

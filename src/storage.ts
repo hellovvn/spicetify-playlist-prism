@@ -102,3 +102,28 @@ export function loadPanelStatsSetting(): string | null {
 export function savePanelStatsSetting(on: boolean): void {
   Spicetify.LocalStorage.set(PANEL_STATS_KEY, on ? "on" : "off");
 }
+
+// ----- Grow: how many songs to recommend (see PICK_COUNTS in src/scoring/rank.ts) -----
+// "10", "30", "all"... Remembered so the next Prism starts with the same count.
+
+const PICK_COUNT_KEY = "prism:growCount";
+
+export function loadPickCountText(): string | null {
+  return Spicetify.LocalStorage.get(PICK_COUNT_KEY);
+}
+
+export function savePickCountText(text: string): void {
+  Spicetify.LocalStorage.set(PICK_COUNT_KEY, text);
+}
+
+// ----- Grow: how many NEW FINDS to tick (see NEW_COUNTS in src/discover/discover.ts) -----
+
+const NEW_COUNT_KEY = "prism:growNewCount";
+
+export function loadNewCountText(): string | null {
+  return Spicetify.LocalStorage.get(NEW_COUNT_KEY);
+}
+
+export function saveNewCountText(text: string): void {
+  Spicetify.LocalStorage.set(NEW_COUNT_KEY, text);
+}

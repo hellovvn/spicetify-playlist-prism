@@ -30,7 +30,7 @@ import { isPanelStatsOn } from "./sidePanel";
 
 
 import { OrganizeFlow } from "./OrganizeFlow";
-import { createFromPreview, createOrganizedPlaylist, friendlyError, loadPlaylistExtras, loadPlaylistStats, loadSeed, runScan } from "../flow";
+import { createFromPreview, createOrganizedPlaylist, findNewSongs, friendlyError, loadPlaylistExtras, loadPlaylistStats, loadSeed, runScan } from "../flow";
 import { PAGE_PATH, parsePageRequest, parseTrackLink, type PageRequest } from "../nav";
 import { SeedPanel } from "./SeedPanel";
 import { SettingsPanel } from "./SettingsPanel";
@@ -237,6 +237,7 @@ export function PrismPage() {
         load={() => loadSeed(view.seed)}
         loadSources={getSources}
         runScan={runScan}
+        findNew={findNewSongs}
         describeError={friendlyError}
         onCancel={goHome}
         onScanningChange={setScanning}

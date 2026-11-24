@@ -514,6 +514,60 @@ try {
         const createLabel = () => cdp.evaluate(`[...${PREVIEW}.querySelectorAll("button")].find((b) => b.textContent.startsWith("Create")).textContent`);
         const n = (label) => parseInt(label.match(/\((\d+)/)[1]);
         const REC_BOXES = `[...${PREVIEW}.querySelectorAll('[data-prism="preview-recommended"] input')]`;
+
+        // Count chips (how many songs to recommend). Choosing one saves it in
+        // LocalStorage, so remember the developer's choice and put it back.
+        const savedCount = await cdp.evaluate(`Spicetify.LocalStorage.get("prism:growCount")`);
+        const clickCount = async (id) => {
+          await cdp.evaluate(`${PREVIEW}.querySelector('[data-prism="count-${id}"]').click()`);
+          await sleep(250);
+        };
+        const recState = () => cdp.evaluate(`({ n: ${REC_BOXES}.length, ticked: ${REC_BOXES}.every((b) => b.checked) })`);
+        const totalMatches = scores.length + (await cdp.evaluate(`(() => { const t = ${PREVIEW}.querySelector('[data-prism="preview-more-toggle"]'); return t ? t.textContent.split(" ").map(Number).find((x) => x > 0) : 0; })()`));
+        await clickCount(10);
+        const ten = await recState();
+        check("count 10 re-ticks the best 10", ten.n === Math.min(10, totalMatches) && ten.ticked && n(await createLabel()) === ten.n + 1, `${ten.n} recommended`);
+        await clickCount("all");
+        const all = await recState();
+        check("count All recommends every match", all.n === totalMatches && all.ticked, `${all.n} of ${totalMatches}`);
+        await clickCount("custom");
+        await cdp.evaluate(`(() => {
+          const input = ${PREVIEW}.querySelector('[data-prism="count-custom-input"]');
+          Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(input, "15");
+          input.dispatchEvent(new Event("input", { bubbles: true }));
+        })()`);
+        await sleep(250);
+        const custom = await recState();
+        check("a custom count (15) re-ticks the best 15", custom.n === Math.min(15, totalMatches) && custom.ticked, `${custom.n} recommended`);
+        await screenshot("preview-count.png");
+        // New finds (DISCOVER): similar songs NOT in the library, marked with a
+        // mint "New find" row. Read-only: it only searches. Choosing a count
+        // saves it, so the developer's choice is put back afterwards.
+        const savedNewCount = await cdp.evaluate(`Spicetify.LocalStorage.get("prism:growNewCount")`);
+        const NEW_ROWS = `[...${PREVIEW}.querySelectorAll('[data-prism="preview-recommended"] [data-prism="new-find"]')]`;
+        const clickNew = async (id) => {
+          await cdp.evaluate(`${PREVIEW}.querySelector('[data-prism="new-count-${id}"]').click()`);
+          await sleep(250);
+        };
+        const newStatus = () => cdp.evaluate(`${PREVIEW}.querySelector('[data-prism="new-status"]').textContent`);
+        await clickNew(10);
+        const searched = await waitFor(`!${PREVIEW}.querySelector('[data-prism="new-status"]').textContent.includes("Looking")`, 120000);
+        const status = await newStatus();
+        check("new finds: the search finishes", searched && /found|No new songs/.test(status), status);
+        const tenNew = await cdp.evaluate(`({ n: ${NEW_ROWS}.length, ticked: ${NEW_ROWS}.every((r) => r.querySelector("input").checked), pill: ${NEW_ROWS}.every((r) => r.textContent.includes("New find")), sparkles: ${NEW_ROWS}.every((r) => r.querySelectorAll(".prism-sparkle").length === 3) })`);
+        check("new finds: up to 10 ticked, each with the New find pill and sparkles", tenNew.n > 0 && tenNew.n <= 10 && tenNew.ticked && tenNew.pill && tenNew.sparkles, JSON.stringify(tenNew));
+        info(`new finds shown: ${tenNew.n}`);
+        await cdp.evaluate(`${PREVIEW}.querySelector('[data-prism="new-find"]')?.scrollIntoView({ block: "center" })`);
+        await screenshot("preview-new-finds.png");
+        const newTip = await cdp.evaluate(`${NEW_ROWS}[0]?.title ?? ""`);
+        check("new finds: the tooltip says it's not in your library", newTip.includes("not in your library"), newTip.split(String.fromCharCode(10)).pop());
+        await clickNew(5);
+        check("new finds: 5 re-ticks the best 5", (await cdp.evaluate(`${NEW_ROWS}.length`)) <= 5);
+        await clickNew("off");
+        check("new finds: Off hides them all", (await cdp.evaluate(`${PREVIEW}.querySelectorAll('[data-prism="new-find"]').length`)) === 0);
+        await cdp.evaluate(savedNewCount === null ? `Spicetify.LocalStorage.remove("prism:growNewCount")` : `Spicetify.LocalStorage.set("prism:growNewCount", ${JSON.stringify(savedNewCount)})`);
+        await clickCount(30); // back to the default for the checks below
+        await cdp.evaluate(savedCount === null ? `Spicetify.LocalStorage.remove("prism:growCount")` : `Spicetify.LocalStorage.set("prism:growCount", ${JSON.stringify(savedCount)})`);
         const recCount = await cdp.evaluate(`${REC_BOXES}.length`);
         const allRecTicked = await cdp.evaluate(`${REC_BOXES}.every((b) => b.checked)`);
         check("every recommended song starts ticked (up to 30)", recCount > 0 && recCount <= 30 && allRecTicked, `${recCount} recommended`);

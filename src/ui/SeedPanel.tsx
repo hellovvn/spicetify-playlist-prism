@@ -52,6 +52,13 @@ export interface SeedPanelProps {
     sources: SourceOption[];
     songs: RankedSong[];
   }) => Promise<void>;
+  // DISCOVER: new songs similar to the seed, not in the library (optional).
+  findNew?: (
+    seed: SeedData,
+    kept: SourcedTag[],
+    onProgress: (progress: { done: number; total: number }) => void,
+    shouldStop: () => boolean
+  ) => Promise<RankedSong[]>;
 }
 
 // The outer component. It owns the state BOTH screens need, so going
@@ -60,7 +67,7 @@ export interface SeedPanelProps {
 //   screen "sources": playlist picker
 //   screen "scan":    scanning progress, then a summary
 //   screen "preview": ranked matches with scores; pick what goes in
-export function SeedPanel({ load, loadSources, runScan, describeError, onCancel, onScanningChange, onCreate }: SeedPanelProps) {
+export function SeedPanel({ load, loadSources, runScan, describeError, onCancel, onScanningChange, onCreate, findNew }: SeedPanelProps) {
   const [data, setData] = React.useState<SeedData | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [screen, setScreen] = React.useState<"seed" | "sources" | "scan" | "preview">("seed");
@@ -156,6 +163,7 @@ export function SeedPanel({ load, loadSources, runScan, describeError, onCancel,
           onBack={() => setScreen("sources")}
           describeError={describeError}
           onCreate={(name, songs) => onCreate({ name, seed: data, kept: keptTags(data.tags, offNames), sources: picked, songs })}
+          findNew={findNew && ((onProgress, shouldStop) => findNew(data, keptTags(data.tags, offNames), onProgress, shouldStop))}
         />
       </div>
     );

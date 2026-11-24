@@ -836,6 +836,34 @@ const CSS = `
   .prism-mode-tile::before, .prism-ic-anim { animation: none !important; }
   .prism-spinner { animation-duration: 2400ms; }
 }
+
+/* ----- Grow preview: NEW FINDS (songs not from the user's playlists) -----
+   Developer's pick: mint glass row ("S2") + a "New find" pill + sparkles
+   twinkling round the score ring ("S1"). */
+.prism-new-find {
+  background: linear-gradient(90deg, rgba(159, 225, 203, 0.16), rgba(159, 225, 203, 0.07)) !important;
+  border: 1px solid rgba(159, 225, 203, 0.5) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  margin: 2px 0;
+}
+.prism-new-find:hover { border-color: rgba(159, 225, 203, 0.85) !important; }
+.prism-new-pill {
+  display: inline-flex; align-items: center; gap: 3px; vertical-align: 1px; margin-left: 6px;
+  padding: 0 8px; border-radius: 999px; font-size: 11px; font-weight: 600; line-height: 18px;
+  color: #d7fff2; background: rgba(159, 225, 203, 0.2); border: 1px solid rgba(159, 225, 203, 0.75);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+.prism-ring-wrap { position: relative; display: inline-flex; flex-shrink: 0; }
+.prism-sparkle {
+  position: absolute; pointer-events: none; color: #fff7c2; line-height: 1;
+  text-shadow: 0 0 6px rgba(255, 240, 180, 0.85);
+  animation: prism-sparkle 2.4s ease-in-out infinite;
+}
+@keyframes prism-sparkle {
+  0%, 100% { opacity: 0.15; transform: scale(0.6) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1) rotate(20deg); }
+}
+@media (prefers-reduced-motion: reduce) { .prism-sparkle { animation: none; opacity: 0.8; } }
 `;
 
 // Adds the styles once (safe to call again: it checks first).

@@ -10,7 +10,18 @@
 
 import React from "react";
 import type { ScannedSong } from "../scan/scan";
-import { defaultPicks, rankSongs, type RankedSong } from "../scoring/rank";
+import {
+  DEFAULT_PICK_COUNT,
+  MAX_CUSTOM_COUNT,
+  PICK_COUNTS,
+  parsePickCount,
+  picksFor,
+  rankSongs,
+  type PickCount,
+  type RankedSong,
+} from "../scoring/rank";
+import { loadNewCountText, loadPickCountText, saveNewCountText, savePickCountText } from "../storage";
+import { DEFAULT_NEW_COUNT, mergeByScore, NEW_COUNTS, newPicks, parseNewCount, type NewCount } from "../discover/discover";
 import type { SourcedTag } from "../tags/combineTags";
 import { formatAudio } from "../spotify/audio";
 import { formatMood, topMoods, type MoodProfile } from "../mood/lyricsMood";
@@ -30,11 +41,17 @@ export interface PreviewScreenProps {
   // Creates the playlist (step 9). Resolves when done; rejects with an error to show.
   onCreate: (name: string, picked: RankedSong[]) => Promise<void>;
   describeError: (error: unknown) => string;
+  // DISCOVER: looks for NEW songs similar to the seed (not in the library).
+  // Optional so the preview also works without it.
+  findNew?: (
+    onProgress: (progress: { done: number; total: number }) => void,
+    shouldStop: () => boolean
+  ) => Promise<RankedSong[]>;
 }
 
 const percent = (value: number) => `${Math.round(value * 100)}%`;
 
-export function PreviewScreen({ seed, kept, songs, onBack, onCreate, describeError }: PreviewScreenProps) {
+export function PreviewScreen({ seed, kept, songs, onBack, onCreate, describeError, findNew }: PreviewScreenProps) {
   const { ButtonPrimary, ButtonSecondary } = Spicetify.ReactComponent as any;
   const [name, setName] = React.useState(`Prism · ${seed.track.name}`);
   // "creating" blocks a second click, which would otherwise make TWO playlists.
@@ -49,25 +66,106 @@ export function PreviewScreen({ seed, kept, songs, onBack, onCreate, describeErr
     () => rankSongs({ ...seed.track, tags: kept, audio: seed.audio, mood: seed.mood }, songs),
     [seed, kept, songs]
   );
-  // The RECOMMENDED songs (top 30 by rank) start ticked; the user unticks
-  // what they don't want. The other matches are hidden under "Show more".
-  const recommendedUris = React.useMemo(() => defaultPicks(ranking.matches), [ranking]);
+  // HOW MANY songs to recommend: one of the count chips (10/20/30/50/All) or
+  // a custom number. Remembered in LocalStorage for the next Prism.
+  const [count, setCount] = React.useState<PickCount>(() => parsePickCount(loadPickCountText()) ?? DEFAULT_PICK_COUNT);
+  const [customOpen, setCustomOpen] = React.useState(() => !PICK_COUNTS.includes(count));
+  const [customText, setCustomText] = React.useState(() => (typeof count === "number" ? String(count) : ""));
+  const customValid = parsePickCount(customText) !== null && customText.trim().toLowerCase() !== "all";
+
+  // The RECOMMENDED songs (the best `count` by rank) start ticked; the user
+  // unticks what they don't want. The other matches are hidden under "Show more".
+  const recommendedUris = React.useMemo(() => picksFor(ranking.matches, count), [ranking, count]);
   const [picked, setPicked] = React.useState<string[]>(recommendedUris);
   const [showMore, setShowMore] = React.useState(false);
 
+  // ----- New finds (DISCOVER) -----
+  // How many to tick (Off/5/10/20, remembered), the songs found, and how the
+  // search is going. The search starts once, when the count isn't Off.
+  const [newCount, setNewCount] = React.useState<NewCount>(() => parseNewCount(loadNewCountText()) ?? DEFAULT_NEW_COUNT);
+  const [newSongs, setNewSongs] = React.useState<RankedSong[]>([]);
+  const [newState, setNewState] = React.useState<"idle" | "loading" | "done" | "error">("idle");
+  const [newProgress, setNewProgress] = React.useState({ done: 0, total: 0 });
+  // The count right now, for the search to read when it finishes (the user
+  // may change it while it runs). A ref: reading it never re-renders.
+  const newCountNow = React.useRef(newCount);
+  newCountNow.current = newCount;
+  // Set when the screen closes, so a running search stops early.
+  const stopped = React.useRef(false);
+  React.useEffect(() => () => void (stopped.current = true), []);
+  React.useEffect(() => {
+    if (!findNew || newCount === "off" || newState !== "idle") return;
+    setNewState("loading");
+    findNew(setNewProgress, () => stopped.current)
+      .then((found) => {
+        if (stopped.current) return;
+        setNewSongs(found);
+        setNewState("done");
+        // The best new finds start ticked, like the recommended songs.
+        const fresh = newPicks(found, newCountNow.current);
+        setPicked((now) => [...now, ...fresh.filter((uri) => !now.includes(uri))]);
+      })
+      .catch((error) => {
+        console.error("[Playlist Prism] looking for new finds failed", error);
+        if (!stopped.current) setNewState("error");
+      });
+  }, [findNew, newCount, newState]);
+
+  // Choosing a new-finds count re-ticks the new finds (like the songs count).
+  const chooseNewCount = (next: NewCount) => {
+    setNewCount(next);
+    saveNewCountText(String(next));
+    const newUris = newSongs.map((song) => song.uri);
+    const fresh = newPicks(newSongs, next);
+    setPicked((now) => [...now.filter((uri) => !newUris.includes(uri)), ...fresh]);
+  };
+
+  // Choosing a count RE-TICKS: exactly the best N are ticked afterwards
+  // (earlier hand-made ticks are replaced). Ticking by hand still works after.
+  const chooseCount = (next: PickCount) => {
+    setCount(next);
+    setPicked(picksFor(ranking.matches, next));
+    savePickCountText(String(next));
+  };
+
   const { matches, noMatch } = ranking;
-  const recommended = matches.filter((m) => recommendedUris.includes(m.uri));
-  const more = matches.filter((m) => !recommendedUris.includes(m.uri));
+  // New finds, when shown, sit in the same best-first list as library songs.
+  const shownNew = newCount === "off" ? [] : newSongs;
+  const recommendedNewUris = newPicks(shownNew, newCount);
+  const recommendedNew = shownNew.filter((m) => recommendedNewUris.includes(m.uri));
+  const recommendedLibrary = matches.filter((m) => recommendedUris.includes(m.uri));
+  const recommended = mergeByScore(recommendedLibrary, recommendedNew);
+  const more = mergeByScore(
+    matches.filter((m) => !recommendedUris.includes(m.uri)),
+    shownNew.filter((m) => !recommendedNewUris.includes(m.uri))
+  );
   // "Select all" (for the recommended list) reuses the playlist picker's helpers.
   const asRows = recommended.map((m) => ({ uri: m.uri, name: m.name, trackCount: 0, folder: null, owner: "" }));
   const allTicked = allShownSelected(asRows, picked);
   const someTicked = recommended.some((m) => picked.includes(m.uri));
-  const pickedSongs = matches.filter((m) => picked.includes(m.uri));
+  // What goes into the playlist (after the seed): ticked songs, best first.
+  const pickedSongs = mergeByScore(matches, shownNew).filter((m) => picked.includes(m.uri));
+
+  // The line next to the New finds chips.
+  const newStatusText = () => {
+    if (newCount === "off") return "Only songs from your playlists";
+    if (newState === "loading") {
+      const counter = newProgress.total ? ` ${newProgress.done} of ${newProgress.total}` : "";
+      return `✦ Looking for similar songs…${counter}`;
+    }
+    if (newState === "error") return "Couldn't look for new songs this time";
+    if (newState === "done" && newSongs.length === 0) return "No new songs share this vibe's tags";
+    if (newState === "done") return `✦ ${newSongs.length} found that aren't in your library`;
+    return "";
+  };
 
   const renderRow = (song: RankedSong) => (
     <label
       key={song.uri}
       style={styles.row}
+      // New finds: mint glass row + "New find" pill + sparkles (styles.ts).
+      className={song.newFind ? "prism-new-find" : undefined}
+      data-prism={song.newFind ? "new-find" : undefined}
       // A tooltip with the full breakdown, on hover.
       title={breakdown(song)}
     >
@@ -77,10 +175,20 @@ export function PreviewScreen({ seed, kept, songs, onBack, onCreate, describeErr
         onChange={() => setPicked(toggleInList(picked, song.uri))}
         style={styles.checkbox}
       />
-      <ScoreRing score={song.match.score} />
+      {song.newFind ? (
+        <span className="prism-ring-wrap">
+          <ScoreRing score={song.match.score} />
+          <span className="prism-sparkle" style={{ top: -2, right: -3, fontSize: 12 }} aria-hidden="true">✦</span>
+          <span className="prism-sparkle" style={{ bottom: 0, left: -4, fontSize: 10, animationDelay: "0.8s" }} aria-hidden="true">✧</span>
+          <span className="prism-sparkle" style={{ top: 20, right: -8, fontSize: 8, animationDelay: "1.6s" }} aria-hidden="true">✦</span>
+        </span>
+      ) : (
+        <ScoreRing score={song.match.score} />
+      )}
       <span style={styles.rowText}>
         <span style={styles.name}>
           {song.name} <span style={styles.artist}>· {song.artists.join(", ")}</span>
+          {song.newFind && <span className="prism-new-pill">✦ New find</span>}
         </span>
         <TagLabels labels={labelsFor(song.match.matchedTags, song.tags)} artistTags={song.tagStatus === "artist"} />
       </span>
@@ -93,8 +201,103 @@ export function PreviewScreen({ seed, kept, songs, onBack, onCreate, describeErr
       <p style={styles.subtext}>
         {matches.length === 0
           ? "No songs in those playlists share this vibe's tags."
-          : `We recommend these ${recommended.length} songs, best first. Untick any you don't want.`}
+          : count === "all"
+            ? `All ${recommendedLibrary.length} matching songs${
+                recommendedNew.length ? ` + ${recommendedNew.length} new finds` : ""
+              }, best first. Untick any you don't want.`
+            : `We recommend these ${recommendedLibrary.length} songs${
+                recommendedNew.length ? ` + ${recommendedNew.length} new finds` : ""
+              }, best first. Untick any you don't want.`}
+        {typeof count === "number" && count > recommendedLibrary.length && matches.length > 0
+          ? ` (Only ${recommendedLibrary.length} match well enough for ${count}; more are under "Show more".)`
+          : ""}
       </p>
+
+      {/* How many songs: the count chips (layout "A", developer's pick). */}
+      {matches.length > 0 && (
+        <div style={styles.countRow} data-prism="preview-count">
+          <span style={styles.countLabel} id="prism-count-songs-label">
+            Songs from your playlists
+          </span>
+          <div className="prism-seg" role="group" aria-labelledby="prism-count-songs-label">
+            {PICK_COUNTS.map((option) => {
+              const on = !customOpen && count === option;
+              return (
+                <button
+                  key={String(option)}
+                  type="button"
+                  className={on ? "on" : ""}
+                  aria-pressed={on}
+                  onClick={() => {
+                    setCustomOpen(false);
+                    chooseCount(option);
+                  }}
+                  data-prism={`count-${option}`}
+                >
+                  {option === "all" ? "All" : option}
+                </button>
+              );
+            })}
+            <button
+              type="button"
+              className={customOpen ? "on" : ""}
+              aria-pressed={customOpen}
+              onClick={() => setCustomOpen(true)}
+              data-prism="count-custom"
+            >
+              Custom
+            </button>
+          </div>
+          {customOpen && (
+            <input
+              type="number"
+              min={1}
+              max={MAX_CUSTOM_COUNT}
+              step={1}
+              autoFocus
+              value={customText}
+              placeholder="25"
+              onChange={(event) => {
+                setCustomText(event.target.value);
+                const n = parsePickCount(event.target.value);
+                if (typeof n === "number") chooseCount(n);
+              }}
+              className="prism-glass-input"
+              style={styles.customInput}
+              aria-label={`Number of songs, 1 to ${MAX_CUSTOM_COUNT}`}
+              aria-invalid={!customValid}
+              data-prism="count-custom-input"
+            />
+          )}
+          {customOpen && !customValid && <span style={styles.countHint}>1 to {MAX_CUSTOM_COUNT}</span>}
+        </div>
+      )}
+
+      {/* New finds: similar songs that are NOT in the user's library. */}
+      {findNew && (
+        <div style={styles.countRow} data-prism="preview-new-count">
+          <span style={styles.countLabel} id="prism-count-new-label">
+            New finds
+          </span>
+          <div className="prism-seg" role="group" aria-labelledby="prism-count-new-label">
+            {NEW_COUNTS.map((option) => (
+              <button
+                key={String(option)}
+                type="button"
+                className={newCount === option ? "on" : ""}
+                aria-pressed={newCount === option}
+                onClick={() => chooseNewCount(option)}
+                data-prism={`new-count-${option}`}
+              >
+                {option === "off" ? "Off" : option}
+              </button>
+            ))}
+          </div>
+          <span style={styles.newStatus} data-prism="new-status" aria-live="polite">
+            {newStatusText()}
+          </span>
+        </div>
+      )}
 
       {/* The seed: always first in the playlist, can't be unticked. */}
       <div style={{ ...styles.row, ...styles.seedRow }} data-prism="preview-seed">
@@ -218,7 +421,7 @@ function NamePopup({ name, setName, songCount, seedName, creating, error, onCanc
       <div className="prism-glass-card" role="dialog" aria-modal="true" aria-labelledby="prism-name-title">
         <h2 id="prism-name-title" style={styles.popupTitle}>Name your playlist</h2>
         <p style={styles.popupSub}>
-          {songCount} songs, starting with {seedName}
+          {songCount} songs, starting with {seedName}, then the rest in shuffled order
         </p>
         <input
           type="text"
@@ -302,7 +505,10 @@ function breakdown(song: RankedSong): string {
   parts.push(song.match.moodScore === null ? "mood unknown" : `mood ${percent(song.match.moodScore)}`);
   parts.push(song.match.bpmScore === null ? "tempo unknown" : `tempo ${percent(song.match.bpmScore)}`);
   parts.push(song.match.keyScore === null ? "key unknown" : `key ${percent(song.match.keyScore)}`);
-  return `${parts.join(" · ")}\n${formatAudio(song.audio)} · ${formatMood(song.mood)}`;
+  const newLine = song.newFind
+    ? `\nNew find: not in your library. Last.fm rates it ${percent(song.newFind.similarity)} similar to the seed.`
+    : "";
+  return `${parts.join(" · ")}\n${formatAudio(song.audio)} · ${formatMood(song.mood)}${newLine}`;
 }
 
 const styles: Record<string, React.CSSProperties> = {
@@ -311,6 +517,11 @@ const styles: Record<string, React.CSSProperties> = {
   popupTitle: { margin: 0, fontSize: 22, fontWeight: 300, letterSpacing: "0.02em", fontFamily: '"Segoe UI Variable Display", "Segoe UI", sans-serif', color: "#ffffff" },
   popupSub: { margin: "0 0 4px", color: "var(--spice-subtext)", fontSize: 13 },
   subtext: { color: "var(--spice-subtext)", margin: 0 },
+  countRow: { display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" },
+  countLabel: { fontSize: 13, fontWeight: 600, color: "var(--spice-text)" },
+  customInput: { width: 76, padding: "5px 10px", fontSize: 13 },
+  countHint: { fontSize: 12, color: "#ffb3c7" },
+  newStatus: { fontSize: 12, color: "#bff3e1" },
   note: { color: "var(--spice-subtext)", margin: 0, fontSize: 13, height: "3em", overflow: "hidden" },
   list: { flex: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 2 },
   row: { display: "flex", alignItems: "center", gap: 12, padding: "6px 4px", borderRadius: 6, cursor: "pointer", borderTop: "1px solid rgba(255,255,255,0.06)" },

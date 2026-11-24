@@ -1,7 +1,7 @@
 // Unit tests for ranking and default picks. Run with: npm test
 
 import { describe, expect, test } from "vitest";
-import { defaultPicks, rankSongs, songKey } from "../src/scoring/rank";
+import { defaultPicks, parsePickCount, picksFor, rankSongs, songKey } from "../src/scoring/rank";
 import type { ScannedSong } from "../src/scan/scan";
 import type { SourcedTag } from "../src/tags/combineTags";
 
@@ -92,5 +92,34 @@ describe("defaultPicks", () => {
 
   test("never more than `max`", () => {
     expect(defaultPicks(ranked, { max: 1 })).toEqual(["spotify:track:a"]);
+  });
+});
+
+describe("picksFor / parsePickCount (the count chips)", () => {
+  const many = rankSongs(
+    seed,
+    Array.from({ length: 40 }, (_, i) => song(`s${i}`, `Song ${i}`, `Artist ${i}`, [t("r&b")], 100 + i))
+  ).matches;
+
+  test("a number picks the best N, in rank order", () => {
+    expect(picksFor(many, 10)).toEqual(many.slice(0, 10).map((s) => s.uri));
+    expect(picksFor(many, 50)).toHaveLength(40); // fewer matches than asked: all of them
+  });
+
+  test('"all" picks every match, even weak ones', () => {
+    const [one] = rankSongs(seed, [song("w", "Weak", "W", [t("dark")])]).matches;
+    const weak = [{ ...one, match: { ...one.match, score: 0.05 } }]; // under the 0.15 floor
+    expect(picksFor(weak, 30)).toEqual([]); // below the score floor
+    expect(picksFor(weak, "all")).toEqual(["spotify:track:w"]);
+  });
+
+  test("parsePickCount accepts 1-500 and all; rejects the rest", () => {
+    expect(parsePickCount("25")).toBe(25);
+    expect(parsePickCount(" All ")).toBe("all");
+    expect(parsePickCount("0")).toBeNull();
+    expect(parsePickCount("501")).toBeNull();
+    expect(parsePickCount("2.5")).toBeNull();
+    expect(parsePickCount("")).toBeNull();
+    expect(parsePickCount(null)).toBeNull();
   });
 });

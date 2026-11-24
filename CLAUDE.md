@@ -7,7 +7,10 @@ have: grow a fresh playlist from a favourite song, remix messy playlists into ti
 by genre and mood, and see what each playlist is made of, all inside a page that feels
 nicer than plain Spotify. It works from the user's own library (never touching existing
 playlists) and judges songs on **song-level** signals (see "Scoring signals"), not
-Spotify's artist-level genres.
+Spotify's artist-level genres. ONE deliberate exception to "own library" (developer's
+request, 2026-11-23): Grow's optional "New finds" (14e DISCOVER) add similar songs NOT in
+the user's library, clearly marked, user-controlled (Off/5/10/20), and only ever added to
+the NEW playlist.
 
 ## User flow
 1. Right-click a song, then choose **Start a Prism playlist** (option to add a second seed).
@@ -17,7 +20,8 @@ Spotify's artist-level genres.
 5. Scan the sources, score each candidate against the seed (tags, BPM/key, later lyrics
    mood), and show a preview with each song's score and the reasons it matched.
 6. The user confirms, and the extension creates a **new** playlist with those songs.
-   Candidates come ONLY from the selected sources: no Song Radio / recommendations.
+   Candidates come from the selected sources, plus (if on) the marked "New finds" from
+   Last.fm's similar songs (14e). Still no Song Radio / Spotify recommendations.
 
 ## Scoring signals (decided 2026-11-20 after a read-only spike on "Dark Romance", 25 songs)
 1. **Last.fm tags**: song tags, artist-tag fallback at half weight. About 50% of songs
@@ -38,7 +42,8 @@ Spotify's artist-level genres.
    Score weights: tags 60, mood 15, BPM 15, key 10.
 - Not available: Web API audio features (energy/valence) return 429.
 - Rejected: Song Radio and playlist recommendations. They work, but only 1/50 radio songs
-  was in Liked Songs, and the user wants only their own songs.
+  was in Liked Songs, and the user wanted their own songs. (Later the developer asked for
+  new songs too: that is 14e DISCOVER, via Last.fm similar songs, NOT Song Radio.)
 
 ## Hard rule: never modify existing playlists
 - Never add to, remove from, reorder, rename, or delete any existing playlist or Liked Songs.
@@ -287,11 +292,32 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
     effect without a reload. startLyricsTheme() in the always-on script applies it.
   - 14d NEW VIEW: the playlist and its lyrics side by side, so the user can see the playlist
     while singing along. Never store or log lyrics text.
-  - 14e DISCOVER in Prism playlists: besides songs from the user's own sources, also recommend
-    similar songs that are NOT in their library ("discover + comfort songs"). Show them in the
-    preview, marked as new finds, and let the user choose how many / turn them off. Candidate
-    source to investigate (read-only spike first): Last.fm `track.getSimilar` / `artist.getSimilar`,
-    then search Spotify for each match. These songs are only added to the NEW playlist.
+  - 14e DISCOVER in Prism playlists: BUILT 2026-11-23 (not committed; smoke-tested, waiting for
+    the developer's test). Similar songs NOT in the user's library ("New finds"), only ever
+    added to the NEW playlist.
+    Spike (6 seeds, 763-song library): Last.fm `track.getSimilar` gave 30 for every seed;
+    118/120 found on Spotify by exact title + artist; ~6% already in the library; the top 1-3
+    are usually the seed's own artist, so MAX_PER_ARTIST = 2.
+    Pipeline (`findNewSongs` in flow.ts, pure parts in `src/discover/discover.ts` + tests):
+    track.getSimilar (50; fallback artist.getSimilar 10 x artist.getTopTracks 3) -> drop the
+    seed and anything in the WHOLE library (Liked + every playlist, songKey) -> up to 40
+    candidates -> Last.fm tags (must share a kept tag, same rule as every Prism song) ->
+    Spotify search (`src/spotify/search.ts`, GraphQL `searchModalResults`; other search
+    definitions fail) -> BPM/key -> same scoreSong (lyrics mood unknown). Cached per seed + tags
+    for the session. ~36 found for "Often" in the smoke test.
+    UI (developer's picks): layout "A" = one best-first list with library songs; a "New finds"
+    chip row Off/5/10/20 (default 10, saved as `prism:growNewCount`) under the songs count;
+    rows = mint glass ("S2", .prism-new-find) + "✦ New find" pill + 3 twinkling sparkles round
+    the score ring ("S1", .prism-sparkle, still with reduced motion). Tooltip says Last.fm's
+    similarity. RankedSong.newFind marks them.
+- GROW SONG COUNT (2026-11-23, not committed): preview chips "Songs from your playlists"
+  10/20/30/50/All/Custom (1-500), saved as `prism:growCount` (default 30). Choosing a count
+  RE-TICKS exactly the best N (hand ticks before it are replaced); "All" = every match, no
+  score floor. `picksFor`/`parsePickCount` in rank.ts. (Shift-click range ticking was built
+  and then REMOVED at the developer's request, 2026-11-23.)
+- GROW PLAYLIST ORDER (2026-11-23, developer's wish): the seed is always first, the rest is
+  SHUFFLED, with the new finds spread evenly through it (never bunched at the start).
+  `playlistOrder` in `src/scoring/playlistOrder.ts` (pure, tested), used by createFromPreview.
 - SIDE-PANEL STATS (built 2026-11-22, not committed): when a playlist Prism made or organized
   (one with a saved record) is open, Spotify's right-hand Now Playing panel shows its stats,
   layout "P2" (developer's pick): a strip with the song playing now, then name + "Grown
@@ -393,6 +419,12 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   then `Page.reload`: it then starts fully without showing the window.
 - A stopped background Bash task can leave `node scripts/smoke.mjs` running and driving Spotify;
   check for stray node processes before re-running the smoke test.
+- BUILDING FROM A WORKTREE under `.claude\worktrees\...`: spicetify-creator puts a temp entry
+  in %TEMP%, so esbuild's common folder becomes C:\Users\<you> and the always-on bundle lands
+  under a `.claude` folder that its copy step (glob "*") skips: prism.js silently stays OLD.
+  Build with a temp folder inside the worktree instead (bash):
+  `TMP="$PWD/build-tmp" TEMP="$PWD/build-tmp" npm run build` (build-tmp is git-excluded), then
+  `spicetify refresh -a` and reload. Check: grep a new CSS class in CustomApps\playlist-prism\prism.js.
 - Type check: `npx -y -p typescript@5.6.3 tsc --noEmit -p .` (TypeScript isn't a local dependency;
   plain `npx tsc` fetches an unrelated package).
 - Before handing over a step, run `npm test` and `npm run smoke` and report results.

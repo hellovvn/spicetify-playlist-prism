@@ -5,9 +5,12 @@
 // its own page. READ-ONLY except createFromPreview, which writes ONLY through
 // src/spotify/write.ts.
 
-import { getPlaylistName, getSourceTracks, getTrackInfo } from "./spotify/read";
+import { getPlaylistName, getSources, getSourceTracks, getTrackInfo } from "./spotify/read";
+import { searchTracks } from "./spotify/search";
+import { getArtistTopTracks, getSimilarArtists, getSimilarTracks, LastfmError } from "./lastfm/client";
+import { bestSearchHit, pickCandidates, type FoundTrack, type SimilarSong } from "./discover/discover";
+import { scoreSong, tagMatch } from "./scoring/score";
 import { createPrismPlaylist, PrismWriteError } from "./spotify/write";
-import { LastfmError } from "./lastfm/client";
 import { lastfmFetchers } from "./lastfm/fetchers";
 import { LOG_PREFIX } from "./log";
 import {
@@ -28,9 +31,9 @@ import {
   parseRecords,
   type PrismPlaylistRecord,
 } from "./stats/playlistStats";
-import { mergeTracks } from "./scan/tracks";
-import { scanSongs, shareArtistLookups, type ScanProgress, type ScannedSong } from "./scan/scan";
-import { createRateLimiter, realClock } from "./scan/limits";
+import { mergeTracks, type ScanTrack } from "./scan/tracks";
+import { scanSongs, shareArtistLookups, tagStatusOf, type ScanProgress, type ScannedSong } from "./scan/scan";
+import { createRateLimiter, realClock, runPool } from "./scan/limits";
 import { TagCache } from "./scan/tagCache";
 import { MoodCache } from "./scan/moodCache";
 import { getLyricsMood, pausingLyricsMood } from "./spotify/lyrics";
@@ -40,7 +43,8 @@ import { formatAudio, getAudioAttributes } from "./spotify/audio";
 import { playlistExtras, type PlaylistExtras } from "./stats/playlistExtras";
 import type { SourceOption } from "./sources/sources";
 import type { SourcedTag } from "./tags/combineTags";
-import type { RankedSong } from "./scoring/rank";
+import { songKey, type RankedSong } from "./scoring/rank";
+import { playlistOrder } from "./scoring/playlistOrder";
 import type { ScanOutcome } from "./ui/ScanScreen";
 import type { SeedData } from "./ui/SeedPanel";
 
@@ -152,7 +156,141 @@ export async function runScan(
   return { ...result, duplicates };
 }
 
-// Creates the NEW playlist: seed first, then the picks best-first.
+// ----- DISCOVER: new finds (build plan 14e) -----
+// Songs similar to the seed that are NOT in the user's library: Last.fm's
+// similar songs -> keep those that share a kept tag -> find them on Spotify.
+// READ-ONLY. They only ever go into the NEW playlist (createFromPreview).
+// The pure choices (which to look up, matching search results) are in
+// src/discover/discover.ts.
+
+export interface NewFindsProgress {
+  done: number; // similar songs looked up so far
+  total: number;
+}
+
+// Answers kept for this session, so Back -> preview again doesn't redo it.
+const newFindsCache = new Map<string, RankedSong[]>();
+
+export async function findNewSongs(
+  seed: SeedData,
+  kept: SourcedTag[],
+  onProgress: (progress: NewFindsProgress) => void,
+  shouldStop: () => boolean
+): Promise<RankedSong[]> {
+  const cacheKey = `${seed.track.uri}|${kept.map((tag) => tag.name).join(",")}`;
+  const cached = newFindsCache.get(cacheKey);
+  if (cached) return cached;
+  const apiKey = getLastfmKey();
+  if (!apiKey) throw new LastfmError(10, "No Last.fm key saved");
+  const wait = createRateLimiter(LASTFM_REQUESTS_PER_SECOND);
+  const started = Date.now();
+
+  // 1. Similar songs (or, if Last.fm has none, similar artists' top songs).
+  const artist = seed.track.artists[0] ?? "";
+  await wait();
+  let similar = await notFoundIsEmpty(getSimilarTracks(artist, seed.track.name, apiKey));
+  if (similar.length === 0) similar = await similarFromArtists(artist, apiKey, wait);
+
+  // 2. Skip the seed and anything already in the library.
+  const library = await libraryIndex();
+  const candidates = pickCandidates(similar, { seed: seed.track, libraryKeys: library.keys });
+  onProgress({ done: 0, total: candidates.length });
+
+  // 3. Tags (must share a kept tag, like every Prism song), then Spotify.
+  const fetchers = shareArtistLookups(lastfmFetchers(apiKey, wait));
+  const found = new Map<string, { similar: SimilarSong; track: FoundTrack; tags: SourcedTag[] }>();
+  let done = 0;
+  await runPool(
+    candidates,
+    3,
+    async (candidate) => {
+      try {
+        const { tags } = await getSongTags({ name: candidate.name, artists: [candidate.artist] }, fetchers);
+        if (tagMatch(kept, tags).score > 0) {
+          const hit = bestSearchHit(candidate, await searchTracks(`${candidate.name} ${candidate.artist}`));
+          if (hit && !library.uris.has(hit.uri) && !found.has(hit.uri)) found.set(hit.uri, { similar: candidate, track: hit, tags });
+        }
+      } catch (error) {
+        if (isKeyProblem(error)) throw error; // the whole search is pointless
+        console.warn(`${LOG_PREFIX} new finds: skipped one song`, error);
+      }
+      onProgress({ done: ++done, total: candidates.length });
+    },
+    shouldStop
+  );
+
+  // 4. BPM/key, then the same score as library songs (lyrics mood unknown).
+  const entries = [...found.values()];
+  const audio = await getAudioAttributes(entries.map((e) => e.track.uri)).catch(() => new Map());
+  const seedScorable = { tags: kept, audio: seed.audio, mood: seed.mood };
+  const songs: RankedSong[] = entries
+    .map(({ similar: s, track, tags }) => {
+      const songAudio = audio.get(track.uri) ?? null;
+      return {
+        ...track,
+        tags,
+        audio: songAudio,
+        mood: null,
+        tagStatus: tagStatusOf(tags),
+        match: scoreSong(seedScorable, { tags, audio: songAudio, mood: null }),
+        newFind: { similarity: s.match },
+      };
+    })
+    .sort((a, b) => b.match.score - a.match.score);
+  console.log(
+    `${LOG_PREFIX} new finds: ${similar.length} similar, ${candidates.length} looked up, ${songs.length} found ` +
+      `in ${Math.round((Date.now() - started) / 1000)} s`
+  );
+  if (!shouldStop()) newFindsCache.set(cacheKey, songs);
+  return songs;
+}
+
+// Last.fm error 6 ("not found") just means "no similar songs".
+async function notFoundIsEmpty<T>(request: Promise<T[]>): Promise<T[]> {
+  try {
+    return await request;
+  } catch (error) {
+    if (error instanceof LastfmError && error.code === 6) return [];
+    throw error;
+  }
+}
+
+async function similarFromArtists(artist: string, apiKey: string, wait: () => Promise<void>): Promise<SimilarSong[]> {
+  await wait();
+  const artists = await notFoundIsEmpty(getSimilarArtists(artist, apiKey, 10));
+  const songs: SimilarSong[] = [];
+  for (const other of artists) {
+    await wait();
+    const titles = await notFoundIsEmpty(getArtistTopTracks(other.name, apiKey, 3));
+    titles.forEach((name) => songs.push({ name, artist: other.name, match: other.match }));
+  }
+  return songs;
+}
+
+// Every song in the user's library (Liked Songs + every playlist), as URIs
+// and "same song" keys. READ-ONLY. Remembered for 5 minutes.
+let libraryCache: { at: number; index: Promise<{ uris: Set<string>; keys: Set<string> }> } | null = null;
+
+function libraryIndex(): Promise<{ uris: Set<string>; keys: Set<string> }> {
+  if (libraryCache && Date.now() - libraryCache.at < EXTRAS_FRESH_MS) return libraryCache.index;
+  const index = (async () => {
+    const sources = await getSources();
+    const lists = await Promise.all(sources.map((source) => getSourceTracks(source.uri).catch(() => [])));
+    const uris = new Set<string>();
+    const keys = new Set<string>();
+    for (const track of ([] as ScanTrack[]).concat(...lists)) {
+      uris.add(track.uri);
+      keys.add(songKey(track));
+    }
+    return { uris, keys };
+  })();
+  libraryCache = { at: Date.now(), index };
+  index.catch(() => (libraryCache = null));
+  return index;
+}
+
+// Creates the NEW playlist: seed first, then the picks SHUFFLED, with any
+// new finds spread through it (playlistOrder).
 // All writing happens in src/spotify/write.ts. Returns the new playlist's URI.
 export async function createFromPreview(choice: {
   name: string;
@@ -162,7 +300,7 @@ export async function createFromPreview(choice: {
   songs: RankedSong[];
 }): Promise<string> {
   const { name, seed, kept, sources, songs } = choice;
-  const trackUris = [seed.track.uri, ...songs.map((song) => song.uri)];
+  const trackUris = [seed.track.uri, ...playlistOrder(songs).map((song) => song.uri)];
   console.log(
     `${LOG_PREFIX} creating "${name}" with ${trackUris.length} songs ` +
       `(tags: ${kept.map((tag) => tag.name).join(", ")}; from: ${sources.map((s) => s.name).join(", ")})`
