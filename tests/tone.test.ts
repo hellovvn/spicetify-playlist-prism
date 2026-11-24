@@ -9,6 +9,7 @@ import {
   scoreAgainstTone,
   suggestTone,
   tempoFit,
+  toneFromGrow,
   toneSummary,
   withTone,
   type PlaylistTone,
@@ -166,5 +167,23 @@ describe("saved tones", () => {
     expect(parsed.a.moods).toEqual(["love"]);
     expect(parsed.a.tempo).toBe("any");
     expect(parsed.a.show).toBe(false);
+  });
+});
+
+describe("toneFromGrow", () => {
+  test("kept chips become the genres, seed moods the moods, shared tempo the band", () => {
+    const tone = toneFromGrow({
+      kept: [t("Dark R&B"), t("r&b", 0.5, "artist"), t("dark r&b"), t("seen live")],
+      seedMood: { desire: 0.6, love: 0.3, numb: 0.1 },
+      bpms: [80, 85, 70, 88, null],
+      now: 5,
+    });
+    expect(tone).toEqual({ genres: ["dark r&b", "r&b"], moods: ["desire", "love"], tempo: "slow", show: true, updatedAt: 5 });
+  });
+
+  test("no shared tempo or mood = any tempo, no moods", () => {
+    const tone = toneFromGrow({ kept: [t("pop")], seedMood: null, bpms: [80, 130, 100], now: 0 });
+    expect(tone.moods).toEqual([]);
+    expect(tone.tempo).toBe("any");
   });
 });
