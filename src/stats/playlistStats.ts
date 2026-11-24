@@ -245,6 +245,10 @@ export function estimateRecord(input: {
 // ----- The saved list (one JSON text for all Prism playlists) -----
 // Stored as an object keyed by playlist URI. Bad or missing text = empty.
 
+// Event the page sends after saving a new playlist record (src/flow.ts), so
+// the side panel (src/ui/panelHost.tsx) can show the new playlist's stats.
+export const RECORDS_CHANGED_EVENT = "playlist-prism:records-changed";
+
 export type PrismPlaylistRecords = Record<string, PrismPlaylistRecord>;
 
 export function parseRecords(text: string | null): PrismPlaylistRecords {

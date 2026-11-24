@@ -10,6 +10,7 @@
 //   - Prism stats in the right-hand panel for Prism playlists (src/ui/panelHost.tsx)
 //   - "Prism tone" on playlists + the Tone view's score rings (src/ui/toneRows.ts)
 //   - playlist themes: moving sky, colour rail, genre mix (src/ui/playlistTheme.ts)
+//   - the same theme on the left panel, "Your Library" (src/ui/libraryTheme.ts)
 // All of them simply OPEN THE PAGE with a request (see src/nav.ts).
 // The header icon needs no code: Spicetify adds it for every custom app.
 
@@ -25,11 +26,11 @@ import { lastfmFetchers } from "../lastfm/fetchers";
 import { LOG_PREFIX } from "../log";
 import { isPlaylistUri, openPage } from "../nav";
 import { injectHeaderIconStyles } from "../ui/headerIcon";
-import { startPrismRows } from "../ui/prismRows";
 import { startLyricsTheme } from "../ui/lyricsTheme";
 import { startPanelStats } from "../ui/panelHost";
 import { startToneRows } from "../ui/toneRows";
 import { startPlaylistTheme } from "../ui/playlistTheme";
+import { startLibraryTheme } from "../ui/libraryTheme";
 import { loadTones } from "../flow";
 import { injectStyles } from "../ui/styles";
 
@@ -43,7 +44,6 @@ async function main() {
   }
 
   injectHeaderIconStyles(); // hover spin + sparkle on the header diamond
-  startPrismRows(); // purple hover on Prism playlists in the sidebar
   startLyricsTheme(); // twilight lyrics views + bars kept (Settings switch, on by default)
   injectStyles(); // Prism's styles, also needed by the side-panel stats outside the page
   startPanelStats(); // Prism playlist stats in the right-hand panel (Settings switch, on by default)
@@ -52,6 +52,7 @@ async function main() {
   registerToneMenu();
   startToneRows(); // "✦ Tone" switch + score rings on playlists with a tone
   startPlaylistTheme(); // playlist page themes: sky, colour rail, genre mix (Settings, off by default)
+  startLibraryTheme(); // the same theme on the left panel: still background, moving open-playlist row
   registerSettingsMenu();
   exposeDebugHook();
 

@@ -5,8 +5,7 @@
 
 import type { EditableGroup } from "./editGroups";
 
-// The prefix Prism playlists get. src/ui/prismRows.ts uses this same value
-// to spot older Prism playlists (without a saved record) in the sidebar.
+// The prefix Prism playlists get.
 export const NAME_PREFIX = "Prism · ";
 
 export interface PlannedPlaylist {
