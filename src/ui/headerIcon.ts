@@ -1,16 +1,17 @@
-// Hover effect for Playlist Prism's diamond icon in Spotify's header.
+// Look and hover effect for Playlist Prism's diamond icon in Spotify's header.
 //
 // Spicetify draws the icon itself (from src/assets/prism.svg), so we can't
 // add React code to it. Instead this adds a <style> tag that targets the
 // icon's button by its label. The SVG has two groups with our own class names:
-//   .prism-gem       the faceted pyramid diamond: turns around (like a coin spin);
-//                    no colour change or glow (the developer preferred it plain)
-//   .prism-ray       12 rainbow stars in a ring ("star halo"): hidden, they shine
-//                    on hover with a shimmer travelling round
-//   .prism-ring      a thin pastel rainbow circle round it all: hidden, it
-//                    fades in on hover (it stays still, so its edge stays crisp)
-// The round button always has a purple twilight background with a sweeping
-// rainbow band.
+//   .prism-gem       the see-through glass diamond with a pastel rainbow edge
+//                    (same look as the page header icon): turns around on hover
+//                    (like a coin spin)
+//   .prism-sparkle   3 little sparkles round the diamond that always twinkle,
+//                    one after another (outside .prism-gem, so they don't spin)
+// The round button has a purple twilight background with a sweeping rainbow
+// band, inside a MOVING pastel neon ring: the same ring as the album cover on
+// the stats page (.prism-artwork in src/ui/styles.ts). It glows brighter on
+// hover.
 //
 // This runs from the always-on script (src/extensions/prism.tsx), because the
 // header icon is visible on every page, not only on the Prism page.
@@ -22,8 +23,8 @@ const HOVER = [`${BUTTON}:hover`, `${BUTTON}:focus-visible`];
 // "button[...]:hover .prism-gem, button[...]:focus-visible .prism-gem"
 const on = (rest: string) => HOVER.map((h) => h + rest).join(",\n");
 
-// Must match the number of rays in src/assets/prism.svg.
-const RAY_COUNT = 12;
+// The neon ring's colours, in the same order as the album cover ring.
+const NEON = "#ff8fc6, #ffd98a, #86e8b8, #8ec5ff, #c3a6ff, #f59cf0, #ff8fc6";
 
 const CSS = `
 @keyframes prism-icon-turn {
@@ -32,20 +33,24 @@ const CSS = `
   100% { transform: scaleX(1); }
 }
 
-/* overflow: visible lets the rays reach past the icon's square box. */
+/* overflow: visible lets the sparkles reach past the icon's square box. */
 ${BUTTON} svg { overflow: visible; }
 
-/* The round button always has the Prism page's twilight look: a purple
-   gradient with a soft rainbow band slowly sweeping across. Both are drawn
-   on ::before, 2 px INSIDE the button: Spotify's header strip is exactly as
-   tall as the button and trims its outermost pixels, which flattened the
-   circle's edges. The button's own (grey) background is switched off.
-   !important: Spotify sets its own grey (and hover grey) on header buttons. */
+/* The button's own (grey) background is switched off.
+   !important: Spotify sets its own grey (and hover grey) on header buttons.
+   isolation: isolate keeps the neon ring (z-index -1) behind the button's
+   contents but in front of Spotify's header. */
 ${BUTTON},
 ${BUTTON}:hover {
   background: transparent !important;
   color: #ffffff !important;
+  isolation: isolate;
 }
+
+/* The purple circle: the Prism page's twilight look, a purple gradient with
+   a soft rainbow band slowly sweeping across. It sits 4 px INSIDE the button,
+   so the neon ring shows round it (and Spotify's header strip, which trims
+   the button's outermost pixels, can't flatten the circle's edge). */
 @keyframes prism-icon-band {
   0%, 100% { background-position: 0% 50%, 0 0; }
   50%      { background-position: 100% 50%, 0 0; }
@@ -53,7 +58,7 @@ ${BUTTON}:hover {
 ${BUTTON}::before {
   content: "";
   position: absolute;
-  inset: 2px;
+  inset: 4px;
   border-radius: 50%;
   /* Two background layers: on top, a rainbow stripe on a layer 3x wider than
      the circle (moving its position slides the stripe across and back);
@@ -65,7 +70,45 @@ ${BUTTON}::before {
   animation: prism-icon-band 9s ease-in-out infinite;
   pointer-events: none;
 }
-/* Keep the diamond above the rainbow band. */
+
+/* The neon ring, like the album cover's: a disc of pastel colours BEHIND the
+   purple circle, so only a thin band shows round its edge.
+   How it moves: --prism-icon-angle is a REGISTERED custom property (@property
+   says it's an <angle>), so the browser can animate it from 0deg to 360deg.
+   The colours are a conic gradient (laid round the centre like a colour
+   wheel) that starts at that angle, so every colour slides round the ring.
+   On top, a white glint chases round with it. blur(0.8px) softens the band's
+   edges into light instead of a crisp line. */
+@property --prism-icon-angle {
+  syntax: "<angle>";
+  inherits: true;
+  initial-value: 0deg;
+}
+@keyframes prism-icon-ring-turn {
+  to { --prism-icon-angle: 360deg; }
+}
+${BUTTON}::after {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  z-index: -1;
+  border-radius: 50%;
+  background:
+    conic-gradient(from var(--prism-icon-angle), transparent 0 70%, rgba(255, 255, 255, 0.7) 84%, transparent 94%),
+    conic-gradient(from var(--prism-icon-angle), ${NEON});
+  filter: blur(0.8px);
+  opacity: 0.75;
+  animation: prism-icon-ring-turn 3.5s linear infinite;
+  transition: opacity 200ms ease-out, filter 200ms ease-out;
+  pointer-events: none;
+}
+/* Hover: the ring lights up fully and glows a little. */
+${on("::after")} {
+  opacity: 1;
+  filter: blur(0.8px) brightness(1.15) saturate(1.2);
+}
+
+/* Keep the diamond above the purple circle and its rainbow band. */
 ${BUTTON} > span { position: relative; z-index: 1; }
 
 /* transform-box/origin: turn the diamond around its OWN centre (SVG shapes
@@ -74,45 +117,31 @@ ${BUTTON} .prism-gem {
   transform-box: fill-box;
   transform-origin: center;
 }
-/* The diamond keeps its normal colour (no glow) and turns around. */
 ${on(" .prism-gem")} {
   animation: prism-icon-turn 1.4s ease-in-out infinite;
 }
 
-/* Star halo round the diamond: hidden at rest. On hover ALL stars show, each
-   one swelling and brightening in turn, so a shine travels round the ring
-   ("travelling shimmer"). Negative delays start each star mid-pulse, so the
-   whole ring is lit from the first moment (no sweep-in).
-   transform-box fill-box + origin center: each star grows from its own
-   middle. */
-@keyframes prism-icon-ray {
-  0%, 100% { opacity: 0.35; transform: scale(0.55); }
-  50%       { opacity: 1; transform: scale(1.15); }
+/* Sparkles: each one fades and shrinks away, then pops back. The delays
+   stagger them so they twinkle in turn. */
+@keyframes prism-icon-twinkle {
+  0%, 60%, 100% { opacity: 1; transform: scale(1); }
+  75% { opacity: 0.2; transform: scale(0.4); }
+  85% { opacity: 1; transform: scale(1.25); }
 }
-${BUTTON} .prism-ray {
-  opacity: 0;
+${BUTTON} .prism-sparkle {
   transform-box: fill-box;
   transform-origin: center;
+  animation: prism-icon-twinkle 3.2s ease-in-out infinite;
 }
-${Array.from({ length: RAY_COUNT }, (_, i) => `${on(` .prism-ray:nth-child(${i + 1})`)} {
-  animation: prism-icon-ray 1.8s ease-in-out ${(-(i * 1.8) / RAY_COUNT).toFixed(2)}s infinite;
-}`).join("\n")}
+${BUTTON} .prism-sparkle:nth-child(2) { animation-delay: -1.2s; }
+${BUTTON} .prism-sparkle:nth-child(3) { animation-delay: -2.2s; }
 
-/* The thin rainbow ring (drawn in the SVG as a real circle). Hidden at rest;
-   on hover it fades in. It does NOT turn: on a normal-density screen a thin
-   turning circle gets re-drawn onto slightly different pixels every frame,
-   which looks choppy. Standing still, its 1 px edge stays crisp. */
-${BUTTON} .prism-ring {
-  opacity: 0;
-  transition: opacity 200ms ease-out;
-}
-${on(" .prism-ring")} { opacity: 1; }
-
-/* People who turn off animations get the rays and the ring, no motion. */
+/* People who turn off animations get the same look, standing still. */
 @media (prefers-reduced-motion: reduce) {
   ${BUTTON}::before { animation: none; background-position: 50% 50%, 0 0; }
+  ${BUTTON}::after { animation: none; }
   ${on(" .prism-gem")} { animation: none; }
-  ${on(" .prism-ray")} { animation: none !important; opacity: 0.8; }
+  ${BUTTON} .prism-sparkle { animation: none; }
 }
 `;
 

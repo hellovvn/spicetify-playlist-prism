@@ -2,6 +2,7 @@
 
 import { describe, expect, test } from "vitest";
 import {
+  addSongs,
   editableGroups,
   mergeGroups,
   moveSong,
@@ -76,5 +77,18 @@ describe("editing groups", () => {
   test("songsInNoGroup lists songs that were removed from every group", () => {
     const groups = removeSong(start(), "f", "g3");
     expect(songsInNoGroup(groups, ["a", "b", "c", "d", "e", "f"])).toEqual(["f"]);
+  });
+  test("addSongs puts left-out songs back into the picked groups, each once", () => {
+    const groups = addSongs(start(), [
+      { uri: "x", toId: "g3" },
+      { uri: "y", toId: "g1" },
+      { uri: "x", toId: "g3" }, // same song twice: added once
+      { uri: "a", toId: "g1" }, // already there: skipped
+      { uri: "z", toId: "nope" }, // no such group: ignored
+    ]);
+    expect(groups.map((g) => g.songs)).toEqual([["a", "b", "c", "y"], ["d", "e"], ["f", "x"]]);
+    expect(start()[0].songs).toEqual(["a", "b", "c"]); // the old groups aren't changed
+    const untouched = start();
+    expect(addSongs(untouched, [])[1]).toBe(untouched[1]); // groups with nothing added stay the same object
   });
 });

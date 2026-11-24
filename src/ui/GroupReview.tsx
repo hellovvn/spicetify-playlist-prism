@@ -1,9 +1,19 @@
-// Organize's review screen (step 13c): the suggested groups as album-cover
-// cards. Click a card to open it: rename it, move or remove songs, or merge
-// it into another group. Or "Start from scratch" (13c-2): make your own
-// groups in the builder (GroupBuilder.tsx), and the sorted result shows as
-// the same cards. "Create playlists" (13d) opens the confirm screen
+// Remix's review screen (step 13c): the groups as album-cover cards. Click a
+// card to open it: rename it, move or remove songs, or combine it with
+// another group. "Create playlists" (13d) opens the confirm screen
 // (CreatePlaylists.tsx), the only place that creates anything.
+//
+// "Two doors" flow (2026-11-23): the door picked before this screen decides
+// where the groups come from, and there's no switching between the two here:
+//   "auto"  Prism's suggestions. "More options" changes how many / group
+//           mostly by / overlap, and the songs are grouped again at once.
+//   "me"    the builder (GroupBuilder.tsx) first: pick genres/moods per
+//           group, then "Sort songs" shows the result as the same cards.
+//           One group = one playlist, and songs that match none of its picks
+//           are left out.
+// Songs that end up in no group ("Not included": left out, or taken out by
+// you) get their own dashed card. Open it to see each one and why, and add
+// any of them back.
 //
 // The groups are kept as EditableGroup state (src/organize/editGroups.ts:
 // pure functions that return new groups), and each group's summary is worked
@@ -11,9 +21,10 @@
 
 import React from "react";
 import type { ScannedSong } from "../scan/scan";
-import { summarize, type GroupFocus, type GroupSummary, type SongGroup } from "../organize/grouping";
+import { closestByMoodAndTempo, summarize, type GroupSummary, type SongGroup } from "../organize/grouping";
 import { blankGroups, sortIntoGroups, type CustomGroup } from "../organize/customGroups";
 import {
+  addSongs,
   editableGroups,
   mergeGroups,
   moveSong,
@@ -28,51 +39,90 @@ import { GlassMenu } from "./GlassMenu";
 import { GroupBuilder } from "./GroupBuilder";
 import { CoverMosaic } from "./CoverMosaic";
 import { CreatePlaylists, type CreateChoice } from "./CreatePlaylists";
+import { RemixOptions, type OrganizeSettings } from "./RemixOptions";
+
+// Which door was picked: Prism sorts ("auto") or you pick the vibes ("me").
+export type RemixMode = "auto" | "me";
 
 export interface GroupReviewProps {
   songs: ScannedSong[]; // every scanned song (for names, covers, summaries)
-  suggested: SongGroup[]; // what the grouping suggested
-  settings: { count: number | "auto"; overlap: boolean; focus: GroupFocus }; // chosen in Organize's setup
+  suggested: SongGroup[]; // what the grouping suggested ("auto" only)
+  mode: RemixMode;
+  settings: OrganizeSettings;
+  setSettings: (next: OrganizeSettings) => void; // "More options"
   intro: React.ReactNode; // e.g. "250 songs from 2 playlists into 8 groups..."
-  sourceNames: string[]; // the playlists being organized
+  sourceNames: string[]; // the playlists being remixed
   create: (choice: CreateChoice) => Promise<string>; // makes ONE new playlist (flow.ts)
   describeError: (error: unknown) => string;
   onOpenPlaylist: (uri: string) => void;
   onFinish: () => void; // after creating: to the start page
-  onBack: () => void;
+  onBack: () => void; // to the two doors
 }
 
-// What the screen shows: the suggested groups, the user's own sorted
-// groups, or the "Start from scratch" builder.
-type View = "suggested" | "custom" | "builder";
+// What the screen shows: the builder ("me" only), the group cards, or the
+// "Not included" songs.
+type View = "builder" | "cards" | "left";
 
 export function GroupReview(props: GroupReviewProps) {
-  const { songs, suggested, settings, intro, onBack } = props;
+  const { songs, suggested, mode, settings, intro, onBack } = props;
   const { ButtonPrimary, ButtonSecondary } = Spicetify.ReactComponent as any;
-  // Two separate sets of groups, so switching between "Use suggestions" and
-  // your own groups never loses the edits made to either one.
-  const [suggestedGroups, setSuggestedGroups] = React.useState<EditableGroup[]>(() => editableGroups(suggested));
-  const [customGroups, setCustomGroups] = React.useState<EditableGroup[]>([]);
-  // The builder's groups (names + picked genres/moods), kept while you switch.
-  const [specs, setSpecs] = React.useState<CustomGroup[]>(() => blankGroups(settings.count === "auto" ? 3 : settings.count));
+  const mine = mode === "me";
+  const [groups, setGroups] = React.useState<EditableGroup[]>(() => (mine ? [] : editableGroups(suggested)));
+  // The builder's groups (names + picked genres/moods). Starts with ONE:
+  // "+ Add group" makes more.
+  const [specs, setSpecs] = React.useState<CustomGroup[]>(() => blankGroups(1));
   const [forced, setForced] = React.useState(0); // songs placed by mood/tempo only
   // The genres/moods the user picked per sorted group (by card id), shown
   // first on its card: songs placed by mood/tempo can outnumber them.
   const [pickedLabels, setPickedLabels] = React.useState<Map<string, string[]>>(new Map());
-  // One playlist: suggestions would just be "every song", so go straight to
-  // the builder with one group to pick genres/moods for.
-  const single = settings.count === 1;
-  const [view, setView] = React.useState<View>(single ? "builder" : "suggested");
+  const [view, setView] = React.useState<View>(mine ? "builder" : "cards");
   const [openId, setOpenId] = React.useState<string | null>(null);
   const [creating, setCreating] = React.useState(false); // the confirm/create screen is showing
-  const groups = view === "custom" ? customGroups : suggestedGroups;
-  const setGroups = view === "custom" ? setCustomGroups : setSuggestedGroups;
+  const [moreOpen, setMoreOpen] = React.useState(false); // "More options" panel
+  // Songs the user took out of their last group by hand, so "Not included"
+  // can say why each song is there.
+  const [removed, setRemoved] = React.useState<Set<string>>(() => new Set());
+
+  // "Sort them for me": new suggestions (a More options change) replace the
+  // groups. useEffect runs after drawing, whenever `suggested` is a new list.
+  React.useEffect(() => {
+    if (mine) return;
+    setGroups(editableGroups(suggested));
+    setRemoved(new Set());
+    setOpenId(null);
+  }, [suggested, mine]);
+
   // Look songs up by URI quickly (a Map), rebuilt only when the songs change.
   const byUri = React.useMemo(() => new Map(songs.map((s) => [s.uri, s])), [songs]);
   const songsOf = (group: EditableGroup) => group.songs.map((u) => byUri.get(u)).filter((s): s is ScannedSong => !!s);
   const left = songsInNoGroup(groups, songs.map((s) => s.uri));
+  const leftSongs = left.map((u) => byUri.get(u)).filter((s): s is ScannedSong => !!s);
   const open = groups.find((g) => g.id === openId) ?? null;
+  const single = mine && groups.length === 1; // your one playlist
   const overlap = settings.overlap ? "a song can join every group it fits well" : "each song goes into one group";
+
+  // "I'll pick the vibes": sort every song into the builder's groups.
+  const sortNow = (using: OrganizeSettings) => {
+    const result = sortIntoGroups(songs, specs, { overlap: using.overlap, focus: using.focus });
+    const sorted = editableGroups(result.groups);
+    setGroups(sorted);
+    setPickedLabels(new Map(sorted.map((g, i) => [g.id, [...specs[i].genres, ...specs[i].moods]])));
+    setForced(result.placedByMoodTempo.length);
+    setRemoved(new Set());
+    setOpenId(null);
+  };
+  const changeSettings = (next: OrganizeSettings) => {
+    props.setSettings(next);
+    if (mine) sortNow(next); // Prism's suggestions follow by themselves (the effect above)
+  };
+
+  // "Add all": with one playlist they all go into it; otherwise each goes to
+  // the group closest to it by lyrics mood + tempo (like untagged songs).
+  const addAll = () => {
+    if (!groups.length) return;
+    const to = groups.length === 1 ? leftSongs.map(() => 0) : closestByMoodAndTempo(groups.map(songsOf), leftSongs, settings.focus);
+    setGroups((gs) => addSongs(gs, leftSongs.map((song, j) => ({ uri: song.uri, toId: gs[to[j]].id }))));
+  };
 
   if (view === "builder") {
     return (
@@ -81,27 +131,16 @@ export function GroupReview(props: GroupReviewProps) {
         groups={specs}
         setGroups={setSpecs}
         intro={
-          single ? (
-            <>
-              Pick the genres and/or moods for your playlist. Prism collects the songs among these {songs.length} that match
-              (songs that don't match are left out).
-            </>
-          ) : (
-            <>
-              Make your own groups: give each one a name and pick its genres and/or moods. Then Prism sorts all{" "}
-              {songs.length} songs into them ({overlap}).
-              {customGroups.length > 0 && " Sorting again replaces your edits to the sorted groups."}
-            </>
-          )
+          <>
+            Make one playlist or several: give each a name and pick its genres and/or moods. Prism then sorts the{" "}
+            {songs.length} songs into them.
+            {groups.length > 0 && " Sorting again undoes your edits to the sorted groups."}
+          </>
         }
-        onUseSuggestions={single ? undefined : () => setView("suggested")}
+        onBack={onBack}
         onSort={() => {
-          const result = sortIntoGroups(songs, specs, { overlap: settings.overlap, focus: settings.focus });
-          const sorted = editableGroups(result.groups);
-          setCustomGroups(sorted);
-          setPickedLabels(new Map(sorted.map((g, i) => [g.id, [...specs[i].genres, ...specs[i].moods]])));
-          setForced(result.placedByMoodTempo.length);
-          setView("custom");
+          sortNow(settings);
+          setView("cards");
         }}
       />
     );
@@ -112,7 +151,7 @@ export function GroupReview(props: GroupReviewProps) {
     // "Built from" for the stats page: the labels picked for your own groups,
     // otherwise the group's most common tags.
     const labelsOf = (group: EditableGroup) =>
-      (view === "custom" && pickedLabels.get(group.id)) || summarize(songsOf(group)).tags.slice(0, 3).map(([name]) => name);
+      (mine && pickedLabels.get(group.id)) || summarize(songsOf(group)).tags.slice(0, 3).map(([name]) => name);
     return (
       <CreatePlaylists
         groups={groups}
@@ -129,6 +168,19 @@ export function GroupReview(props: GroupReviewProps) {
     );
   }
 
+  if (view === "left") {
+    return (
+      <NotIncluded
+        songs={leftSongs}
+        groups={groups}
+        removed={removed}
+        onAdd={(uri, toId) => setGroups((gs) => addSongs(gs, [{ uri, toId }]))}
+        onAddAll={addAll}
+        onClose={() => setView("cards")}
+      />
+    );
+  }
+
   if (open) {
     return (
       <GroupDetail
@@ -138,7 +190,10 @@ export function GroupReview(props: GroupReviewProps) {
         onClose={() => setOpenId(null)}
         onRename={(name) => setGroups((gs) => renameGroup(gs, open.id, name))}
         onMove={(uri, toId) => setGroups((gs) => moveSong(gs, uri, open.id, toId))}
-        onRemove={(uri) => setGroups((gs) => removeSong(gs, uri, open.id))}
+        onRemove={(uri) => {
+          setGroups((gs) => removeSong(gs, uri, open.id));
+          setRemoved((r) => new Set(r).add(uri));
+        }}
         onMerge={(otherId) => setGroups((gs) => mergeGroups(gs, open.id, otherId))}
       />
     );
@@ -146,57 +201,66 @@ export function GroupReview(props: GroupReviewProps) {
 
   const placed = groups.reduce((n, g) => n + g.songs.length, 0);
   return (
-    <div style={styles.screen} data-prism-state="organize-groups" data-prism-view={view}>
-      <p style={styles.sub}>
-        {view === "suggested" ? (
-          intro
-        ) : single ? (
-          <>
-            <b style={{ color: "#fff" }}>{placed}</b> of {songs.length} songs match your picks.
-          </>
-        ) : (
-          <>
-            {songs.length} songs sorted into <b style={{ color: "#fff" }}>your {groups.length} groups</b>
-            {forced > 0 ? ` · ${forced} matched none of your genres/moods and went to the closest group by mood and tempo` : ""}
-            {settings.overlap && placed > songs.length ? ` · ${placed - songs.length} songs are in more than one` : ""}.
-          </>
+    <div style={styles.screen} data-prism-state="organize-groups" data-prism-view={mine ? "custom" : "suggested"}>
+      <div style={styles.headRow}>
+        <p style={{ ...styles.sub, flex: 1 }}>
+          {!mine ? (
+            intro
+          ) : single ? (
+            <>
+              <b style={{ color: "#fff" }}>{placed}</b> of {songs.length} songs match your picks.
+            </>
+          ) : (
+            <>
+              {songs.length} songs sorted into <b style={{ color: "#fff" }}>your {groups.length} groups</b> ({overlap})
+              {forced > 0 ? ` · ${forced} matched none of your genres/moods and went to the closest group by mood and tempo` : ""}
+              {settings.overlap && placed > songs.length ? ` · ${placed - songs.length} songs are in more than one` : ""}.
+            </>
+          )}
+        </p>
+        {/* One playlist has nothing to tune: no More options. */}
+        {!single && (
+          <button
+            type="button"
+            className="prism-menu-button"
+            aria-expanded={moreOpen}
+            onClick={() => setMoreOpen((o) => !o)}
+            data-prism="more-options"
+          >
+            <span>More options</span>
+            <span aria-hidden="true" style={{ display: "inline-block", transform: moreOpen ? "rotate(180deg)" : "none" }}>
+              ▾
+            </span>
+          </button>
         )}
-      </p>
+      </div>
+      {moreOpen && !single && <RemixOptions settings={settings} onChange={changeSettings} showCount={!mine} />}
       <div style={styles.grid} data-prism="organize-group-list">
         {groups.map((group) => (
           <GroupCard
             key={group.id}
             group={group}
             groupSongs={songsOf(group)}
-            picked={view === "custom" ? pickedLabels.get(group.id) : undefined}
+            picked={mine ? pickedLabels.get(group.id) : undefined}
             onOpen={() => setOpenId(group.id)}
           />
         ))}
+        {left.length > 0 && <NotIncludedCard songs={leftSongs} onOpen={() => setView("left")} />}
       </div>
-      {left.length > 0 && (
-        <p style={styles.sub} data-prism="organize-left-out">
-          {single
-            ? `${left.length} song${left.length === 1 ? "" : "s"} didn't match, so ${left.length === 1 ? "it's" : "they're"} left out.`
-            : `${left.length} song${left.length === 1 ? "" : "s"} removed from every group (won't be in any new playlist).`}
-        </p>
-      )}
       <p className="prism-notice" style={{ fontSize: 13 }}>
-        Click a group to rename it, move or remove songs, or merge it. Nothing is created until you confirm on the
+        Click a group to rename it, move or remove songs, or combine it. Nothing is created until you confirm on the
         next screen.
       </p>
       <div className="prism-actions" style={styles.buttons}>
-        <ButtonSecondary buttonSize="sm" onClick={onBack}>
+        <ButtonSecondary buttonSize="sm" onClick={onBack} data-prism="groups-back">
           Back
         </ButtonSecondary>
         <span style={{ flex: 1 }} />
-        {view === "custom" && !single && (
-          <ButtonSecondary buttonSize="sm" onClick={() => setView("suggested")} data-prism="use-suggestions">
-            Use suggestions
+        {mine && (
+          <ButtonSecondary buttonSize="sm" onClick={() => setView("builder")} data-prism="edit-picks">
+            {single ? "Edit my picks" : "Edit my groups"}
           </ButtonSecondary>
         )}
-        <ButtonSecondary buttonSize="sm" onClick={() => setView("builder")} data-prism="start-from-scratch">
-          {view === "custom" ? (single ? "Edit my picks" : "Edit my groups") : customGroups.length ? "My own groups" : "Start from scratch"}
-        </ButtonSecondary>
         <ButtonPrimary buttonSize="sm" onClick={() => setCreating(true)} data-prism="open-create">
           {groups.length === 1 ? "Create playlist" : "Create playlists"}
         </ButtonPrimary>
@@ -205,7 +269,121 @@ export function GroupReview(props: GroupReviewProps) {
   );
 }
 
+// ----- "Not included": the songs in no group -----
+
+// The dashed card beside the groups. Its picture is the left-out songs' own
+// covers, faded, with a "+" on top, so it still looks like part of the set.
+function NotIncludedCard({ songs, onOpen }: { songs: ScannedSong[]; onOpen: () => void }) {
+  return (
+    <button
+      type="button"
+      className="prism-glass-panel prism-group-card prism-left-card"
+      style={styles.card}
+      onClick={onOpen}
+      data-prism="organize-not-included"
+      aria-label={`Not included: ${plural(songs.length)}. Open to see them and add them back`}
+    >
+      <span style={styles.leftPicture}>
+        <span style={{ display: "block", opacity: 0.35 }}>
+          <CoverMosaic songs={songs} summary={summarize(songs)} size={TILE_COVER} />
+        </span>
+        <span style={styles.leftMark} aria-hidden="true">
+          +
+        </span>
+      </span>
+      <span style={styles.cardText}>
+        <span style={styles.cardName}>Not included</span>
+        <span style={styles.cardCount}>{plural(songs.length)}</span>
+        <span style={styles.cardLine}>See them and add any back</span>
+      </span>
+    </button>
+  );
+}
+
+// Why a song is in no group, in plain words.
+function whyLeftOut(song: ScannedSong, takenOut: boolean): string {
+  if (takenOut) return "you took it out of its group";
+  if (!song.tags.length && !song.mood) return "no genre tags or lyrics mood found";
+  return "has none of the genres or moods you picked";
+}
+
+interface NotIncludedProps {
+  songs: ScannedSong[];
+  groups: EditableGroup[];
+  removed: Set<string>;
+  onAdd: (uri: string, toId: string) => void;
+  onAddAll: () => void;
+  onClose: () => void;
+}
+
+function NotIncluded({ songs, groups, removed, onAdd, onAddAll, onClose }: NotIncludedProps) {
+  const { ButtonSecondary } = Spicetify.ReactComponent as any;
+  const one = groups.length === 1 ? groups[0] : null;
+  return (
+    <div style={styles.screen} data-prism-state="organize-not-included">
+      <div>
+        <p style={styles.leftTitle}>Not included · {plural(songs.length)}</p>
+        <p style={styles.sub}>
+          {songs.length ? "These songs won't be in any new playlist. Add the ones you want." : "Every song is in a playlist now."}
+        </p>
+      </div>
+      <div style={styles.songList} data-prism="not-included-list">
+        {songs.map((song) => (
+          <div key={song.uri} style={styles.songRow} data-prism="not-included-song">
+            {song.coverSmall ? <img src={song.coverSmall} alt="" style={styles.thumb} loading="lazy" /> : <span style={styles.thumb} />}
+            <span style={styles.songText}>
+              <span style={styles.songName}>{song.name}</span>
+              <span style={styles.songArtist}>
+                {song.artists.join(", ")} · <i>{whyLeftOut(song, removed.has(song.uri))}</i>
+              </span>
+            </span>
+            {one ? (
+              <button type="button" className="prism-menu-button" onClick={() => onAdd(song.uri, one.id)} data-prism="add-song">
+                <span>Add</span>
+              </button>
+            ) : (
+              <GlassMenu
+                label="Add to…"
+                options={groups.map((g) => ({ value: g.id, label: g.name }))}
+                onPick={(toId) => onAdd(song.uri, toId)}
+                ariaLabel={`Add ${song.name} to a group`}
+                dataPrism="add-to-menu"
+              />
+            )}
+          </div>
+        ))}
+      </div>
+      <div className="prism-actions" style={styles.detailActions}>
+        <ButtonSecondary buttonSize="sm" onClick={onClose} data-prism="not-included-back">
+          Back
+        </ButtonSecondary>
+        {songs.length > 0 && (
+          <ButtonSecondary
+            buttonSize="sm"
+            onClick={onAddAll}
+            data-prism="add-all"
+            title={one ? undefined : "Each song goes to the group closest to it by mood and tempo"}
+          >
+            {songs.length === 1
+              ? one
+                ? "Add it"
+                : "Add it to its closest group"
+              : one
+                ? `Add all ${songs.length}`
+                : `Add all ${songs.length} to their closest group`}
+          </ButtonSecondary>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ----- One card: cover mosaic, name, count, genres, mood/tempo line -----
+// Look "A, door tiles" (developer's pick 2026-11-23): wide glass tiles, two
+// per row, like the two doors before this screen: the cover mosaic on the
+// left, the text beside it, and the doors' pink edge + glow on hover.
+
+const TILE_COVER = 84; // px, the cover mosaic on a tile
 
 interface GroupCardProps {
   group: EditableGroup;
@@ -224,17 +402,19 @@ function GroupCard({ group, groupSongs, picked = [], onOpen }: GroupCardProps) {
       style={styles.card}
       onClick={onOpen}
       data-prism="organize-group"
-      aria-label={`${group.name}, ${group.songs.length} songs. Open to edit`}
+      aria-label={`${group.name}, ${plural(group.songs.length)}. Open to edit`}
     >
-      <CoverMosaic songs={groupSongs} summary={summary} size={128} />
+      <CoverMosaic songs={groupSongs} summary={summary} size={TILE_COVER} />
+      <span style={styles.cardText}>
       <span style={styles.cardName}>{group.name}</span>
-      <span style={styles.cardCount}>{group.songs.length} songs</span>
+      <span style={styles.cardCount}>{plural(group.songs.length)}</span>
       {/* A box as wide as the card that cuts off labels that don't fit, so a
           long label can't spill over into the next card. */}
       <span style={styles.labelClip}>
         <TagLabels labels={labels.map((name) => ({ name, colour: tagColour(name), shared: true }))} />
       </span>
       <span style={styles.cardLine}>{summaryLine(summary)}</span>
+      </span>
     </button>
   );
 }
@@ -257,6 +437,25 @@ interface GroupDetailProps {
   onMove: (uri: string, toId: string) => void;
   onRemove: (uri: string) => void;
   onMerge: (otherId: string) => void;
+}
+
+const plural = (n: number) => `${n} song${n === 1 ? "" : "s"}`;
+
+// The combine question. It counts only the songs that will really be added:
+// with overlap on, some of the other group's songs can already be in this
+// one (mergeGroups adds each song once), so "all N" would say too much.
+function combineText(group: EditableGroup, other: EditableGroup): string {
+  const added = other.songs.filter((s) => !group.songs.includes(s)).length;
+  const already = other.songs.length - added;
+  const gone = `the "${other.name}" group will disappear.`;
+  if (added === 0) {
+    return `Every song in "${other.name}" is already in "${group.name}", so nothing new is added. Combine anyway? The "${other.name}" group will disappear.`;
+  }
+  return (
+    `Add ${plural(added)} from "${other.name}" to "${group.name}"` +
+    (already > 0 ? ` (${already} ${already === 1 ? "is" : "are"} already here)` : "") +
+    `? "${group.name}" will have ${plural(group.songs.length + added)}, and ${gone}`
+  );
 }
 
 function GroupDetail({ group, groupSongs, others, onClose, onRename, onMove, onRemove, onMerge }: GroupDetailProps) {
@@ -337,8 +536,7 @@ function GroupDetail({ group, groupSongs, others, onClose, onRename, onMove, onR
       {combineWith && (
         <div className="prism-notice" role="alert" style={styles.confirm} data-prism="combine-confirm">
           <span>
-            Move all {combineWith.songs.length} songs from "{combineWith.name}" into "{group.name}"? The "
-            {combineWith.name}" group will disappear.
+            {combineText(group, combineWith)}
           </span>
           <span style={styles.confirmButtons}>
             <ButtonSecondary buttonSize="sm" onClick={() => setCombineId(null)} data-prism="combine-cancel">
@@ -382,18 +580,26 @@ const styles: Record<string, React.CSSProperties> = {
   screen: { display: "flex", flexDirection: "column", gap: 12, height: 560 },
   sub: { margin: 0, color: "var(--spice-subtext)", fontSize: 13 },
   grid: {
-    flex: 1, minHeight: 0, overflowY: "auto", display: "grid", gap: 12, paddingRight: 4,
-    gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", alignContent: "start",
+    flex: 1, minHeight: 0, overflowY: "auto", display: "grid", gap: 14, padding: "2px 4px 4px 2px",
+    gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", alignContent: "start",
   },
   card: {
-    display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 5, padding: 11, textAlign: "left",
+    display: "flex", flexDirection: "row", alignItems: "center", gap: 14, padding: 16, textAlign: "left",
     cursor: "pointer", color: "inherit", font: "inherit", minWidth: 0,
   },
-  cardName: { color: "#ffffff", fontSize: 14, fontWeight: 700, marginTop: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%" },
-  cardCount: { color: "var(--spice-subtext)", fontSize: 12 },
+  cardText: { display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 4, minWidth: 0, flex: 1 },
+  cardName: { color: "#ffffff", fontSize: 16, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "100%" },
+  cardCount: { color: "var(--spice-subtext)", fontSize: 13 },
   cardLine: { color: "var(--spice-subtext)", fontSize: 12 },
   labelClip: { display: "block", width: "100%", overflow: "hidden" },
   buttons: { display: "flex", justifyContent: "flex-end", gap: 8 },
+  headRow: { display: "flex", alignItems: "center", gap: 12 },
+  leftPicture: { position: "relative", display: "block", width: TILE_COVER, height: TILE_COVER, flexShrink: 0 },
+  leftMark: {
+    position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center",
+    color: "#f4c0d1", fontSize: 32, fontWeight: 300,
+  },
+  leftTitle: { margin: "0 0 4px", color: "#ffffff", fontSize: 18, fontWeight: 600 },
   detailHead: { display: "flex", gap: 14, alignItems: "flex-start" },
   detailText: { display: "flex", flexDirection: "column", gap: 6, minWidth: 0, flex: 1 },
   nameInput: { fontSize: 18, fontWeight: 600, padding: "6px 12px" },

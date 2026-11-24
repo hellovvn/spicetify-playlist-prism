@@ -382,11 +382,27 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   `src/ui/panelHost.tsx` from the always-on script (createRoot into a div placed inside
   .Root__right-sidebar, re-checked every 1.5 s). Settings switch "Prism stats in the side panel"
   (`prism:panelStats`, on by default). Right-click > Prism stats still opens the full page.
-- REMIX INTO 1 PLAYLIST (2026-11-23): "1" is the first count choice (GROUP_COUNTS in
-  OrganizeFlow.tsx; MIN_CUSTOM_GROUPS = 1). With 1, GroupReview opens straight in the builder
-  with one group and no "Use suggestions"; sortIntoGroups leaves songs that match nothing OUT
-  (with 2+ groups they still go to the closest group by mood + tempo). Wording is singular:
-  "N of M songs match your picks", "Edit my picks", "Create playlist".
+- REMIX "TWO DOORS" FLOW (2026-11-23, mockup A, developer's pick; replaces the count-1 shortcut
+  and "Start from scratch"/"Use suggestions" switching). Screens: picker (NO settings panel) ->
+  scan -> choose (`ChooseMode` in OrganizeFlow.tsx: "Sort them for me" = mode "auto", "I'll pick
+  the vibes" = mode "me"; Next shows once one is picked) -> groups (GroupReview, `mode` prop, no
+  switching between the two there; Back goes to the doors). Settings now live under "More
+  options" on the cards screen (`src/ui/RemixOptions.tsx`: GROUP_COUNTS = Auto,2,3,4,5,6,8 with
+  Auto the default; focus; overlap). Changing one regroups AT ONCE (auto: new `suggested` resets
+  the groups via an effect; me: sortNow re-sorts), undoing edits (the panel says so). Your own
+  groups have no How many. The builder starts with ONE group (= one playlist; "+ Add group" for
+  more) and has Back. One playlist: sortIntoGroups leaves non-matching songs OUT; no More
+  options; wording "N of M songs match your picks", "Edit my picks", "Create playlist".
+  NOT INCLUDED: songs in no group (left out, or removed by hand) show as a dashed card
+  (.prism-left-card) after the groups; it opens a list with each song's reason (you took it out /
+  no tags or mood / none of your picks), "Add" (one playlist) or an "Add to…" glass menu, and
+  "Add all" (one playlist: into it; several: closest group by mood + tempo via
+  closestByMoodAndTempo). Pure helper `addSongs` in editGroups.ts (tested). The page title of
+  this flow is now "Remix into moods" (the flip tile's back face still says "Organize playlists").
+  GROUP CARDS = look "A, door tiles" (developer's pick, 2026-11-23): wide glass tiles (grid
+  minmax(280px), so two per row), 84px cover mosaic (TILE_COVER) left, text beside it; hover =
+  the doors' pink edge + inner pink glow + lift (.prism-group-card:hover, same as .prism-door.on).
+  Not included tile keeps its dashed edge, which turns pink on hover. Counts say "1 song".
 - START PAGE WORDING (developer's picks): Grow = "Start with a favourite song and grow a
   playlist of songs that feel like it." Remix = "Shuffle your playlists into fresh ones sorted
   by genre and mood. Make several, or just the one you want."

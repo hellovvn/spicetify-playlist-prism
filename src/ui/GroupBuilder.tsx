@@ -1,5 +1,5 @@
-// Organize, "Start from scratch" (step 13c-2): the user makes their own
-// groups. Layout "B" (picked by the developer): the groups as a list on the
+// Remix, "I'll pick the vibes" door (step 13c-2, once "Start from scratch"):
+// the user makes their own groups (one group = one playlist). Layout "B" (picked by the developer): the groups as a list on the
 // left; on the right, the picked group's name and the genres and moods to
 // choose from (only ones that occur in the scanned songs, with song counts).
 // "Sort songs" then puts every song into its best group (pure logic in
@@ -33,10 +33,10 @@ export interface GroupBuilderProps {
   setGroups: (update: (groups: CustomGroup[]) => CustomGroup[]) => void;
   intro: React.ReactNode;
   onSort: () => void; // only called when checkCustomGroups found nothing missing
-  onUseSuggestions?: () => void; // not offered when making just one playlist
+  onBack: () => void; // to the two doors
 }
 
-export function GroupBuilder({ songs, groups, setGroups, intro, onSort, onUseSuggestions }: GroupBuilderProps) {
+export function GroupBuilder({ songs, groups, setGroups, intro, onSort, onBack }: GroupBuilderProps) {
   const { ButtonPrimary, ButtonSecondary } = Spicetify.ReactComponent as any;
   const [activeId, setActiveId] = React.useState(groups[0]?.id ?? "");
   const [query, setQuery] = React.useState("");
@@ -144,8 +144,10 @@ export function GroupBuilder({ songs, groups, setGroups, intro, onSort, onUseSug
               {choices.moods.length === 0 && <span style={styles.groupLine}>No lyrics moods were found in these songs.</span>}
             </div>
             <span style={styles.groupLine} data-prism="builder-fit">
-              ≈ <b style={{ color: "#fff" }}>{matchCount(songs, active)}</b> songs have one of these. A song that fits several groups
-              goes where it fits best; songs that fit none go to the closest group by mood and tempo.
+              ≈ <b style={{ color: "#fff" }}>{matchCount(songs, active)}</b> songs have one of these.{" "}
+              {groups.length === 1
+                ? "Songs with none of them are left out (you can add them back after sorting)."
+                : "A song that fits several groups goes where it fits best; songs that fit none go to the closest group by mood and tempo."}
             </span>
           </div>
         )}
@@ -157,11 +159,10 @@ export function GroupBuilder({ songs, groups, setGroups, intro, onSort, onUseSug
         </p>
       )}
       <div className="prism-actions" style={styles.buttons}>
-        {onUseSuggestions && (
-          <ButtonSecondary buttonSize="sm" onClick={onUseSuggestions} data-prism="builder-use-suggestions">
-            Use suggestions
-          </ButtonSecondary>
-        )}
+        <ButtonSecondary buttonSize="sm" onClick={onBack} data-prism="builder-back">
+          Back
+        </ButtonSecondary>
+        <span style={{ flex: 1 }} />
         <ButtonPrimary buttonSize="sm" onClick={sort} data-prism="builder-sort">
           Sort songs
         </ButtonPrimary>
