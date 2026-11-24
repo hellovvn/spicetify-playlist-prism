@@ -403,8 +403,8 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   this flow is now "Remix into moods" (the flip tile's back face still says "Organize playlists").
   GROUP CARDS = look "A, door tiles" (developer's pick, 2026-11-23): wide glass tiles (grid
   minmax(280px), so two per row), 84px cover mosaic (TILE_COVER) left, text beside it; hover =
-  the doors' pink edge + inner pink glow + lift (.prism-group-card:hover, same as .prism-door.on).
-  Not included tile keeps its dashed edge, which turns pink on hover. Counts say "1 song".
+  the standard lavender hover + lift (pink only marks a PICKED door/builder group, see
+  docs/ui-elements.md). Not included tile keeps its dashed edge. Counts say "1 song".
 - START PAGE WORDING (developer's picks): Grow = "Start with a favourite song and grow a
   playlist of songs that feel like it." Remix = "Shuffle your playlists into fresh ones sorted
   by genre and mood. Make several, or just the one you want."
@@ -466,6 +466,11 @@ behaves. The goal is a consistent app. Rules:
    (a) change the element everywhere (update the catalogue and add a History line), (b) add a
    new documented variant/version of the element, or (c) don't change it.
 4. Keep `docs/ui-elements.md` up to date in the same change as the code.
+5. BRANCHES MAY EXPERIMENT: a feature branch can try designs that differ from the catalogue
+   (a better look may turn up during development). Mark them in the catalogue as OPEN with
+   what they differ from. BEFORE merging into main, every OPEN difference must be shown to the
+   developer and decided (keep the standard, adopt the new design everywhere, or keep both as
+   documented variants). main only ever has one decided design per element.
 
 ## Working style
 - Keep explanations short: a few lines on what changed and why. No need to teach basic

@@ -93,16 +93,10 @@ export function CreatePlaylists(props: CreatePlaylistsProps) {
       </div>
 
       {phase === "confirm" && (
-        // A liquid-glass check bubble instead of an On/Off pair. It's a real
-        // checkbox (hidden but still focusable), wrapped in a <label>, so
-        // clicking the bubble OR the text toggles it, and Space works too.
-        <label className="prism-check" style={styles.setting} data-prism="prefix-check">
-          <input type="checkbox" checked={prefix} onChange={(e) => setPrefix(e.target.checked)} />
-          <span className="prism-check-bubble" aria-hidden="true">
-            <svg viewBox="0 0 16 16" width="12" height="12">
-              <path d="M3.5 8.5l3 3 6-7" />
-            </svg>
-          </span>
+        // The standard glass checkbox in a <label>, so clicking the box OR
+        // the text toggles it, and Space works too.
+        <label style={{ ...styles.setting, cursor: "pointer", width: "fit-content" }} data-prism="prefix-check">
+          <input type="checkbox" className="prism-checkbox" checked={prefix} onChange={(e) => setPrefix(e.target.checked)} />
           <span style={styles.settingLabel}>Start names with "{NAME_PREFIX.trim()}"</span>
         </label>
       )}
