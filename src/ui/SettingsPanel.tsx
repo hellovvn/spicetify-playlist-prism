@@ -6,7 +6,8 @@
 // React calls the function again and updates the screen to match.
 
 import React from "react"; // Spicetify Creator maps this to Spotify's own React
-import { getLastfmKey, setLastfmKey, clearLastfmKey, loadLyricsThemeSetting, saveLyricsThemeSetting, loadPanelStatsSetting, savePanelStatsSetting } from "../storage";
+import { getLastfmKey, setLastfmKey, clearLastfmKey, loadLyricsThemeSetting, saveLyricsThemeSetting, loadPanelStatsSetting, savePanelStatsSetting, loadPlaylistThemeSetting, savePlaylistThemeSetting } from "../storage";
+import { parsePlaylistTheme, PLAYLIST_THEMES, PLAYLIST_THEME_CHANGED_EVENT, type PlaylistThemeId } from "../theme/playlistTheme";
 import { isPanelStatsOn, PANEL_STATS_CHANGED_EVENT } from "./sidePanel";
 import { isLyricsThemeOn, LYRICS_THEME_CHANGED_EVENT } from "./lyricsTheme";
 import { testApiKey } from "../lastfm/client";
@@ -40,6 +41,14 @@ export function SettingsPanel({ notice, onSaved }: SettingsPanelProps) {
     setPanelOn(on);
     savePanelStatsSetting(on);
     window.dispatchEvent(new Event(PANEL_STATS_CHANGED_EVENT));
+  }
+
+  // The playlist theme (src/ui/playlistTheme.ts listens for the event).
+  const [playlistTheme, setPlaylistTheme] = React.useState<PlaylistThemeId>(parsePlaylistTheme(loadPlaylistThemeSetting()));
+  function chooseTheme(id: PlaylistThemeId) {
+    setPlaylistTheme(id);
+    savePlaylistThemeSetting(id);
+    window.dispatchEvent(new Event(PLAYLIST_THEME_CHANGED_EVENT));
   }
 
   async function onSave() {
@@ -109,6 +118,25 @@ export function SettingsPanel({ notice, onSaved }: SettingsPanelProps) {
       </div>
       {/* Only show the status line when there is something to say. */}
       {status && <p>{status}</p>}
+
+      <h3 className="prism-heading" style={{ margin: "12px 0 0" }}>Playlist theme</h3>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+        <span style={{ fontSize: 13, fontWeight: 600 }} id="prism-playlist-theme-label">
+          Background for playlists
+        </span>
+        <div className="prism-seg" role="group" aria-labelledby="prism-playlist-theme-label">
+          {PLAYLIST_THEMES.map((t) => (
+            <button key={t.id} type="button" className={playlistTheme === t.id ? "on" : ""} aria-pressed={playlistTheme === t.id} onClick={() => chooseTheme(t.id)} data-prism={`playlist-theme-${t.id}`}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <p style={{ color: "var(--spice-subtext)", fontSize: 13, margin: 0 }}>
+        A theme gives every playlist page a moving background, a colour rail beside the songs (each song in its main
+        genre's colour) and a genre mix under the title. Genres come from songs Prism has already scanned. No theme:
+        playlists look as Spotify makes them. Playlists themselves are never changed.
+      </p>
 
       <h3 className="prism-heading" style={{ margin: "12px 0 0" }}>Lyrics</h3>
       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>

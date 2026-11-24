@@ -103,6 +103,19 @@ export function savePanelStatsSetting(on: boolean): void {
   Spicetify.LocalStorage.set(PANEL_STATS_KEY, on ? "on" : "off");
 }
 
+// ----- Playlist theme (see src/theme/playlistTheme.ts) -----
+// "none" / "aurora" / "stars" / "nebula". Never set = no theme.
+
+const PLAYLIST_THEME_KEY = "prism:playlistTheme";
+
+export function loadPlaylistThemeSetting(): string | null {
+  return Spicetify.LocalStorage.get(PLAYLIST_THEME_KEY);
+}
+
+export function savePlaylistThemeSetting(id: string): void {
+  Spicetify.LocalStorage.set(PLAYLIST_THEME_KEY, id);
+}
+
 // ----- Grow: how many songs to recommend (see PICK_COUNTS in src/scoring/rank.ts) -----
 // "10", "30", "all"... Remembered so the next Prism starts with the same count.
 
