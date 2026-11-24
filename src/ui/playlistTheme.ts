@@ -31,6 +31,8 @@ const THEME_ATTR = "data-prism-theme"; // on .Root__main-view while a themed pla
 const SKY_CLASS = "prism-pl-sky";
 const RAIL_CLASS = "prism-rail";
 const MIX_ATTR = "data-prism-genre-mix";
+const PHOTO_ATTR = "data-prism-photo"; // Spotify's big photo header box while we move it with the scroll
+const HEADER_STUCK_ATTR ="data-prism-stuck"; // on the song-list column header while stuck to the top (an attribute: React rewrites its class list)
 const UNKNOWN_COLOUR = "rgba(205, 184, 255, 0.28)"; // songs Prism hasn't scanned
 const RELOAD_GAP_MS = 5000; // at most one re-read of the playlist this often
 const CACHE_REFRESH_MS = 30000; // re-read the tag cache (new scans) this often
@@ -53,10 +55,36 @@ const CSS = `
 /* While scrolling, two bars stick to the top: Spotify's top bar and the song
    list's column header (# / Title / Album, solid grey in Spotify). Both get
    the same twilight glass so they read as one panel (nearly solid: the sky
-   behind them is darker at the top, and see-through glass looked black there). */
+   behind them is darker at the top, and see-through glass looked black there).
+   Before the column header sticks (it sits in the page under the title) it is
+   fully see-through, so the sky shows; it turns to glass only once stuck
+   (HEADER_STUCK_ATTR, set by updateHeader), or songs would scroll under the text. */
 [${THEME_ATTR}] .main-topBar-background,
-[${THEME_ATTR}] .main-trackList-trackListHeader { background-color: rgba(38, 26, 76, 0.94) !important; backdrop-filter: blur(16px); }
-[${THEME_ATTR}] .main-trackList-trackListHeader { border-bottom-color: rgba(205, 184, 255, 0.18) !important; }
+[${THEME_ATTR}] .main-trackList-trackListHeader[${HEADER_STUCK_ATTR}] { background-color: rgba(38, 26, 76, 0.94) !important; backdrop-filter: blur(16px); }
+[${THEME_ATTR}] .main-trackList-trackListHeader { background-color: transparent !important; border-bottom-color: rgba(205, 184, 255, 0.18) !important; transition: background-color 0.2s ease; }
+/* Spotify fades its top bar in with an inline opacity as you scroll. Once the
+   column header is stuck under it, the top bar is always fully shown, or a
+   half-faded (dark) top bar sits on a fully purple header. */
+[${THEME_ATTR}]:has(.main-trackList-trackListHeader[${HEADER_STUCK_ATTR}]) .main-topBar-background { opacity: 1 !important; }
+/* Spotify darkens its top bar with extra layers meant for the cover colour:
+   a 60% black .main-topBar-overlay (seen while a playlist opened for the
+   first time loads: a dark top bar over the purple column header) and a
+   #121212 radial gradient ("mixing background" ::after) on the top bar and
+   the page. Not wanted with a theme on. */
+[${THEME_ATTR}] .main-topBar-overlay { background-color: transparent !important; }
+[${THEME_ATTR}] .main-topBar-mixingBackground::after,
+[${THEME_ATTR}] .playlist-playlist-mixingBackground::after { display: none !important; }
+/* Spotify's own playlists with a big PHOTO header (Today's Top Hits...): the
+   photo lives outside the scrolling page (.before-scroll-node) and stays put;
+   Spotify hides it behind the page's solid background, which the theme
+   clears. updateHeader moves it up with the scroll instead (PHOTO_ATTR marks
+   it). Spotify's own scroll effect fades the photo into the cover colour
+   (a ::after on the photo's shade layer: olive on Today's Top Hits); with the
+   photo scrolling away that isn't needed, so it's hidden, as is the cover
+   colour behind an overscroll ([data-testid=overscroll-background]). */
+[${THEME_ATTR}] [data-testid="overscroll-background"],
+[${THEME_ATTR}] .before-scroll-node > [${PHOTO_ATTR}] > :not([data-testid="background-image"])::after { display: none !important; }
+[${THEME_ATTR}] .before-scroll-node > [${PHOTO_ATTR}] { will-change: transform; }
 
 /* Spotify's green accent -> Prism pastels (mockup play button): the big play
    buttons get the pink-to-lavender gradient with a dark purple triangle, and
@@ -315,6 +343,7 @@ export function startPlaylistTheme(): void {
 
   const update = () => {
     scheduled = false;
+    scheduleHeader();
     const main = document.querySelector(".Root__main-view");
     const uri = playlistUriFromPath(Spicetify.Platform.History.location?.pathname);
     if (!main || !uri || theme === "none") {
@@ -389,6 +418,42 @@ export function startPlaylistTheme(): void {
       check();
     }
   };
+
+  // The column header is stuck when it sits at its sticky "top" inside the
+  // scrolling area. Spotify adds no class for that, so this runs on scroll
+  // and page changes (once per frame at most).
+  let headerScheduled = false;
+  const updateHeader = () => {
+    headerScheduled = false;
+    document.querySelectorAll<HTMLElement>(".Root__main-view .main-trackList-trackListHeader").forEach((header) => {
+      const scroller = header.closest("[data-overlayscrollbars-viewport], .main-view-container__scroll-node");
+      const stickyTop = parseFloat(getComputedStyle(header).top) || 0;
+      const offset = scroller ? header.getBoundingClientRect().top - scroller.getBoundingClientRect().top : Infinity;
+      header.toggleAttribute(HEADER_STUCK_ATTR, offset <= stickyTop + 1);
+    });
+
+    // The big photo header scrolls away with the page (see the CSS).
+    const main = document.querySelector(".Root__main-view");
+    const photo = main?.querySelector<HTMLElement>('.before-scroll-node > div:has([data-testid="background-image"])');
+    document.querySelectorAll<HTMLElement>(`[${PHOTO_ATTR}]`).forEach((old) => {
+      if (old !== photo || !main?.hasAttribute(THEME_ATTR)) {
+        old.removeAttribute(PHOTO_ATTR);
+        old.style.removeProperty("transform");
+      }
+    });
+    if (photo && main?.hasAttribute(THEME_ATTR)) {
+      const scroller = main.querySelector(".main-view-container__scroll-node [data-overlayscrollbars-viewport]");
+      const transform = `translateY(${-(scroller?.scrollTop ?? 0)}px)`;
+      photo.setAttribute(PHOTO_ATTR, "");
+      if (photo.style.transform !== transform) photo.style.transform = transform;
+    }
+  };
+  const scheduleHeader = () => {
+    if (headerScheduled) return;
+    headerScheduled = true;
+    requestAnimationFrame(updateHeader);
+  };
+  document.addEventListener("scroll", scheduleHeader, { capture: true, passive: true });
 
   // Many changes come at once while Spotify draws or scrolls: handle them
   // together on the next frame.
