@@ -191,9 +191,9 @@ function NameBox({ group, onRename }: { group: CustomGroup; onRename: (name: str
 }
 
 // A genre/mood label you can turn on and off: the same frosted label with a
-// colour dot as everywhere else, as a button. Moods have a dashed edge so
+// colour dot as everywhere else, as a button (also used by ToneEditor). Moods have a dashed edge so
 // they're easy to tell from genres. The faint number = songs with it.
-function PickChip({ kind, choice, on, onToggle }: { kind: LabelKind; choice: LabelChoice; on: boolean; onToggle: () => void }) {
+export function PickChip({ kind, choice, on, onToggle }: { kind: LabelKind; choice: LabelChoice; on: boolean; onToggle: () => void }) {
   return (
     <button
       type="button"

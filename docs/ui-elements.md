@@ -44,6 +44,7 @@ it. The rules for changing or adding elements are in CLAUDE.md under "UI element
 
 | Element | How to make it | Look | Behaviour |
 |---|---|---|---|
+| Toggle (approved 2026-11-24, tone strip "E") | `<button type="button" className="prism-toggle" role="switch" aria-checked>` (CSS in styles.ts) | 34x20 pill track with a 14px white knob. Off: clear glass track, knob left. On: lavender track, knob right | Takes effect AT ONCE. Standard hover rim + glow; knob slides 150 ms (none with reduced motion); press stretches the knob. Use ONLY for instant on/off; picking things and yes/no on a confirm screen stay the checkbox. Used by: the tone strip (Settings' On/Off still use the segmented choice) |
 | Checkbox (v2, approved 2026-11-23) | `<input type="checkbox" className="prism-checkbox">` inside a `<label>` | 18px glass square, 5px corners. On: lavender with a WHITE tick and a glow. Some: white dash. Locked: `<span className="prism-checkbox is-locked">`, dimmed | Standard hover. The whole `<label>` toggles it. The ONLY checkbox in the app (lists and single yes/no settings alike) |
 | Door tile (pick ONE big path) | `.prism-glass-panel.prism-door` (+ `.on`), Remix's "Sort them for me" / "I'll pick the vibes" | Big glass tile | Hover: standard + 2px lift. Picked: `--prism-picked` pink edge + inner glow |
 | Segmented choice (pick ONE) | `.prism-seg` holding `<button className="on">` with `aria-pressed` | Glass pill split into parts; the chosen one is lavender | Hover on unchosen parts: faint white. Used for counts, On/Off settings, "Group mostly by" |
@@ -59,12 +60,14 @@ it. The rules for changing or adding elements are in CLAUDE.md under "UI element
 | List row | `.prism-row` (+ `.is-clickable`, `.is-glass` for the seed, `.is-head` for "Select all") | 8px corners, thin line between rows | Clickable rows: faint white hover |
 | New find row | `.prism-row` + `.prism-new-find`, `.prism-new-pill` "✦ New find", `.prism-sparkle` round the score ring | Mint glass | Sparkles twinkle (they stay visible but still with reduced motion) |
 | Score ring | `ScoreRing` in PreviewScreen | 52px ring, lavender-to-pink arc, % in the middle | Static |
+| Tone ring (approved 2026-11-24, mockup "A") | `ringSvg` in `src/ui/toneRows.ts`, a `.prism-tone-ring` span put into Spotify's own track rows (before the duration) | The score ring at 32px: lavender-to-pink arc, % (no sign) in the middle. Rough guess (no Last.fm tags, mood + tempo only): the same ring at half strength ("faded ring", developer's pick). Not scored: dashed ring with "–" | Tooltip says the % and what fits / is off ("~58% … a rough guess" for faded ones). Songs under 50% fade their row (`.prism-tone-drift`, opacity 0.45, back to 1 on hover); rough guesses never fade their row |
+| Tone strip (approved 2026-11-24, mockup "E") | `[data-prism-tone-strip]` div put right after Spotify's playlist action bar row (`src/ui/toneRows.ts`, own CSS: outside the Prism page) | Slim glass band (12px corners, faint lavender glass): Toggle, "✦ Tone", the tone's labels as read-only tag labels (4 max, then "+N", then "slow tempo"), quiet "Edit" button at the right end (opens the tone editor in a wide pop-up over the playlist) | Toggle (or clicking "✦ Tone") shows/hides the rings. Only while they load: "Scoring songs: 12 of 39…" before Edit (or "Couldn't score the songs"). No summary text (removed at the developer's request; the overall fit is the stats page's "Tone fit"). Edit opens the tone editor. Only on playlists with a tone |
 | Panel / box | `.prism-glass-panel` | Glass, 16px corners | Static |
 | Clickable card | `.prism-glass-panel` + `.prism-builder-group` | Glass card | Standard hover + 2px lift. Chosen group (`.on`): `--prism-picked` pink edge + inner glow |
 | Group card (Remix, "door tile" look) | `.prism-glass-panel.prism-group-card` | Wide glass tile with album covers | Standard hover + 2px lift |
 | "Not included" card | `.prism-group-card.prism-left-card` | Dashed edge, less fill | Hover: lavender edge + 2px lift |
 | Album-cover mosaic | `CoverMosaic` | 2x2 album art | Static |
-| Stat card | `StatCard` in StatsScreen | Glass panel, 12px label, 24px value | Static |
+| Stat card | `StatCard` in StatsScreen | Glass panel, 12px label, 24px value | Static. "Tone fit" (a playlist with a tone) is a 5th card in the same row, breakdown on hover; in the side panel it's a 5th number cell spanning the row |
 | Bar (stats) | `.prism-bar-track` + `.prism-bar-fill` with `--tag` | 14px glass track, glossy bar in the genre colour | Bars grow in one after another |
 | Progress bar | `.prism-progress` + `.prism-progress-fill` | 10px glass track, pastel rainbow fill | Width animates 300 ms |
 | Fingerprint bubbles | `Fingerprint` | See-through bubbles in the genre colour | Float + wobble; click pops (droplets), back after 3 s |
@@ -73,6 +76,7 @@ it. The rules for changing or adding elements are in CLAUDE.md under "UI element
 | Error line | inline text in `--prism-error` pink | Small pink text | |
 | Inline confirm bar | Text + two secondary buttons in a dark purple strip (leave scan, combine groups) | Says what will happen | Asks before anything destructive |
 | Pop-up | `.prism-overlay` + `.prism-glass-card` (`role="dialog"`) | Dimmed, blurred page with a glass card (20px corners) | Rises in |
+| Wide pop-up (variant, 2026-11-24) | `.prism-glass-card.is-wide` (up to 760px, at most the view's height). Outside the Prism page the overlay also gets `prism-cosmos` so Prism's colours apply (`src/ui/tonePopup.tsx`) | Same as the pop-up, wider: for a whole editor, not a quick question | Rises in. Escape, a click on the dim area, Cancel or opening another page closes it. Used by: the tone editor from the tone strip's Edit |
 | Screen title | `.prism-screen-title` | 22px light Segoe UI Variable Display, white | |
 | Section heading | `.prism-heading` | 13px bold, light lavender | |
 
@@ -89,6 +93,14 @@ it. The rules for changing or adding elements are in CLAUDE.md under "UI element
 | Top-bar icon | `src/assets/prism.svg` + `headerIcon.ts` | Spotify's top bar; spins on hover with a star halo and rainbow ring |
 
 ## History
+
+- 2026-11-24: Pop-up got a WIDE variant (`.is-wide`) for the tone editor opened from the tone
+  strip's Edit (it used to open the Prism page).
+- 2026-11-24: NEW Toggle (instant on/off, `.prism-toggle`) and Tone strip (mockup "E"), which
+  replaced the first "✦ Tone" pill switch. Tone ring got the faded "rough guess" look. Stat
+  card: "Tone fit" as a 5th card. Later the same day the strip's summary line ("59% tone fit ·
+  19 of 28 songs fit · 9 drift · 9 rough guesses") was removed (developer's request).
+- 2026-11-24: NEW Tone switch and Tone ring (playlist tones, mockup "A").
 
 - 2026-11-24: NEW Show/hide list (quiet button + in-place glass list) for Merge's duplicates.
 

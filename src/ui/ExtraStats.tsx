@@ -4,6 +4,7 @@
 // playlist (useExtras below). Read-only.
 
 import React from "react";
+import { TONES_CHANGED_EVENT, type ToneSummary } from "../tone/tone";
 import type { PlaylistExtras } from "../stats/playlistExtras";
 
 // Loads the extras for one playlist. null = still loading or failed (the
@@ -22,6 +23,42 @@ export function useExtras(uri: string, load: ((uri: string) => Promise<PlaylistE
     };
   }, [uri, load]);
   return extras;
+}
+
+// "Tone fit" for a playlist (null = no tone, or still loading). Loads again
+// when a tone is saved or removed, so the stats follow an edited tone.
+export function useToneFit(uri: string, load: ((uri: string) => Promise<ToneSummary | null>) | undefined): ToneSummary | null {
+  const [fit, setFit] = React.useState<ToneSummary | null>(null);
+  const [version, setVersion] = React.useState(0);
+  React.useEffect(() => {
+    const bump = () => setVersion((v) => v + 1);
+    window.addEventListener(TONES_CHANGED_EVENT, bump);
+    return () => window.removeEventListener(TONES_CHANGED_EVENT, bump);
+  }, []);
+  React.useEffect(() => {
+    if (!load) return;
+    let closed = false;
+    setFit(null);
+    load(uri)
+      .then((loaded) => !closed && setFit(loaded))
+      .catch((error) => console.warn("[Playlist Prism] couldn't load the tone fit", error));
+    return () => {
+      closed = true;
+    };
+  }, [uri, load, version]);
+  return fit;
+}
+
+// "28 of 39 fit · 5 drift · 6 rough guesses" (hover text of the Tone fit stat).
+export function toneFitText(fit: ToneSummary): string {
+  return [
+    `${fit.fits} of ${fit.fits + fit.drift} songs fit the tone`,
+    fit.drift ? `${fit.drift} drift` : "",
+    fit.partial ? `${fit.partial} rough guesses (no tags)` : "",
+    fit.unscored ? `${fit.unscored} unscored` : "",
+  ]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 const ERA_COLOURS = ["#a9cdff", "#d5c2ff", "#ffb8d9", "#ffe2a8", "#a8ecc9", "#ffc6ad", "#a6eaf2"];

@@ -127,3 +127,21 @@ export function loadNewCountText(): string | null {
 export function saveNewCountText(text: string): void {
   Spicetify.LocalStorage.set(NEW_COUNT_KEY, text);
 }
+
+// ----- Playlist tones (see src/tone/tone.ts) -----
+// The tone the user set for a playlist (genres, moods, tempo) and whether its
+// Tone view is on. Keyed by playlist URI; ONLY here, never written to the playlist.
+
+const TONES_KEY = "prism:tones";
+
+export function loadTonesText(): string | null {
+  return Spicetify.LocalStorage.get(TONES_KEY);
+}
+
+export function saveTonesText(json: string): void {
+  try {
+    Spicetify.LocalStorage.set(TONES_KEY, json);
+  } catch (error) {
+    console.warn("[Playlist Prism] couldn't save the playlist tones", error);
+  }
+}

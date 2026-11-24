@@ -19,7 +19,7 @@ import React from "react";
 import { parseRecords } from "../stats/playlistStats";
 import { loadPanelStatsSetting, loadPlaylistRecordsText } from "../storage";
 import { openPage } from "../nav";
-import { loadPlaylistExtras } from "../flow";
+import { loadPlaylistExtras, loadToneFit } from "../flow";
 import { RECORDS_CHANGED_EVENT } from "./prismRows";
 import { PanelStats, type NowPlaying } from "./PanelStats";
 import { imageUrl, isPanelStatsOn, panelRecordFor, PANEL_STATS_CHANGED_EVENT } from "./sidePanel";
@@ -74,6 +74,7 @@ export function startPanelStats(): void {
         nowPlaying={nowPlaying()}
         onOpenStats={() => openPage({ go: "stats", playlist: show.record.uri })}
         loadExtras={loadPlaylistExtras}
+        loadToneFit={loadToneFit}
       />
     );
   };

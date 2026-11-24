@@ -19,13 +19,14 @@ export type PageRequest =
   | { go: "settings" } // show the settings (Last.fm key)
   | { go: "home" } // the start screen
   | { go: "stats"; playlist: string } // the stats page for a Prism playlist
+  | { go: "tone"; playlist: string } // set or edit a playlist's tone
   | { go: "demo-scan" } // DEV/TEST: scan screen with a fake scan (smoke test)
   | { go: "demo-stats" }; // DEV/TEST: stats page with sample numbers (smoke test)
 
 export function pageUrl(request: PageRequest, requestId: string): string {
   const params = new URLSearchParams({ go: request.go });
   if (request.go === "start") params.set("seed", request.seed);
-  if (request.go === "stats") params.set("playlist", request.playlist);
+  if (request.go === "stats" || request.go === "tone") params.set("playlist", request.playlist);
   params.set("r", requestId);
   return `${PAGE_PATH}?${params.toString()}`;
 }
@@ -40,7 +41,7 @@ export function parsePageRequest(search: string): { request: PageRequest; reques
     const seed = params.get("seed");
     return seed && isTrackUri(seed) ? { request: { go, seed }, requestId } : null;
   }
-  if (go === "stats") {
+  if (go === "stats" || go === "tone") {
     const playlist = params.get("playlist");
     return playlist && isPlaylistUri(playlist) ? { request: { go, playlist }, requestId } : null;
   }
