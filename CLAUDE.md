@@ -514,6 +514,22 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   aria-selected on it. FIX: on /collection/tracks the row whose cover is
   `img[src*="/liked-songs/"]` counts as open (`isLikedSongsPage`); the open row's box gets
   `.prism-lib-open`. The Liked Songs PAGE itself still has no playlist theme (not /playlist/).
+- THEME AUDIT (2026-11-24): besides Prism's page, playlist pages, lyrics and the left panel,
+  Spotify still showed its own black/grey/green on 4 bars/panels (top bar, right panel, player
+  bar, "Playing on ..." strip) and ~9 page types (Home, Search/Browse, Liked Songs, Your
+  Library, album, artist, Settings, listening history, genre pages; not checked: search results,
+  podcasts, profile, menus/dialogs).
+- SPOTIFY'S BARS "QUIET NIGHT" (2026-11-24, mockup "C" of four, developer's pick; built, not
+  committed): `src/ui/chromeTheme.ts` (always-on). With any playlist theme on, on EVERY page:
+  bars and gaps #0b0817, right panel #151029 with #1d1638 cards, pastel instead of green.
+  Pure CSS behind `html[data-prism-chrome]`. Spotify's greens there come from Spicetify's
+  `--spice-button(-active)` + `--spice-rgb-button(-active)` and `--text-bright-accent` /
+  `--essential-bright-accent`, swapped on the three bar roots. Connect strip =
+  `.main-connectBar-connectBar` (only there while another device plays; checked with a
+  temporary copy). Don't paint `.main-nowPlayingView-section`: "Related music videos" has
+  no card in Spotify and turned into a square block.
+  Testing note: Git Bash rewrites a "/search" argument into "C:/Program Files/Git/search";
+  use MSYS_NO_PATHCONV=1 when passing Spotify paths to node scripts.
 - 15 (to-do): rename the internal ids from "playlist-prism" / "Playlist Prism" to just "prism"
   (custom app nameId and folder, `window.__playlistPrism` hook, `[Playlist Prism]` console
   prefix, "playlist-prism:*" window events, the header icon's aria-label). Storage keys are
