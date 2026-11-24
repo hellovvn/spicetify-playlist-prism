@@ -516,11 +516,9 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   `.prism-lib-open`. The Liked Songs PAGE itself still has no playlist theme (not /playlist/).
 - THEME AUDIT (2026-11-24): besides Prism's page, playlist pages, lyrics and the left panel,
   Spotify still showed its own black/grey/green on 4 bars/panels (top bar, right panel, player
-  bar, "Playing on ..." strip) and ~9 page types (Home, Search/Browse, Liked Songs, Your
-  Library, album, artist, Settings, listening history, genre pages; not checked: search results,
-  podcasts, profile, menus/dialogs).
-- SPOTIFY'S BARS "QUIET NIGHT" (2026-11-24, mockup "C" of four, developer's pick; built, not
-  committed): `src/ui/chromeTheme.ts` (always-on). With any playlist theme on, on EVERY page:
+  bar, "Playing on ..." strip; now DONE, see "Quiet night" below) and ~9 page types (see 16).
+- SPOTIFY'S BARS "QUIET NIGHT" (2026-11-24, mockup "C" of four, developer's pick; tested by the
+  developer, committed in PR #12): `src/ui/chromeTheme.ts` (always-on). With any playlist theme on, on EVERY page:
   bars and gaps #0b0817, right panel #151029 with #1d1638 cards, pastel instead of green.
   Pure CSS behind `html[data-prism-chrome]`. Spotify's greens there come from Spicetify's
   `--spice-button(-active)` + `--spice-rgb-button(-active)` and `--text-bright-accent` /
@@ -535,6 +533,32 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   prefix, "playlist-prism:*" window events, the header icon's aria-label). Storage keys are
   already "prism:*". The nameId change needs a `spicetify config custom_apps` swap + apply,
   and the smoke test's selectors must follow.
+- 16 (to-do, asked 2026-11-24; NEXT step for theming): give the rest of Spotify's PAGES the
+  Prism look, so nothing shows Spotify's plain #121212 / green while a playlist theme is on.
+  Already themed: Prism's page, /playlist/ pages (`src/ui/playlistTheme.ts`), lyrics views
+  (`lyricsTheme.ts`), the left panel (`libraryTheme.ts`) and the bars (`chromeTheme.ts`,
+  "Quiet night", PR #12). Still Spotify's own look (audit 2026-11-24, screenshots of each):
+  1. Home (/)                      6. Artist pages (/artist/...): cover-colour header, green play
+  2. Search / Browse all (/search): loud category tiles on #121212
+  3. Liked Songs (/collection/tracks): Spotify's purple header, green play, grey filter chips
+  4. Your Library (/collection)    7. Settings (/preferences): grey, green switches
+  5. Album pages (/album/...): cover-colour header, green play   8. Listening history (/history)
+  9. Genre / category pages (/genre/...)
+  Not checked yet: search results, podcast/episode/show pages, profile (/user/...), right-click
+  menus and Spotify's dialogs. Check them as part of this step.
+  Facts found: every page above has `.Root__main-view` at #121212 and no data-prism-theme;
+  album/artist/Liked headers use the same `.main-entityHeader-*` + action bar +
+  `.main-trackList-*` song list as playlists, and `.main-topBar-background` takes the cover
+  colour. So the cheapest route is probably to reuse the playlist theme's parts (sky behind the
+  view, cleared cover washes, glass top bar + column header, pastel play button) on those
+  pages; Home/Search/Settings/history/genre have no song list. The colour rail and genre mix
+  are playlist-only today; whether they belong on albums/Liked Songs is a design question.
+  Spicetify's greens: `--spice-button(-active)` and their rgb twins (see Quiet night below).
+  HOW (developer's rules): show 3-4 mockup options first (e.g. the full sky on every page vs. a
+  quieter still twilight background vs. Quiet night's dark purple only), let the developer
+  pick, possibly page by page; respect "UI elements" rules (new looks go in
+  docs/ui-elements.md). Easiest first chunk: Liked Songs + album + artist (same layout as
+  playlists).
 - 11: Cleanup: remove the debug hook, README, release (after 12).
 
 ## Dev loop (Claude runs this, not the developer)
