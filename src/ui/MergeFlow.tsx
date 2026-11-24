@@ -101,6 +101,7 @@ function MergeReview(props: {
   const [rename, setRename] = React.useState(true);
   const [phase, setPhase] = React.useState<"confirm" | "merging" | "done">("confirm");
   const [result, setResult] = React.useState<MergeResult | null>(null);
+  const [showDuplicates, setShowDuplicates] = React.useState(false);
 
   // Read every picked playlist's songs once (read-only).
   React.useEffect(() => {
@@ -161,8 +162,46 @@ function MergeReview(props: {
         <p style={styles.sub} data-prism="merge-summary">
           {plan.total} songs → {plan.tracks.length} in the new playlist
           {plan.duplicates > 0 ? ` (${plan.duplicates} duplicate${plan.duplicates === 1 ? "" : "s"} left out)` : " (no duplicates)"}.
+          {plan.duplicates > 0 && (
+            // Expandable list (catalogue: "Show/hide list"): a quiet button
+            // that opens the list right here, under the line it explains.
+            <button
+              type="button"
+              className="prism-quiet-button"
+              style={styles.toggle}
+              aria-expanded={showDuplicates}
+              aria-controls="prism-merge-duplicates"
+              onClick={() => setShowDuplicates(!showDuplicates)}
+              data-prism="merge-duplicates-toggle"
+            >
+              {showDuplicates ? "▴ Hide duplicates" : "▾ Show duplicates"}
+            </button>
+          )}
         </p>
       </div>
+
+      {showDuplicates && plan.duplicates > 0 && (
+        <div id="prism-merge-duplicates" className="prism-glass-panel" style={styles.dupes} data-prism="merge-duplicates">
+          {plan.dropped.map((d, i) => {
+            const same = d.kept.uri === d.track.uri;
+            return (
+              <div key={i} className="prism-row" style={styles.row}>
+                <span style={styles.rowText}>
+                  <span style={styles.dupeName}>
+                    {d.track.name} · {d.track.artists[0] ?? ""}
+                  </span>
+                  <span style={styles.rowSub}>in {sources[d.from].name}</span>
+                </span>
+                <span style={styles.status}>
+                  {same
+                    ? `already in ${sources[d.keptFrom].name}`
+                    : `kept "${d.kept.name}" from ${sources[d.keptFrom].name}`}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {phase !== "done" && (
         <>
@@ -264,6 +303,10 @@ const styles: Record<string, React.CSSProperties> = {
   rowText: { display: "flex", flexDirection: "column", minWidth: 0, flex: 1 },
   rowName: { color: "#ffffff", fontSize: 14, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
   rowSub: { color: "var(--spice-subtext)", fontSize: 12 },
+  toggle: { marginLeft: 8, fontSize: 13 },
+  // At most ~4 rows tall; longer lists scroll inside, so the buttons stay put.
+  dupes: { flexShrink: 0, maxHeight: 190, overflowY: "auto", display: "flex", flexDirection: "column", padding: "4px 6px" },
+  dupeName: { color: "var(--spice-text)", fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
   status: { color: "var(--spice-subtext)", fontSize: 12, fontWeight: 600, textAlign: "right", maxWidth: "50%" },
   buttons: { display: "flex", justifyContent: "space-between", gap: 8 },
 };

@@ -31,7 +31,15 @@ describe("mergeSongs", () => {
   });
 
   test("empty input", () => {
-    expect(mergeSongs([])).toEqual({ tracks: [], total: 0, duplicates: 0 });
+    expect(mergeSongs([])).toEqual({ tracks: [], total: 0, duplicates: 0, dropped: [] });
+  });
+
+  test("says which copy was left out and which was kept, with their playlists", () => {
+    const plan = mergeSongs([[t("single", "Snooze"), t("x", "Kill Bill")], [t("album", "Snooze (Acoustic)"), t("x", "Kill Bill")]]);
+    expect(plan.dropped.map((d) => [d.track.uri, d.from, d.kept.uri, d.keptFrom])).toEqual([
+      ["spotify:track:album", 1, "spotify:track:single", 0],
+      ["spotify:track:x", 1, "spotify:track:x", 0],
+    ]);
   });
 });
 

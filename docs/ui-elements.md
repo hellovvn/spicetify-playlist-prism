@@ -36,6 +36,7 @@ it. The rules for changing or adding elements are in CLAUDE.md under "UI element
 | Secondary button | Spotify `ButtonSecondary` | Glass pill, white text. 48px in an action row (`.prism-actions`), 32px elsewhere | Standard hover/press |
 | Glass button (outside Spotify's buttons) | `.prism-glass-button` | Same as the 32px secondary button | Same |
 | Quiet button | `.prism-quiet-button` | Lavender text, no box | Hover: text turns white |
+| Show/hide list (approved 2026-11-24, mockup "A") | A quiet button "▾ Show …" / "▴ Hide …" (`aria-expanded`, `aria-controls`) right after the line it explains; the list opens IN PLACE below it as a `.prism-glass-panel` of `.prism-row`s, max ~190px then scrolls inside | Same as the quiet button; the list is a still glass box | Click toggles; content below moves down. Starts closed. Used for Merge's duplicates |
 | Icon button | `.prism-icon-button` | 28px glass circle, e.g. × | Standard hover/press |
 | Action row | `.prism-actions`, right-aligned, at the bottom of a screen | Secondary buttons first, main button last | Always in the same place on a screen |
 
@@ -88,6 +89,8 @@ it. The rules for changing or adding elements are in CLAUDE.md under "UI element
 | Top-bar icon | `src/assets/prism.svg` + `headerIcon.ts` | Spotify's top bar; spins on hover with a star halo and rainbow ring |
 
 ## History
+
+- 2026-11-24: NEW Show/hide list (quiet button + in-place glass list) for Merge's duplicates.
 
 - 2026-11-23: NEW Start bar (`.prism-home-bar`) for Merge playlists. The playlist picker
   (`SourcePicker`) got an optional `minPicked` (default 1, so Grow and Remix are unchanged;

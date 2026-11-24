@@ -434,6 +434,9 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   copy counts) is a duplicate; the first copy keeps its place, playlists in the order picked.
   If a rename fails, the merged playlist still stands and the done screen lists what wasn't
   renamed. No stats record is saved for merged playlists (they aren't Prism-grown/organized).
+  DUPLICATES LIST (2026-11-24, mockup "A", developer's pick): "▾ Show duplicates" after the summary
+  opens an in-place glass list; each row = the left-out copy + its playlist, and the copy kept
+  ("kept \"Snooze\" from Dark Romance", or "already in …" for the same URI). Data: `dropped` from mergeSongs.
 - 15 (to-do): rename the internal ids from "playlist-prism" / "Playlist Prism" to just "prism"
   (custom app nameId and folder, `window.__playlistPrism` hook, `[Playlist Prism]` console
   prefix, "playlist-prism:*" window events, the header icon's aria-label). Storage keys are
