@@ -24,6 +24,7 @@
 
 import React from "react";
 import { FlipTile } from "./FlipTile";
+import { StartBar } from "./StartBar";
 import { OrganizeIcon, PrismIcon as PrismTileIcon } from "./HomeIcons";
 import { getPlaylistCover, getSources, getSourceTracks } from "../spotify/read";
 import { getLastfmKey, loadPanelStatsSetting } from "../storage";
@@ -538,18 +539,26 @@ function HomeScreen({ onStart, onOrganize, onMerge, onAddTo }: { onStart: (seed:
       </div>
 
       {/* Merge: a wide glass bar under the tiles (mockup "B"), opens straight away. */}
-      <button type="button" className="prism-home-bar" onClick={onMerge} data-prism="start-merge">
-        <MergeIcon />
-        <span style={styles.barLabel}>Merge playlists</span>
-        <span style={styles.barText}>Join playlists into one and leave out duplicates</span>
-      </button>
+      <StartBar
+        id="start-merge"
+        icon={<MergeIcon />}
+        label="Merge playlists"
+        text="Stack your playlists together and drop the doubles"
+        onClick={onMerge}
+        labelStyle={styles.barLabel}
+        textStyle={styles.barText}
+      />
 
       {/* Add with Prism: the same start bar, for one song. */}
-      <button type="button" className="prism-home-bar" onClick={onAddTo} data-prism="start-addto">
-        <AddSongIcon />
-        <span style={styles.barLabel}>Add a song to your playlists</span>
-        <span style={styles.barText}>Find the 5 playlists that fit a song best</span>
-      </button>
+      <StartBar
+        id="start-addto"
+        icon={<AddSongIcon />}
+        label="Add a song to your playlists"
+        text="Let Prism find the best home for a song"
+        onClick={onAddTo}
+        labelStyle={styles.barLabel}
+        textStyle={styles.barText}
+      />
     </div>
   );
 }
