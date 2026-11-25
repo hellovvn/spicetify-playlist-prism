@@ -20,12 +20,14 @@ export type PageRequest =
   | { go: "home" } // the start screen
   | { go: "stats"; playlist: string } // the stats page for a Prism playlist
   | { go: "tone"; playlist: string } // set or edit a playlist's tone
+  | { go: "addto"; song?: string } // "Add with Prism": the best playlists for a song (none = pick one)
   | { go: "demo-scan" } // DEV/TEST: scan screen with a fake scan (smoke test)
   | { go: "demo-stats" }; // DEV/TEST: stats page with sample numbers (smoke test)
 
 export function pageUrl(request: PageRequest, requestId: string): string {
   const params = new URLSearchParams({ go: request.go });
   if (request.go === "start") params.set("seed", request.seed);
+  if (request.go === "addto" && request.song) params.set("song", request.song);
   if (request.go === "stats" || request.go === "tone") params.set("playlist", request.playlist);
   params.set("r", requestId);
   return `${PAGE_PATH}?${params.toString()}`;
@@ -40,6 +42,11 @@ export function parsePageRequest(search: string): { request: PageRequest; reques
   if (go === "start") {
     const seed = params.get("seed");
     return seed && isTrackUri(seed) ? { request: { go, seed }, requestId } : null;
+  }
+  if (go === "addto") {
+    const song = params.get("song");
+    if (!song) return { request: { go }, requestId };
+    return isTrackUri(song) ? { request: { go, song }, requestId } : null;
   }
   if (go === "stats" || go === "tone") {
     const playlist = params.get("playlist");

@@ -4,6 +4,7 @@
 // src/app.tsx). Spicetify loads the page's code only when the page opens, but
 // files in src/extensions/ run as soon as Spotify starts. This one adds:
 //   - "Start a Prism playlist" to a song's right-click menu
+//   - "Add with Prism" (song right-click): the 5 best playlists (src/ui/addWithPrism.ts)
 //   - "Playlist Prism settings" to the profile menu
 //   - the read-only debug hook for the smoke test
 //   - twilight colours for Spotify's lyrics views (src/ui/lyricsTheme.ts)
@@ -32,8 +33,9 @@ import { startToneRows } from "../ui/toneRows";
 import { startPlaylistTheme } from "../ui/playlistTheme";
 import { startLibraryTheme } from "../ui/libraryTheme";
 import { startChromeTheme } from "../ui/chromeTheme";
-import { loadTones } from "../flow";
+import { findPlaylistsForSong, loadTones } from "../flow";
 import { injectStyles } from "../ui/styles";
+import { addWithPrismState, startAddWithPrism } from "../ui/addWithPrism";
 
 async function main() {
   // This can run before Spotify's UI and the Spicetify APIs are ready.
@@ -49,6 +51,7 @@ async function main() {
   injectStyles(); // Prism's styles, also needed by the side-panel stats outside the page
   startPanelStats(); // Prism playlist stats in the right-hand panel (Settings switch, on by default)
   registerContextMenu();
+  startAddWithPrism(PRISM_MENU_ICON); // "Add with Prism" flyout: the 5 playlists that fit a song best
   registerStatsMenu();
   registerToneMenu();
   startToneRows(); // "✦ Tone" switch + score rings on playlists with a tone
@@ -151,6 +154,10 @@ function exposeDebugHook() {
     previewStats: () => openPage({ go: "demo-stats" }),
     openStats: (uri: string) => openPage({ go: "stats", playlist: uri }),
     isSinglePlaylist,
+    // Add with Prism: open its page, and what the flyout last found (read-only).
+    openAddTo: (uri?: string) => openPage(uri ? { go: "addto", song: uri } : { go: "addto" }),
+    getAddWithPrismState: addWithPrismState,
+    findPlaylistsForSong,
     // Tone editor for a playlist, and the saved tones (read-only copy).
     openTone: (uri: string) => openPage({ go: "tone", playlist: uri }),
     getTones: () => loadTones(),
