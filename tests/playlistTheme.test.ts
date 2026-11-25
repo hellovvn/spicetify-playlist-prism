@@ -85,8 +85,15 @@ describe("themedPageKind", () => {
   test("Home gets the sky band", () => {
     expect(themedPageKind("/")).toBe("band");
   });
+  test("Search (Browse all and results) and genre pages get their own kinds", () => {
+    expect(themedPageKind("/search")).toBe("search");
+    expect(themedPageKind("/search/")).toBe("search");
+    expect(themedPageKind("/search/einaudi")).toBe("search");
+    expect(themedPageKind("/search/ludovico%20einaudi/tracks")).toBe("search");
+    expect(themedPageKind("/genre/0JQ5DAqbMKFEC4WFtoNRpw")).toBe("genre");
+  });
   test("other pages are left alone", () => {
-    for (const path of [undefined, "", "/search", "/index.html", "/collection", "/artist/09BQyf74gmKlaDkWdbdbqY/discography", "/playlist-prism", "/genre/x"]) {
+    for (const path of [undefined, "", "/searching", "/index.html", "/collection", "/artist/09BQyf74gmKlaDkWdbdbqY/discography", "/playlist-prism", "/genre", "/genre/x/y", "/preferences"]) {
       expect(themedPageKind(path)).toBeNull();
     }
   });
