@@ -51,7 +51,7 @@ async function main() {
   registerContextMenu();
   registerStatsMenu();
   registerToneMenu();
-  startToneRows(); // "✦ Tone" switch + score rings on playlists with a tone
+  startToneRows(); // "Tone" switch (with the Prism star) + score rings on playlists with a tone
   startPlaylistTheme(); // playlist page themes: sky, colour rail, genre mix (Settings, off by default)
   startLibraryTheme(); // the same theme on the left panel: still background, moving open-playlist row
   startChromeTheme(); // and on Spotify's bars: "Quiet night" (deep purple, pastel instead of green)

@@ -318,9 +318,14 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
     for the session. ~36 found for "Often" in the smoke test.
     UI (developer's picks): layout "A" = one best-first list with library songs; a "New finds"
     chip row Off/5/10/20 (default 10, saved as `prism:growNewCount`) under the songs count;
-    rows = mint glass ("S2", .prism-new-find) + "✦ New find" pill + 3 twinkling sparkles round
-    the score ring ("S1", .prism-sparkle, still with reduced motion). Tooltip says Last.fm's
-    similarity. RankedSong.newFind marks them.
+    rows = mint glass ("S2", .prism-new-find) + "New find" pill with the Prism star (the 3
+    sparkles round the score ring were removed 2026-11-24, developer's request). Tooltip says
+    Last.fm's similarity. While searching, the status line shows the standard progress bar
+    ("Looking for similar songs…" + .prism-progress + "15 of 40").
+    PRISM STAR (2026-11-24, look "A", developer's pick): the ✦ character is replaced
+    everywhere by `.prism-star-icon` (src/ui/prismStar.ts): the 4-point star filled with the pastel
+    rainbow, gently twinkling, 1em. Used in the New finds status, the New find pill and the
+    Tone strip title. RankedSong.newFind marks them.
 - GROW SONG COUNT (2026-11-23, not committed): preview chips "Songs from your playlists"
   10/20/30/50/All/Custom (1-500), saved as `prism:growCount` (default 30). Choosing a count
   RE-TICKS exactly the best N (hand ticks before it are replaced); "All" = every match, no
@@ -451,7 +456,7 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   parts are left out; no tags at all in a genre tone = no score ("–").
   Tone view (`src/ui/toneRows.ts`, always-on): a TONE STRIP (mockup "E") right after the
   playlist's action bar row ([data-testid="action-bar-row"]): Toggle (new element `.prism-toggle`,
-  for instant on/off only; checkboxes stay for picking), "✦ Tone", the tone's labels and Edit.
+  for instant on/off only; checkboxes stay for picking), the Prism star + "Tone", the tone's labels and Edit.
   NO summary text (developer removed it): `stripStatus` only says "Scoring songs: 12 of 39…"
   while the rings load, or "Couldn't score the songs". Edit opens the SAME ToneEditor
   (variant "popup": Cancel instead of Back) in a wide pop-up over the playlist

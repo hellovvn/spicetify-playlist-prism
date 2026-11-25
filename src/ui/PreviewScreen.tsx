@@ -150,12 +150,32 @@ export function PreviewScreen({ seed, kept, songs, onBack, onCreate, describeErr
   const newStatusText = () => {
     if (newCount === "off") return "Only songs from your playlists";
     if (newState === "loading") {
-      const counter = newProgress.total ? ` ${newProgress.done} of ${newProgress.total}` : "";
-      return `✦ Looking for similar songs…${counter}`;
+      if (!newProgress.total) return <><span className="prism-star-icon" aria-hidden="true" /> Looking for similar songs…</>;
+      // The standard progress bar (docs/ui-elements.md), sized for this row.
+      const percent = Math.round((newProgress.done / newProgress.total) * 100);
+      return (
+        <span style={styles.newLoading}>
+          <span><span className="prism-star-icon" aria-hidden="true" /> Looking for similar songs…</span>
+          <span
+            className="prism-progress"
+            style={styles.newBar}
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={percent}
+            data-prism="new-bar"
+          >
+            <span className="prism-progress-fill" style={{ display: "block", width: `${percent}%` }} />
+          </span>
+          <span style={styles.newCounter}>
+            {newProgress.done} of {newProgress.total}
+          </span>
+        </span>
+      );
     }
     if (newState === "error") return "Couldn't look for new songs this time";
     if (newState === "done" && newSongs.length === 0) return "No new songs share this vibe's tags";
-    if (newState === "done") return `✦ ${newSongs.length} found that aren't in your library`;
+    if (newState === "done") return <><span className="prism-star-icon" aria-hidden="true" /> {newSongs.length} found that aren't in your library</>;
     return "";
   };
 
@@ -175,20 +195,11 @@ export function PreviewScreen({ seed, kept, songs, onBack, onCreate, describeErr
         onChange={() => setPicked(toggleInList(picked, song.uri))}
         className="prism-checkbox"
       />
-      {song.newFind ? (
-        <span className="prism-ring-wrap">
-          <ScoreRing score={song.match.score} />
-          <span className="prism-sparkle" style={{ top: -2, right: -3, fontSize: 12 }} aria-hidden="true">✦</span>
-          <span className="prism-sparkle" style={{ bottom: 0, left: -4, fontSize: 10, animationDelay: "0.8s" }} aria-hidden="true">✧</span>
-          <span className="prism-sparkle" style={{ top: 20, right: -8, fontSize: 8, animationDelay: "1.6s" }} aria-hidden="true">✦</span>
-        </span>
-      ) : (
-        <ScoreRing score={song.match.score} />
-      )}
+      <ScoreRing score={song.match.score} />
       <span style={styles.rowText}>
         <span style={styles.name}>
           {song.name} <span style={styles.artist}>· {song.artists.join(", ")}</span>
-          {song.newFind && <span className="prism-new-pill">✦ New find</span>}
+          {song.newFind && <span className="prism-new-pill"><span className="prism-star-icon" aria-hidden="true" />New find</span>}
         </span>
         <TagLabels labels={labelsFor(song.match.matchedTags, song.tags)} artistTags={song.tagStatus === "artist"} />
       </span>
@@ -522,6 +533,10 @@ const styles: Record<string, React.CSSProperties> = {
   customInput: { width: 76, padding: "5px 10px", fontSize: 13 },
   countHint: { fontSize: 12, color: "#ffb3c7" },
   newStatus: { fontSize: 12, color: "#bff3e1" },
+  newLoading: { display: "inline-flex", alignItems: "center", gap: 8 },
+  newBar: { display: "block", width: 140 },
+  // tabular-nums: the count's width doesn't jitter as the numbers change.
+  newCounter: { fontVariantNumeric: "tabular-nums", color: "var(--spice-subtext)" },
   note: { color: "var(--spice-subtext)", margin: 0, fontSize: 13, height: "3em", overflow: "hidden" },
   list: { flex: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 2 },
   // Look (corners, lines, hover) comes from .prism-row in styles.ts.
