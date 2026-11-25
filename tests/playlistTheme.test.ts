@@ -82,8 +82,11 @@ describe("themedPageKind", () => {
     expect(themedPageKind("/artist/09BQyf74gmKlaDkWdbdbqY")).toBe("sky");
     expect(themedPageKind("/collection/tracks")).toBe("sky");
   });
+  test("Home gets the sky band", () => {
+    expect(themedPageKind("/")).toBe("band");
+  });
   test("other pages are left alone", () => {
-    for (const path of [undefined, "", "/", "/search", "/collection", "/artist/09BQyf74gmKlaDkWdbdbqY/discography", "/playlist-prism", "/genre/x"]) {
+    for (const path of [undefined, "", "/search", "/index.html", "/collection", "/artist/09BQyf74gmKlaDkWdbdbqY/discography", "/playlist-prism", "/genre/x"]) {
       expect(themedPageKind(path)).toBeNull();
     }
   });

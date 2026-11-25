@@ -5,6 +5,9 @@
 // Album, artist and Liked Songs pages get the same sky, cleared washes,
 // glass bars and pastel play button, but no rail or genre mix (step 16,
 // developer's pick "A, full sky"; which page gets what: themedPageKind).
+// Home gets the sky as a BAND behind its top part, fading into Quiet night's
+// dark purple below it and as you scroll (developer's pick "D, sky band"),
+// with glass shortcut tiles, cards and filter chips.
 //
 // With a theme on, EVERY playlist page gets:
 //   - a moving background (the "sky") behind the whole page,
@@ -35,6 +38,8 @@ const THEME_ATTR = "data-prism-theme"; // on .Root__main-view while a themed pla
 const SKY_CLASS = "prism-pl-sky";
 const RAIL_CLASS = "prism-rail";
 const MIX_ATTR = "data-prism-genre-mix";
+const LIB_ATTR = "data-prism-lib-theme"; // on .Root__nav-bar while the left panel is themed (src/ui/libraryTheme.ts)
+const BAND_ATTR = "data-prism-band"; // on .Root__main-view while Home shows the sky as a band
 const PHOTO_ATTR = "data-prism-photo"; // Spotify's big photo header box while we move it with the scroll
 const HEADER_STUCK_ATTR ="data-prism-stuck"; // on the song-list column header while stuck to the top (an attribute: React rewrites its class list)
 const UNKNOWN_COLOUR = "rgba(205, 184, 255, 0.28)"; // songs Prism hasn't scanned
@@ -98,6 +103,52 @@ const CSS = `
 [${THEME_ATTR}] [data-testid="overscroll-background"],
 [${THEME_ATTR}] .before-scroll-node > [${PHOTO_ATTR}] > :not([data-testid="background-image"])::after { display: none !important; }
 [${THEME_ATTR}] .before-scroll-node > [${PHOTO_ATTR}] { will-change: transform; }
+
+/* HOME ("D, sky band"): the sky only covers the top of the page (its height
+   is set by update) and fades out downwards; it also fades as you scroll
+   (--prism-band-fade, set on scroll). Below it: Quiet night's dark purple. */
+.Root__main-view[${THEME_ATTR}][${BAND_ATTR}] { background-color: #151029 !important; }
+[${BAND_ATTR}] > .${SKY_CLASS} {
+  bottom: auto; height: var(--prism-band-height, 520px);
+  -webkit-mask-image: linear-gradient(#000 40%, transparent);
+  mask-image: linear-gradient(#000 40%, transparent);
+  opacity: var(--prism-band-fade, 1);
+}
+/* Spotify's grey header wash (it changes colour when you hover a shortcut)
+   goes; the filter chips' row, once it sticks under the top bar while
+   scrolling, is the same twilight glass as the top bar. */
+[${BAND_ATTR}] .main-home-homeHeader { background: none !important; }
+[${BAND_ATTR}] .main-home-filterChipsSection { background-color: rgba(38, 26, 76, 0.94) !important; backdrop-filter: blur(16px); }
+/* Shortcut tiles: lavender glass, standard lavender hover. */
+[${BAND_ATTR}] .view-homeShortcutsGrid-shortcut {
+  background-color: rgba(205, 184, 255, 0.09) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(12px);
+}
+[${BAND_ATTR}] .view-homeShortcutsGrid-shortcut:hover {
+  background-color: rgba(205, 184, 255, 0.18) !important;
+  box-shadow: inset 0 0 0 1px rgba(205, 184, 255, 0.35), 0 0 16px rgba(205, 184, 255, 0.18);
+}
+/* Album/playlist cards in the rows: lavender hover instead of grey. */
+[${BAND_ATTR}] [data-encore-id="card"]:hover::after { background-color: rgba(205, 184, 255, 0.12) !important; }
+/* Spotify's filter chips (All / Music / Podcasts...) on every themed page
+   and in the themed left panel (Playlists / Albums; LIB_ATTR is set by
+   src/ui/libraryTheme.ts): glass pills; the chosen one gets the
+   pink-to-lavender gradient. Class names carry Spotify's version number, so
+   they're matched by part. */
+:is([${THEME_ATTR}], .Root__nav-bar[${LIB_ATTR}]) [data-encore-id="chip"] > [class*="legacy-chip__inner"] {
+  background: rgba(255, 255, 255, 0.08) !important; color: #ece6ff !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+:is([${THEME_ATTR}], .Root__nav-bar[${LIB_ATTR}]) [data-encore-id="chip"]:hover > [class*="legacy-chip__inner"]:not([class*="--selected"]) {
+  background: rgba(205, 184, 255, 0.2) !important;
+  box-shadow: inset 0 0 0 1px rgba(205, 184, 255, 0.35);
+}
+:is([${THEME_ATTR}], .Root__nav-bar[${LIB_ATTR}]) [data-encore-id="chip"] > [class*="legacy-chip__inner--selected"] {
+  background: linear-gradient(135deg, #f6a6c8, #b9a7ff) !important; color: #2b1d52 !important;
+  box-shadow: 0 0 12px rgba(205, 184, 255, 0.35);
+}
 
 /* Spotify's green accent -> Prism pastels (mockup play button): the big play
    buttons get the pink-to-lavender gradient with a dark purple triangle, and
@@ -259,11 +310,16 @@ function skyHtml(theme: PlaylistThemeId, width: number, scale: number): { backgr
   return { background: "#1a1335", html };
 }
 
-function buildSky(theme: PlaylistThemeId, main: Element): HTMLElement {
+// How tall Home's sky band is: the top part of the view, 320-560px.
+const bandHeight = (main: Element) => Math.round(Math.min(560, Math.max(320, main.getBoundingClientRect().height * 0.42)));
+
+function buildSky(theme: PlaylistThemeId, main: Element, band: boolean): HTMLElement {
   const sky = document.createElement("div");
   sky.className = SKY_CLASS;
   sky.dataset.theme = theme;
-  const { width, height } = main.getBoundingClientRect();
+  sky.dataset.band = band ? "1" : "";
+  const width = main.getBoundingClientRect().width;
+  const height = band ? bandHeight(main) : main.getBoundingClientRect().height;
   const scale = Math.min(4, Math.max(1, (width * height) / (680 * 500)));
   const { background, html } = skyHtml(theme, Math.max(680, width), scale);
   sky.style.background = background;
@@ -352,6 +408,7 @@ export function startPlaylistTheme(): void {
 
   const clear = (main: Element | null) => {
     main?.removeAttribute(THEME_ATTR);
+    main?.removeAttribute(BAND_ATTR);
     document.querySelectorAll(`.${SKY_CLASS}, .${RAIL_CLASS}, [${MIX_ATTR}]`).forEach((el) => el.remove());
   };
 
@@ -364,6 +421,7 @@ export function startPlaylistTheme(): void {
     if (path !== lastPath) {
       lastPath = path;
       (main as HTMLElement | null)?.style.removeProperty("--prism-banner-fade"); // a new page starts at the top
+      (main as HTMLElement | null)?.style.removeProperty("--prism-band-fade");
     }
     const uri = playlistUriFromPath(path);
     if (!main || !kind || theme === "none") {
@@ -372,14 +430,19 @@ export function startPlaylistTheme(): void {
       return;
     }
 
-    // The sky (rebuilt only when the theme changes).
+    // The sky (rebuilt only when the theme, or band vs. whole page, changes).
     if (main.getAttribute(THEME_ATTR) !== theme) main.setAttribute(THEME_ATTR, theme);
+    const band = kind === "band";
+    if (main.hasAttribute(BAND_ATTR) !== band) main.toggleAttribute(BAND_ATTR, band);
     let sky = main.querySelector(`:scope > .${SKY_CLASS}`) as HTMLElement | null;
-    if (sky && sky.dataset.theme !== theme) {
+    if (sky && (sky.dataset.theme !== theme || sky.dataset.band !== (band ? "1" : ""))) {
       sky.remove();
       sky = null;
     }
-    if (!sky) main.insertBefore(buildSky(theme, main), main.firstChild);
+    if (!sky) {
+      if (band) (main as HTMLElement).style.setProperty("--prism-band-height", `${bandHeight(main)}px`);
+      main.insertBefore(buildSky(theme, main, band), main.firstChild);
+    }
 
     // Album, artist and Liked Songs pages: the sky only.
     if (kind !== "playlist" || !uri) {
@@ -499,11 +562,18 @@ export function startPlaylistTheme(): void {
     if (!ours) schedule();
   });
   // Artist pages: fade the pinned photo out over its own height while scrolling.
+  // Home: fade the sky band out over its own height.
   const onScroll = (event: Event) => {
     const main = event.currentTarget as HTMLElement;
-    const banner = main.querySelector(".before-scroll-node [data-testid='background-image']");
     const target = event.target as Element;
-    if (!banner || !(target instanceof Element) || !target.matches(".main-view-container__scroll-node, .main-view-container__scroll-node *")) return;
+    if (!(target instanceof Element) || !target.matches(".main-view-container__scroll-node, .main-view-container__scroll-node *")) return;
+    if (main.hasAttribute(BAND_ATTR)) {
+      const height = parseFloat(main.style.getPropertyValue("--prism-band-height")) || 520;
+      main.style.setProperty("--prism-band-fade", Math.max(0, 1 - target.scrollTop / height).toFixed(2));
+      return;
+    }
+    const banner = main.querySelector(".before-scroll-node [data-testid='background-image']");
+    if (!banner) return;
     const height = banner.getBoundingClientRect().height || 1;
     const fade = Math.max(0, Math.min(1, 1 - target.scrollTop / height));
     main.style.setProperty("--prism-banner-fade", fade.toFixed(2));
