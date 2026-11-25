@@ -40,6 +40,8 @@ const RAIL_CLASS = "prism-rail";
 const MIX_ATTR = "data-prism-genre-mix";
 const LIB_ATTR = "data-prism-lib-theme"; // on .Root__nav-bar while the left panel is themed (src/ui/libraryTheme.ts)
 const BAND_ATTR = "data-prism-band"; // on .Root__main-view while Home shows the sky as a band
+const PAGE_ATTR = "data-prism-page"; // on .Root__main-view: the themed page kind (themedPageKind)
+const CHIP_ROW_ATTR = "data-prism-chip-row"; // Search's sticky filter-chip row (found by structure)
 const PHOTO_ATTR = "data-prism-photo"; // Spotify's big photo header box while we move it with the scroll
 const HEADER_STUCK_ATTR ="data-prism-stuck"; // on the song-list column header while stuck to the top (an attribute: React rewrites its class list)
 const UNKNOWN_COLOUR = "rgba(205, 184, 255, 0.28)"; // songs Prism hasn't scanned
@@ -130,7 +132,52 @@ const CSS = `
   box-shadow: inset 0 0 0 1px rgba(205, 184, 255, 0.35), 0 0 16px rgba(205, 184, 255, 0.18);
 }
 /* Album/playlist cards in the rows: lavender hover instead of grey. */
-[${BAND_ATTR}] [data-encore-id="card"]:hover::after { background-color: rgba(205, 184, 255, 0.12) !important; }
+[${BAND_ATTR}] [data-encore-id="card"]:hover::after,
+[${PAGE_ATTR}="search"] [data-encore-id="card"]:hover::after,
+[${PAGE_ATTR}="genre"] [data-encore-id="card"]:hover::after { background-color: rgba(205, 184, 255, 0.12) !important; }
+
+/* SEARCH + GENRE pages (step 16c, developer's pick "B, full sky + pastel
+   glass tiles"). Browse all's category tiles (a grid item holding a link
+   holding a box with Spotify's colour as an inline style and a cover image;
+   the links aren't all /genre/: Live Events = /concerts) become lavender glass with a
+   Prism pastel glowing from the cover's corner; the pastel goes round
+   pink, lavender, mint, peach, sky by the tile's place in the grid. */
+:is([${PAGE_ATTR}="search"], [${PAGE_ATTR}="genre"]) .main-gridContainer-gridContainer > * { --prism-tile: #f6a6c8; }
+:is([${PAGE_ATTR}="search"], [${PAGE_ATTR}="genre"]) .main-gridContainer-gridContainer > :nth-child(5n + 2) { --prism-tile: #b9a7ff; }
+:is([${PAGE_ATTR}="search"], [${PAGE_ATTR}="genre"]) .main-gridContainer-gridContainer > :nth-child(5n + 3) { --prism-tile: #9fe3d0; }
+:is([${PAGE_ATTR}="search"], [${PAGE_ATTR}="genre"]) .main-gridContainer-gridContainer > :nth-child(5n + 4) { --prism-tile: #ffd59e; }
+:is([${PAGE_ATTR}="search"], [${PAGE_ATTR}="genre"]) .main-gridContainer-gridContainer > :nth-child(5n + 5) { --prism-tile: #a9d4ff; }
+:is([${PAGE_ATTR}="search"], [${PAGE_ATTR}="genre"]) .main-gridContainer-gridContainer > * > a > div[style*="background-color"]:has(> img) {
+  --prism-tile-fill: rgba(205, 184, 255, 0.09);
+  background: radial-gradient(circle at 80% 85%, color-mix(in srgb, var(--prism-tile, #b9a7ff) 55%, transparent), transparent 72%), var(--prism-tile-fill) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(12px);
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+:is([${PAGE_ATTR}="search"], [${PAGE_ATTR}="genre"]) .main-gridContainer-gridContainer > * > a:hover > div[style*="background-color"]:has(> img) {
+  --prism-tile-fill: rgba(205, 184, 255, 0.18);
+  box-shadow: inset 0 0 0 1px rgba(205, 184, 255, 0.35), 0 0 16px rgba(205, 184, 255, 0.18);
+  transform: translateY(-2px);
+}
+@media (prefers-reduced-motion: reduce) {
+  [${PAGE_ATTR}] .main-gridContainer-gridContainer > * > a:hover > div[style*="background-color"]:has(> img) { transform: none; }
+}
+/* Search results: the grey "top result" box is lavender glass, and the
+   filter-chip row (sticky under the top bar, #121212 in Spotify) is the same
+   twilight glass as the top bar. */
+[${PAGE_ATTR}="search"] [class*="legacy-box--tinted"] {
+  background-color: rgba(205, 184, 255, 0.09) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+[${PAGE_ATTR}="search"] [class*="legacy-box--tinted"]:hover {
+  background-color: rgba(205, 184, 255, 0.18) !important;
+  box-shadow: inset 0 0 0 1px rgba(205, 184, 255, 0.35), 0 0 16px rgba(205, 184, 255, 0.18);
+}
+[${PAGE_ATTR}="search"] [${CHIP_ROW_ATTR}] { background-color: rgba(38, 26, 76, 0.94) !important; backdrop-filter: blur(16px); }
+/* Genre pages: Spotify's colour header (a pinned picture behind the page)
+   and the #121212 block under it go, so the sky shows behind the title. */
+[${PAGE_ATTR}="genre"] .before-scroll-node { visibility: hidden; }
+[${PAGE_ATTR}="genre"] div:has(> .main-actionBarBackground-background) { background-color: transparent !important; }
 /* Spotify's filter chips (All / Music / Podcasts...) on every themed page
    and in the themed left panel (Playlists / Albums; LIB_ATTR is set by
    src/ui/libraryTheme.ts): glass pills; the chosen one gets the
@@ -409,7 +456,24 @@ export function startPlaylistTheme(): void {
   const clear = (main: Element | null) => {
     main?.removeAttribute(THEME_ATTR);
     main?.removeAttribute(BAND_ATTR);
+    main?.removeAttribute(PAGE_ATTR);
     document.querySelectorAll(`.${SKY_CLASS}, .${RAIL_CLASS}, [${MIX_ATTR}]`).forEach((el) => el.remove());
+    document.querySelectorAll(`[${CHIP_ROW_ATTR}]`).forEach((el) => el.removeAttribute(CHIP_ROW_ATTR));
+  };
+
+  // Search's filter-chip row: the chips' nearest sticky box (Spotify's class
+  // names are generated, so it's found by structure).
+  const markChipRow = (main: Element) => {
+    let row: Element | null = null;
+    const chip = main.querySelector('[data-encore-id="chip"]');
+    for (let el = chip?.parentElement ?? null; el && el !== main; el = el.parentElement) {
+      if (getComputedStyle(el).position === "sticky") {
+        row = el;
+        break;
+      }
+    }
+    document.querySelectorAll(`[${CHIP_ROW_ATTR}]`).forEach((el) => el !== row && el.removeAttribute(CHIP_ROW_ATTR));
+    if (row && !row.hasAttribute(CHIP_ROW_ATTR)) row.setAttribute(CHIP_ROW_ATTR, "");
   };
 
   const update = () => {
@@ -434,6 +498,9 @@ export function startPlaylistTheme(): void {
     if (main.getAttribute(THEME_ATTR) !== theme) main.setAttribute(THEME_ATTR, theme);
     const band = kind === "band";
     if (main.hasAttribute(BAND_ATTR) !== band) main.toggleAttribute(BAND_ATTR, band);
+    if (main.getAttribute(PAGE_ATTR) !== kind) main.setAttribute(PAGE_ATTR, kind);
+    if (kind === "search") markChipRow(main);
+    else document.querySelectorAll(`[${CHIP_ROW_ATTR}]`).forEach((el) => el.removeAttribute(CHIP_ROW_ATTR));
     let sky = main.querySelector(`:scope > .${SKY_CLASS}`) as HTMLElement | null;
     if (sky && (sky.dataset.theme !== theme || sky.dataset.band !== (band ? "1" : ""))) {
       sky.remove();
@@ -444,7 +511,7 @@ export function startPlaylistTheme(): void {
       main.insertBefore(buildSky(theme, main, band), main.firstChild);
     }
 
-    // Album, artist and Liked Songs pages: the sky only.
+    // Album, artist, Liked Songs, Search and genre pages: the sky only.
     if (kind !== "playlist" || !uri) {
       data = null;
       main.querySelectorAll(`.${RAIL_CLASS}, [${MIX_ATTR}]`).forEach((el) => el.remove());

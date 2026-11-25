@@ -1,4 +1,4 @@
-// Safety net for the hard rule "never modify existing playlists".
+// Safety net: every Spotify write stays in src/spotify/write.ts.
 // This test reads every file in src/ as TEXT and fails if any file other than
 // src/spotify/write.ts calls a Spotify function that changes something.
 // It automates the CLAUDE.md checklist item "grep for any other write call".
@@ -45,7 +45,7 @@ describe("write guard (static check of src/)", () => {
     }
   );
 
-  test("write.ts itself only creates a playlist, adds to it, and does Merge's rename", () => {
+  test("write.ts itself only creates playlists, adds songs, and does Merge's rename", () => {
     const text = files.find((f) => f.name === WRITE_MODULE)!.text;
     const calls = [...text.matchAll(WRITE_CALL)].map((m) => `${m[1]}.${m[2]}`).sort();
     expect(calls).toEqual(["PlaylistAPI.add", "PlaylistAPI.updateDetails", "RootlistAPI.createPlaylist"]);

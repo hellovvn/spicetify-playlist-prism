@@ -3,7 +3,9 @@
 
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import {
+  addSongToPlaylist,
   addToNewPlaylistForTests,
+  PrismWriteError,
   assertCreatedThisSession,
   createPrismPlaylist,
   resetSessionForTests,
@@ -110,5 +112,34 @@ describe("the guard: only playlists created in this session", () => {
     const uri = await createPrismPlaylist("x", [song(1)], api);
     expect(() => assertCreatedThisSession(uri)).not.toThrow();
     expect(() => assertCreatedThisSession("spotify:playlist:OTHER")).toThrow(WriteGuardError);
+  });
+});
+
+describe("addSongToPlaylist (Add with Prism)", () => {
+  const target = { uri: "spotify:playlist:MINE", name: "Mine", canAdd: true, hasSong: false };
+
+  test("adds exactly one song to that playlist", async () => {
+    const api = fakeSpotify();
+    await addSongToPlaylist(target, song(1), api);
+    expect(api.addToPlaylist).toHaveBeenCalledTimes(1);
+    expect(api.addToPlaylist).toHaveBeenCalledWith("spotify:playlist:MINE", [song(1)]);
+    expect(api.createPlaylist).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    [{ ...target, canAdd: false }, song(1)],
+    [{ ...target, hasSong: true }, song(1)],
+    [{ ...target, uri: "spotify:collection:tracks" }, song(1)],
+    [target, "spotify:episode:abc"],
+  ])("refuses %o without calling Spotify", async (t, uri) => {
+    const api = fakeSpotify();
+    await expect(addSongToPlaylist(t, uri, api)).rejects.toBeInstanceOf(PrismWriteError);
+    expect(api.addToPlaylist).not.toHaveBeenCalled();
+  });
+
+  test("a Spotify failure becomes a friendly error", async () => {
+    const api = fakeSpotify();
+    vi.mocked(api.addToPlaylist).mockRejectedValueOnce(new Error("boom"));
+    await expect(addSongToPlaylist(target, song(1), api)).rejects.toThrow(/didn't add/);
   });
 });

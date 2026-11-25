@@ -1,15 +1,17 @@
 // THE ONLY FILE THAT CHANGES ANYTHING IN THE USER'S SPOTIFY.
 //
-// Hard rule (CLAUDE.md): never modify existing playlists or Liked Songs.
-// The only writes allowed are:
-//   1. create a NEW playlist
-//   2. add songs to THAT new playlist
-//   3. ONE exception, Merge playlists only (createMergedPlaylist): after the
-//      merged playlist was made, put "[merged] " in front of the NAME of the
-//      playlists that went into it, if the user left that switch on.
-// Every add checks that its target is a playlist created by this module in
-// this session (assertCreatedThisSession). Anything else is refused with an
-// error, even if a bug elsewhere passes the wrong playlist.
+// The writes Prism makes (each only after the user clicks a button for it):
+//   1. create a NEW playlist and add songs to it (Grow, Remix, Merge)
+//   2. Merge only (createMergedPlaylist): put "[merged] " in front of the
+//      NAME of the playlists that went into it, if the user left that switch on
+//   3. "Add with Prism" (addSongToPlaylist): add ONE song to the END of one of
+//      the user's playlists that Spotify says they may add to. Nothing is
+//      ever removed or reordered.
+// (The old hard rule "never modify existing playlists" was lifted by the
+// developer on 2026-11-24 for "Add with Prism".)
+// Adds to NEW playlists check that the target was created by this module in
+// this session (assertCreatedThisSession), so a bug elsewhere can't pour a
+// whole song list into the wrong playlist.
 //
 // tests/writeGuard.test.ts also scans the whole src/ folder and fails if any
 // OTHER file calls a Spotify write function.
@@ -159,6 +161,31 @@ export async function createMergedPlaylist(
     }
   }
   return result;
+}
+
+// ----- Add with Prism -----
+
+export interface AddTarget {
+  uri: string;
+  name: string;
+  canAdd: boolean; // Spotify says the user may add songs (their own or collaborative)
+  hasSong: boolean; // the playlist already has this song
+}
+
+// Adds ONE song to the end of an existing playlist the user picked from
+// "Add with Prism". Refuses Liked Songs, playlists the user can't add to and
+// playlists that already have the song, so nothing ends up there twice.
+export async function addSongToPlaylist(target: AddTarget, trackUri: string, api: WriteApi = spotifyWriteApi()): Promise<void> {
+  if (!target.uri.startsWith("spotify:playlist:")) throw new PrismWriteError("Prism only adds songs to playlists.");
+  if (!trackUri.startsWith("spotify:track:")) throw new PrismWriteError(`Only Spotify songs can be added (got ${trackUri}).`);
+  if (!target.canAdd) throw new PrismWriteError(`You can't add songs to "${target.name}".`);
+  if (target.hasSong) throw new PrismWriteError(`"${target.name}" already has this song.`);
+  try {
+    await api.addToPlaylist(target.uri, [trackUri]);
+  } catch (error) {
+    console.error("[Playlist Prism] adding a song failed", error);
+    throw new PrismWriteError(`Spotify didn't add the song to "${target.name}". Nothing was changed.`);
+  }
 }
 
 // Unit tests only: forget the session so each test starts clean.

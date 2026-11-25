@@ -84,8 +84,13 @@ export function mixCaption(mix: GenreMix): string {
 //   "band"     = Home: the sky only as a band behind the top of the page,
 //                fading into Quiet night's dark purple below and as you scroll
 //                (developer's pick "D, sky band", 2026-11-24).
+//   "search"   = Search: Browse all and the results (/search, /search/<words>
+//                and its Songs/Artists/... tabs): the full sky, Browse tiles as
+//                pastel glass (developer's pick "B", 2026-11-24).
+//   "genre"    = a genre/category page (/genre/<id>): the full sky instead of
+//                Spotify's colour header, its tiles as pastel glass too.
 // null = a page the theme leaves alone.
-export type ThemedPage = "playlist" | "sky" | "band";
+export type ThemedPage = "playlist" | "sky" | "band" | "search" | "genre";
 
 export function themedPageKind(path: string | undefined): ThemedPage | null {
   if (path === "/") return "band";
@@ -93,5 +98,7 @@ export function themedPageKind(path: string | undefined): ThemedPage | null {
   if (/^\/playlist\/[A-Za-z0-9]{22}$/.test(p)) return "playlist";
   if (/^\/(album|artist)\/[A-Za-z0-9]{22}$/.test(p)) return "sky";
   if (p === "/collection/tracks") return "sky";
+  if (p === "/search" || p.startsWith("/search/")) return "search";
+  if (/^\/genre\/[A-Za-z0-9-]+$/.test(p)) return "genre";
   return null;
 }

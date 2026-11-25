@@ -474,7 +474,7 @@ function NamePopup({ name, setName, songCount, seedName, creating, error, onCanc
 // the score's share of the circle; rotate(-90) starts it at the top.
 // The fill is a lavender-to-pink gradient. Every ring defines the same
 // gradient id; they're identical, so it doesn't matter which one is used.
-function ScoreRing({ score }: { score: number }) {
+export function ScoreRing({ score }: { score: number }) {
   const r = 20;
   const round = 2 * Math.PI * r;
   const pct = Math.round(score * 100);

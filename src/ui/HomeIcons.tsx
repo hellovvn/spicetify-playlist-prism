@@ -171,3 +171,19 @@ export function MergeIcon() {
     </svg>
   );
 }
+
+// Start bar icon for "Add a song to your playlists": one song (pink) with a
+// line flowing into the top of a stack of playlists (sky, mint). Same matte
+// boxes as MergeIcon.
+export function AddSongIcon() {
+  return (
+    <svg viewBox="0 0 64 40" width={56} height={35} aria-hidden="true" style={{ flexShrink: 0 }}>
+      <MatteBox x={2} y={13} w={16} h={14} r={3} color={PINK} />
+      <circle cx={10} cy={20} r={2.4} fill="#ffffff" fillOpacity={0.6} />
+      <path d="M19 20 C28 20 30 9 38 9" fill="none" stroke="#ffffff" strokeOpacity={0.55} strokeWidth={1.6} strokeLinecap="round" />
+      <MatteBox x={40} y={3} w={22} h={10} r={3} color={MINT} />
+      <MatteBox x={40} y={15} w={22} h={10} r={3} color={SKY} />
+      <MatteBox x={40} y={27} w={22} h={10} r={3} color={PINK} />
+    </svg>
+  );
+}

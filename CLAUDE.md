@@ -5,8 +5,7 @@ Repo: github.com/hellovvn/spicetify-prism, folder Documents\Projects\spicetify-p
 Prism is a Spotify companion that helps people get more out of the music they already
 have: grow a fresh playlist from a favourite song, remix messy playlists into tidy ones
 by genre and mood, and see what each playlist is made of, all inside a page that feels
-nicer than plain Spotify. It works from the user's own library (never touching existing
-playlists) and judges songs on **song-level** signals (see "Scoring signals"), not
+nicer than plain Spotify. It works from the user's own library and judges songs on **song-level** signals (see "Scoring signals"), not
 Spotify's artist-level genres. ONE deliberate exception to "own library" (developer's
 request, 2026-11-23): Grow's optional "New finds" (14e DISCOVER) add similar songs NOT in
 the user's library, clearly marked, user-controlled (Off/5/10/20), and only ever added to
@@ -45,13 +44,13 @@ the NEW playlist.
   was in Liked Songs, and the user wanted their own songs. (Later the developer asked for
   new songs too: that is 14e DISCOVER, via Last.fm similar songs, NOT Song Radio.)
 
-## Hard rule: never modify existing playlists
-- Never add to, remove from, reorder, rename, or delete any existing playlist or Liked Songs.
-- The only write allowed is: create a new playlist, then add tracks to **that new playlist's URI**.
-- All write calls live in one module (`src/spotify/write.ts`). Every function there
-  asserts that the target URI equals the playlist created in the same session.
-- Code review checklist item: grep for any other write call before merging.
-- ONE EXCEPTION (developer's decision, 2026-11-23): MERGE PLAYLISTS may RENAME the playlists
+## Writing to playlists
+- The old hard rule "never modify existing playlists" was REMOVED by the developer on
+  2026-11-24 (for "Add with Prism": add a song to one of the top-5 fitting playlists).
+- All write calls still live in one module (`src/spotify/write.ts`), so they're easy to find
+  and review; tests/writeGuard.test.ts lists the calls that module may make.
+- Each write happens only after the user clicks a clear button for it (Create, Merge, Add).
+- MERGE PLAYLISTS may RENAME the playlists
   it merged, and only when the user leaves the "Rename the originals" switch on. The rename
   only puts "[merged] " in front of the playlist's current name (never twice), only for
   playlists picked in that same merge, only AFTER the new merged playlist was created and
@@ -89,11 +88,9 @@ Since step 12a this is a Spicetify CUSTOM APP (src/settings.json has an "icon"),
 ## Spicetify.Platform APIs (confirmed present 2026-11-20, Spotify via Spicetify 2.46.4)
 - Reads we plan to use: `RootlistAPI.getContents` (user's playlists), `PlaylistAPI.getContents`
   (a playlist's tracks), `LibraryAPI.getTracks` (Liked Songs).
-- Writes allowed ONLY in `src/spotify/write.ts`: `RootlistAPI.createPlaylist`, then
-  `PlaylistAPI.add` targeting the URI we just created, plus Merge's `[merged] ` rename
-  (`PlaylistAPI.updateDetails(uri, { name })`, see the hard rule's one exception).
-- Never call: `PlaylistAPI.remove/move/setAttributes/clearAttributes/uploadImage`
-  (or `updateDetails` for anything but Merge's rename),
+- Writes live ONLY in `src/spotify/write.ts`: `RootlistAPI.createPlaylist`, `PlaylistAPI.add`,
+  and Merge's `[merged] ` rename (`PlaylistAPI.updateDetails(uri, { name })`).
+- Not used so far: `PlaylistAPI.remove/move/setAttributes/clearAttributes/uploadImage`,
   `RootlistAPI.remove/move/renameFolder/removeFolder`, `LibraryAPI.add/remove/pin/unpin`.
 - Method signatures are undocumented: test each one by logging before relying on it.
 - Avoid the Web API via `Spicetify.CosmosAsync` (api.spotify.com): it returned 429 Too Many
@@ -533,6 +530,25 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   no card in Spotify and turned into a square block.
   Testing note: Git Bash rewrites a "/search" argument into "C:/Program Files/Git/search";
   use MSYS_NO_PATHCONV=1 when passing Spotify paths to node scripts.
+- ADD WITH PRISM (asked 2026-11-24; built, not committed, waiting for the developer's test):
+  pick a song, Prism shows the TOP 5 of your playlists that fit it best and adds the song to the
+  one(s) you click. Developer's decisions: same song-level signals as everything else (scoreSong:
+  tags, lyrics mood, BPM, key); candidates = playlists with rootlist `canAdd` (own AND
+  collaborative; skip ones that already have the song by URI or songKey; Liked Songs never);
+  add-only (one song, at the end). UI = mockup "C": a right-click SUB-MENU "Add with Prism"
+  (`src/ui/addWithPrism.ts`; Spicetify's SubMenu re-draws when an item's text is set, so it opens
+  with "Finding playlists…" and fills in), last line "More on the Prism page…" opens
+  `?go=addto&song=...` (`src/ui/AddToScreen.tsx`: score rings, shared genres, Add buttons). The
+  start page has a second start bar "Add a song to your playlists" (asks for the playing song or
+  a link). Now-playing: right-click the player bar's song (same menu).
+  Fit (`src/addto/fitPlaylists.ts`, pure + tests): the song is scored against every playlist song
+  with cached tags; fit = 0.7 x the average of the best quarter (3-10 songs) + 0.3 x the share of
+  songs that share a genre at all (stops "pop" making every playlist alike). Playlists with <3
+  tagged songs aren't judged ("unjudged", the page says so). Library side = CACHES only (nothing
+  sent to Last.fm, read in ~0.4 s, remembered 2 min, cleared after an add); the song itself is
+  looked up on Last.fm if not cached. Write: `addSongToPlaylist` in write.ts (re-reads the playlist
+  first so a song is never added twice; refuses non-playlists, !canAdd, already there).
+  Debug hook: openAddTo(uri?), getAddWithPrismState(), findPlaylistsForSong(uri) (read-only).
 - 15 (to-do): rename the internal ids from "playlist-prism" / "Playlist Prism" to just "prism"
   (custom app nameId and folder, `window.__playlistPrism` hook, `[Playlist Prism]` console
   prefix, "playlist-prism:*" window events, the header icon's aria-label). Storage keys are
@@ -564,6 +580,18 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   lavender, the stuck filter-chip row is top-bar glass. Spotify's filter chips
   (`[data-encore-id="chip"]`, inner `[class*="legacy-chip__inner"]`; the class prefix carries
   Spotify's version) are glass with a gradient chosen chip on every themed page.
+  16c SEARCH + GENRE PAGES (2026-11-24, developer's pick "B, full sky + pastel glass tiles" of
+  four; tested by the developer, merged in PR #17): page kinds "search" (/search, /search/<words>[/tab]) and "genre"
+  (/genre/<id>) get the full sky; `data-prism-page` on .Root__main-view carries the kind.
+  Browse tiles are found by STRUCTURE (`.main-gridContainer-gridContainer > * > a >
+  div[style*=background-color]:has(> img)`): not all link to /genre/ (Live Events = /concerts,
+  Podcast Charts = /podcastcharts). Lavender glass + a pastel glow by grid place (nth-child 5n).
+  Results: top-result box = `[class*="legacy-box--tinted"]` -> lavender glass; the sticky chip
+  row has generated classes, so JS marks the chips' nearest sticky ancestor
+  (`data-prism-chip-row`). Genre pages: the colour header is a pinned picture in
+  .before-scroll-node (hidden) and the #121212 block is the parent of
+  .main-actionBarBackground-background (cleared).
+  Next: Settings (/preferences), listening history (/history), then the unchecked ones below.
   YOUR LIBRARY has no page in this Spotify: /collection, /collection/playlists etc. all
   redirect to /collection/tracks (Liked Songs), and "Expand Your Library" only widens the left
   panel, which libraryTheme.ts already themes.
