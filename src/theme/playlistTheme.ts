@@ -162,19 +162,32 @@ export const LYRICS_LINE_COLOURS: Record<Exclude<PlaylistThemeId, "none">, { pas
 //   "podcast"  = a podcast show (/show/<id>) or episode (/episode/<id>): the
 //                full sky like albums, Spotify's greens/blues turned Prism
 //                (developer's pick "A, full sky", 2026-11-25).
+//   "browse"   = What's New (/content-feed), Live Events (/concerts) and
+//                Podcast Charts (/podcastcharts and its chart pages): the full
+//                sky with lavender glass cards and chips; Live Events loses
+//                Spotify's own purple banner (developer's pick "A, full sky +
+//                glass", 2026-11-25). Spicetify's Marketplace (/marketplace)
+//                gets the same look.
 // null = a page the theme leaves alone.
-export type ThemedPage = "playlist" | "sky" | "band" | "search" | "genre" | "settings" | "profile" | "podcast";
+export type ThemedPage = "playlist" | "sky" | "band" | "search" | "genre" | "settings" | "profile" | "podcast" | "browse";
 
 export function themedPageKind(path: string | undefined): ThemedPage | null {
   if (path === "/") return "band";
   const p = (path ?? "").replace(/\/$/, "");
   if (/^\/playlist\/[A-Za-z0-9]{22}$/.test(p)) return "playlist";
   if (/^\/(album|artist)\/[A-Za-z0-9]{22}$/.test(p)) return "sky";
+  // An artist's "Show all" pages (Discography, Fans also like, Appears on,
+  // Featuring, Discovered on, Artist playlists) get the artist page's look
+  // (developer's choice 2026-11-25).
+  if (/^\/artist\/[A-Za-z0-9]{22}\/(discography(\/[a-z-]+)?|related|appears-on|featuring|discovered-on|playlists)$/.test(p)) return "sky";
   if (p === "/collection/tracks") return "sky";
   if (p === "/search" || p.startsWith("/search/")) return "search";
   if (/^\/genre\/[A-Za-z0-9-]+$/.test(p)) return "genre";
   if (p === "/preferences") return "settings";
   if (/^\/(show|episode)\/[A-Za-z0-9]{22}$/.test(p)) return "podcast";
   if (/^\/user\/[^/]+(\/(followers|following|playlists|top\/artists|top\/tracks))?$/.test(p)) return "profile";
+  if (p === "/content-feed" || p === "/concerts" || p === "/podcastcharts" || p.startsWith("/podcastcharts/")) return "browse";
+  // Spicetify's own Marketplace (developer's request 2026-11-25: same browse look).
+  if (p === "/marketplace" || p.startsWith("/marketplace/")) return "browse";
   return null;
 }

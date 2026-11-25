@@ -83,6 +83,13 @@ describe("themedPageKind", () => {
     expect(themedPageKind("/artist/09BQyf74gmKlaDkWdbdbqY")).toBe("sky");
     expect(themedPageKind("/collection/tracks")).toBe("sky");
   });
+  test("an artist's Show all pages get the artist page's sky", () => {
+    const artist = "/artist/09BQyf74gmKlaDkWdbdbqY";
+    for (const sub of ["discography", "discography/all", "discography/album", "discography/single", "related", "appears-on", "featuring", "discovered-on", "playlists"]) {
+      expect(themedPageKind(`${artist}/${sub}`)).toBe("sky");
+    }
+    expect(themedPageKind(`${artist}/something-else`)).toBe(null);
+  });
   test("Home gets the sky band", () => {
     expect(themedPageKind("/")).toBe("band");
   });
@@ -92,6 +99,15 @@ describe("themedPageKind", () => {
     expect(themedPageKind("/search/einaudi")).toBe("search");
     expect(themedPageKind("/search/ludovico%20einaudi/tracks")).toBe("search");
     expect(themedPageKind("/genre/0JQ5DAqbMKFEC4WFtoNRpw")).toBe("genre");
+  });
+  test("What's New, Live Events and Podcast Charts get the browse sky", () => {
+    expect(themedPageKind("/content-feed")).toBe("browse");
+    expect(themedPageKind("/concerts")).toBe("browse");
+    expect(themedPageKind("/podcastcharts")).toBe("browse");
+    expect(themedPageKind("/podcastcharts/top/ca")).toBe("browse");
+    expect(themedPageKind("/concerts/somewhere")).toBe(null);
+    expect(themedPageKind("/marketplace")).toBe("browse");
+    expect(themedPageKind("/marketplace/settings")).toBe("browse");
   });
   test("Settings gets its own still kind", () => {
     expect(themedPageKind("/preferences")).toBe("settings");
@@ -111,7 +127,7 @@ describe("themedPageKind", () => {
     expect(themedPageKind("/episode/4v5XrpL3Iw2soqXZSDNscC/")).toBe("podcast");
   });
   test("other pages are left alone", () => {
-    for (const path of [undefined, "", "/searching", "/index.html", "/collection", "/artist/09BQyf74gmKlaDkWdbdbqY/discography", "/playlist-prism", "/genre", "/genre/x/y", "/preferences/advanced", "/preferencesx", "/user", "/user/", "/user/someone/other", "/user/someone/top", "/show/x", "/show/3IM0lmZxpFAY7CwMuv9H4g/episodes"]) {
+    for (const path of [undefined, "", "/searching", "/index.html", "/collection", "/playlist-prism", "/genre", "/genre/x/y", "/preferences/advanced", "/preferencesx", "/user", "/user/", "/user/someone/other", "/user/someone/top", "/show/x", "/show/3IM0lmZxpFAY7CwMuv9H4g/episodes"]) {
       expect(themedPageKind(path)).toBeNull();
     }
   });
