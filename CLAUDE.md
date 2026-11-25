@@ -569,6 +569,13 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   Green -> pink in the panel too. `src/theme/libraryTheme.ts` (pure, tests/libraryTheme.test.ts),
   `src/ui/libraryTheme.ts` (always-on). Panel grey = `.main-yourLibraryX-entryPoints` +
   `.main-yourLibraryX-libraryContainer`.
+  RIGHT PANEL (2026-11-25, option 2 "mirror left" of four full-page mockups, developer's
+  pick): the right panel gets the SAME still background as the left (panelBackground of the
+  main theme, every theme), flipped left-right (::before with scaleX(-1) on
+  `.Root__right-sidebar-peek`; aside + .main-nowPlayingView-container cleared). CSS in
+  libraryTheme.ts behind `html[data-prism-side-theme]` (outweighs chromeTheme's #151029).
+  Friend activity: "listening now" dot = `--spice-notification` (lavender), photo
+  placeholder = `--spice-button-disabled` (#3a2d5e), set in chromeTheme.ts.
   HOVER (developer's pick, option 4 "rainbow edge"): with a theme on, EVERY row (Prism or not)
   gets lavender glass + a pastel rainbow bar on the left + a 3px slide. The Prism-only purple
   rays were then removed completely (prismRows.ts deleted); with No theme rows keep Spotify's grey.
@@ -589,6 +596,11 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   `.main-connectBar-connectBar` (only there while another device plays; checked with a
   temporary copy). Don't paint `.main-nowPlayingView-section`: "Related music videos" has
   no card in Spotify and turned into a square block.
+  Also (2026-11-25): the left panel's "+" (Create) button reads `--background-elevated-*`
+  (now the #1d1638 / #251c45 cards), and the playing song's equaliser in song lists is a
+  GREEN GIF (`img[src*="equaliser-animated-green"]`; while Spotify's window is unfocused it's
+  the still `equaliser-green.svg` instead; no variable reaches either): a CSS filter
+  turns it Prism pink and keeps the animation.
   Testing note: Git Bash rewrites a "/search" argument into "C:/Program Files/Git/search";
   use MSYS_NO_PATHCONV=1 when passing Spotify paths to node scripts.
 - ADD WITH PRISM (asked 2026-11-24; built, not committed, waiting for the developer's test):
@@ -704,6 +716,38 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   redirect to /collection/tracks (Liked Songs), and "Expand Your Library" only widens the left
   panel, which libraryTheme.ts already themes.
   Step 16 pages are all done (2026-11-25); left: Marketplace (Spicetify's, ask).
+  Re-checked 2026-11-25 (profile, search results, show, episode, Edit details, shortcuts):
+  all themed; the one miss was green PRIMARY buttons outside the action bar (episode
+  "Comment"), now `[data-prism-theme] [data-encore-id="buttonPrimary"]` = the gradient.
+  Colour sweep 2026-11-25 (script: every visible element whose bg/fill/text is Spotify's
+  green, #121212-#535353 grey or blue; TEST it with a planted green box first, a quoting
+  bug once made every page look clean). Fixed: an artist's Show all pages
+  (/artist/<id>/discography[/...], related, appears-on, featuring, discovered-on, playlists)
+  = page kind "sky"; Discography's per-release `.artist-artistDiscography-headerContainer`
+  cleared; the round-photo card fix now covers "sky" pages too; folder tiles + cover
+  placeholders in the bars read `--image-placeholder-bg-color` (= #1d1638).
+  16i BROWSE PAGES (2026-11-25, developer's pick "A, full sky + glass" of three, because
+  full sky = pages you browse/listen from, band = Home, quiet night = tools/settings):
+  page kind "browse" = What's New (/content-feed), Live Events (/concerts), Podcast Charts
+  (/podcastcharts[/...]). The shared sky + cleared washes remove Spotify's purple/blue
+  banners; chart tiles (`[data-testid="chart-category-card"] > a`) = lavender glass;
+  concert date labels (`time[datetime]:has(> [data-encore-id="text"])`) = purple glass.
+  Podcast Charts' tile pictures are Spotify's own art (blue/magenta), left as they are.
+  MARKETPLACE (Spicetify's own page, developer's request 2026-11-25): also kind "browse".
+  Spicetify's stable classes: tabs `.marketplace-tabBar-headerItemLink` (glass; active =
+  gradient), `.marketplace-header` cleared, its Dropdown/search/icon button = glass, cards
+  `.main-card-card[class*="marketplace-card"]` (classes are --extension/--theme/...) =
+  lavender glass, `.marketplace-installButton` = the pastel gradient.
+  With this, every Spotify page in the sweep shows no Spotify green/grey/blue.
+  SIDEWAYS SHELVES (developer spotted on Home, 2026-11-25): the edge "black shadow" is
+  `.search-searchCategory-contentArea::before/::after` (#121212 at 70%) -> deep purple
+  fade; the arrows `.search-searchCategory-carouselButton` -> purple glass; the card
+  picture fix (`.main-cardImage-imageWrapper`, grey square behind round photos) now
+  applies on EVERY themed page. The sweep can't see these (pseudo-element gradients and
+  hover-only buttons), so check shelves by eye.
+  SHARED SPOTIFY INSTALL: another checkout's `npm run build` (main folder, an old commit)
+  silently replaced this branch's build mid-check (2026-11-25). If the theme suddenly
+  looks gone everywhere, check the CustomApps file times and grep a new string first.
   Facts found: every page above has `.Root__main-view` at #121212 and no data-prism-theme;
   album/artist/Liked headers use the same `.main-entityHeader-*` + action bar +
   `.main-trackList-*` song list as playlists, and `.main-topBar-background` takes the cover

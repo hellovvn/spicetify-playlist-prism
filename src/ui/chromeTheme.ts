@@ -65,10 +65,41 @@ ${ON} .Root__globalNav input { background-color: ${CARD} !important; }
 ${ON} .Root__globalNav button[class*="legacy-button"]:hover,
 ${ON} .Root__globalNav input:hover { background-color: ${CARD_HOVER} !important; }
 
+/* Left panel: the round "+" (Create) button reads the elevated colours
+   (Spotify's grey #1f1f1f / #2a2a2a), so give it the same cards as the top bar. */
+${ON} .Root__nav-bar {
+  --background-elevated-base: ${CARD};
+  --background-elevated-highlight: ${CARD_HOVER};
+}
+/* Picture placeholders in the side panels and the player (a FOLDER's icon tile
+   in Your Library, and the square behind covers while they load) read
+   --image-placeholder-bg-color (Spotify's grey #282828). */
+${ON} .Root__nav-bar,
+${ON} .Root__right-sidebar,
+${ON} .Root__now-playing-bar { --image-placeholder-bg-color: ${CARD}; }
+
+/* The playing song's "equaliser" in song lists is a green picture, which no
+   colour variable reaches: /images/equaliser-animated-green.gif while Spotify's
+   window has focus, the still /images/equaliser-green.svg while it doesn't.
+   This filter turns every pixel Prism pink (#f6a6c8) and keeps the animation. */
+${ON} img[src*="equaliser-animated-green"],
+${ON} img[src*="equaliser-green"] {
+  filter: brightness(0) saturate(100%) invert(80%) sepia(30%) saturate(900%) hue-rotate(290deg);
+}
+
 /* Right-hand panel (Now Playing, Queue, ...): Spotify paints #121212 on its
    outer boxes; its cards (Credits, Next in queue...) read the elevated
    colours set above. */
 ${ON} .Root__right-sidebar { --background-base: ${PANEL}; --background-highlight: ${CARD}; }
+/* Friend activity: the "listening now" dot on a friend's photo reads
+   --spice-notification (Spotify blue -> lavender); a friend without a photo
+   gets a circle in --spice-button-disabled (grey #535353 -> deep purple).
+   The panel's own background (the theme, mirrored) is set in libraryTheme.ts. */
+${ON} .Root__right-sidebar {
+  --spice-notification: #cdb8ff;
+  --spice-rgb-notification: 205, 184, 255;
+  --spice-button-disabled: #3a2d5e;
+}
 ${ON} .Root__right-sidebar .Root__right-sidebar-peek,
 ${ON} .Root__right-sidebar aside,
 ${ON} .Root__right-sidebar .main-nowPlayingView-container { background-color: ${PANEL} !important; }

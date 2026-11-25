@@ -161,10 +161,26 @@ ${RING_ANGLE_PROPERTY}
    profile and artist photos it showed as grey corners on the glass. Cleared
    when there's a picture, and its square drop shadow moves onto the picture
    itself (round or square, it follows the picture's own shape). The no-photo
-   placeholder becomes faint lavender. */
-[${PAGE_ATTR}="profile"] .main-cardImage-imageWrapper:has(img) { background-color: transparent !important; box-shadow: none !important; }
-[${PAGE_ATTR}="profile"] .main-cardImage-imageWrapper img { box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5); }
-[${PAGE_ATTR}="profile"] .main-cardImage-imageWrapper:not(:has(img)) { background-color: rgba(205, 184, 255, 0.12) !important; }
+   placeholder becomes faint lavender. On EVERY themed page (Home's round
+   artist photos showed it too, 2026-11-25). */
+[${THEME_ATTR}] .main-cardImage-imageWrapper:has(img) { background-color: transparent !important; box-shadow: none !important; }
+[${THEME_ATTR}] .main-cardImage-imageWrapper img { box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5); }
+[${THEME_ATTR}] .main-cardImage-imageWrapper:not(:has(img)) { background-color: rgba(205, 184, 255, 0.12) !important; }
+/* Card shelves and chip rows that scroll sideways (Home, Search...): Spotify
+   fades their edges with #121212 at 70% (the "black shadow") and draws the
+   arrow buttons dark. Fades -> deep twilight purple, arrows -> purple glass
+   (the same look as the concert date labels). */
+[${THEME_ATTR}] .search-searchCategory-contentArea::before { background: linear-gradient(90deg, rgba(27, 17, 52, 0.55), transparent) !important; }
+[${THEME_ATTR}] .search-searchCategory-contentArea::after { background: linear-gradient(-90deg, rgba(27, 17, 52, 0.55), transparent) !important; }
+[${THEME_ATTR}] .search-searchCategory-carouselButton {
+  background-color: rgba(43, 26, 82, 0.72) !important;
+  backdrop-filter: blur(6px);
+  box-shadow: inset 0 0 0 1px rgba(205, 184, 255, 0.25);
+}
+[${THEME_ATTR}] .search-searchCategory-carouselButton:hover { background-color: rgba(70, 48, 120, 0.85) !important; }
+/* An artist's Discography page: each release's header block is painted
+   #121212 (--background-base) over the sky. */
+[${PAGE_ATTR}="sky"] .artist-artistDiscography-headerContainer { background: transparent !important; }
 [${PAGE_ATTR}="profile"] .main-entityHeader-imageContainer {
   position: relative;
   isolation: isolate;
@@ -242,6 +258,53 @@ ${RING_ANGLE_PROPERTY}
 [${PAGE_ATTR}="search"] [${CHIP_ROW_ATTR}] { background-color: rgba(38, 26, 76, 0.94) !important; backdrop-filter: blur(16px); }
 /* Genre pages: Spotify's colour header (a pinned picture behind the page)
    and the #121212 block under it go, so the sky shows behind the title. */
+/* "browse" pages (What's New, Live Events, Podcast Charts): the shared sky and
+   cleared washes already remove Spotify's banners; Podcast Charts' grey chart
+   tiles become lavender glass with the standard lavender hover. */
+[${PAGE_ATTR}="browse"] [data-testid="chart-category-card"] > a {
+  background-color: rgba(205, 184, 255, 0.1) !important;
+  box-shadow: inset 0 0 0 1px rgba(205, 184, 255, 0.22);
+  transition: background-color 0.15s ease;
+}
+[${PAGE_ATTR}="browse"] [data-testid="chart-category-card"] > a:hover { background-color: rgba(205, 184, 255, 0.18) !important; }
+/* Spicetify's Marketplace (also "browse"): tabs = Prism chips (the chosen one
+   has the gradient), its black search box, dropdown and icon buttons = glass,
+   the cards = lavender glass with the standard hover, the white round Install
+   button = the pastel play-button gradient. Its class names are stable
+   (Spicetify's own, not generated). */
+[${PAGE_ATTR}="browse"] .marketplace-header { background: transparent !important; }
+[${PAGE_ATTR}="browse"] .marketplace-tabBar-headerItemLink {
+  background-color: rgba(205, 184, 255, 0.1) !important;
+  box-shadow: inset 0 0 0 1px rgba(205, 184, 255, 0.25);
+}
+[${PAGE_ATTR}="browse"] .marketplace-tabBar-headerItemLink.marketplace-tabBar-active {
+  background: linear-gradient(135deg, #f6a6c8, #b9a7ff) !important;
+  box-shadow: none;
+}
+[${PAGE_ATTR}="browse"] .marketplace-tabBar-headerItemLink.marketplace-tabBar-active,
+[${PAGE_ATTR}="browse"] .marketplace-tabBar-headerItemLink.marketplace-tabBar-active * { color: #2b1d52 !important; }
+[${PAGE_ATTR}="browse"] .marketplace-header .Dropdown-control,
+[${PAGE_ATTR}="browse"] .marketplace-header .searchbar-bar,
+[${PAGE_ATTR}="browse"] .marketplace-header .marketplace-header-icon-button {
+  background-color: rgba(205, 184, 255, 0.1) !important;
+  border-color: rgba(205, 184, 255, 0.25) !important;
+}
+[${PAGE_ATTR}="browse"] .main-card-card[class*="marketplace-card"] {
+  background-color: rgba(205, 184, 255, 0.08) !important;
+  box-shadow: inset 0 0 0 1px rgba(205, 184, 255, 0.18);
+}
+[${PAGE_ATTR}="browse"] .main-card-card[class*="marketplace-card"]:hover { background-color: rgba(205, 184, 255, 0.14) !important; }
+[${PAGE_ATTR}="browse"] .marketplace-installButton {
+  background: linear-gradient(135deg, #f6a6c8, #b9a7ff) !important;
+  color: #2b1d52 !important;
+}
+/* Live Events: the date label on each concert photo (a <time>, 60% black in
+   Spotify) becomes deep purple glass. Found by structure (generated classes). */
+[${PAGE_ATTR}="browse"] time[datetime]:has(> [data-encore-id="text"]) {
+  background: rgba(43, 26, 82, 0.72) !important;
+  backdrop-filter: blur(6px);
+  box-shadow: inset 0 0 0 1px rgba(205, 184, 255, 0.25);
+}
 [${PAGE_ATTR}="genre"] .before-scroll-node { visibility: hidden; }
 [${PAGE_ATTR}="genre"] div:has(> .main-actionBarBackground-background) { background-color: transparent !important; }
 
@@ -323,8 +386,9 @@ ${RING_ANGLE_PROPERTY}
    buttons get the pink-to-lavender gradient with a dark purple triangle, and
    every other green (liked ticks, the playing song's title, toggled icons)
    reads Spotify's --text-bright-accent / --essential-bright-accent, so those
-   are swapped for Prism pink. The playing song's animated equaliser is a
-   green picture, so it's hue-shifted to pink. */
+   are swapped for Prism pink. Every other green PRIMARY button on a themed
+   page (e.g. an episode's "Comment") gets the same gradient, without the glow.
+   The playing song's equaliser is a green GIF: recoloured in chromeTheme.ts. */
 [${THEME_ATTR}] {
   --text-bright-accent: #f6a6c8;
   --essential-bright-accent: #f6a6c8;
@@ -335,7 +399,10 @@ ${RING_ANGLE_PROPERTY}
   color: #2b1d52 !important;
   box-shadow: 0 0 18px rgba(205, 184, 255, 0.45);
 }
-[${THEME_ATTR}] .main-trackList-playingIcon { filter: hue-rotate(190deg) saturate(0.7) brightness(1.25); }
+[${THEME_ATTR}] [data-encore-id="buttonPrimary"] .encore-bright-accent-set {
+  background: linear-gradient(135deg, #f6a6c8, #b9a7ff) !important;
+  color: #2b1d52 !important;
+}
 
 /* The colour rail: one part per song row, touching the rows above/below.
    It sits on the row's outer element, outside Spotify's own row content. */

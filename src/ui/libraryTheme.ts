@@ -20,6 +20,7 @@ import { isLikedSongsPage, LIKED_SONGS_COVER, panelBackground, rowBackground, ro
 
 const STYLE_ID = "playlist-prism-library-theme";
 const THEME_ATTR = "data-prism-lib-theme"; // on .Root__nav-bar while a theme is on
+const SIDE_ATTR = "data-prism-side-theme"; // on <html> while a theme is on (right panel)
 const SKY_CLASS = "prism-lib-sky";
 const SELECTED_BOX = '[role="row"][aria-selected="true"] [data-encore-id="listRow"]';
 const OPEN_CLASS = "prism-lib-open"; // on the open row's box (Spotify's selected row, or Liked Songs)
@@ -119,10 +120,31 @@ const BASE_CSS = `
 }
 `;
 
+// RIGHT PANEL (developer's pick 2026-11-25, option 2 "mirror left"): the same
+// still background as the left panel (the MAIN theme, like the left panel),
+// flipped left-right so its glow sits on the outer edge and the two panels frame
+// the page. Spotify paints Quiet night's #151029 (chromeTheme.ts) on three
+// stacked boxes; the outer one (.Root__right-sidebar-peek: position relative,
+// 8px corners) gets the theme on a flipped ::before layer, the inner ones are
+// cleared. The extra attribute in the selector outweighs chromeTheme's rules.
+const SIDE = `html[data-prism-chrome][${SIDE_ATTR}] .Root__right-sidebar`;
+function rightPanelCss(theme: Exclude<PlaylistThemeId, "none">): string {
+  return `
+${SIDE} .Root__right-sidebar-peek { background: transparent !important; isolation: isolate; }
+${SIDE} .Root__right-sidebar-peek::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  border-radius: inherit; background: ${panelBackground(theme)}; transform: scaleX(-1);
+}
+${SIDE} aside,
+${SIDE} aside::before,
+${SIDE} .main-nowPlayingView-container { background: transparent !important; }
+`;
+}
+
 function themeCss(theme: Exclude<PlaylistThemeId, "none">): string {
   return `${BASE_CSS}
 .Root__nav-bar[${THEME_ATTR}] .main-yourLibraryX-entryPoints.main-yourLibraryX-library { background: ${panelBackground(theme)} !important; }
-`;
+${rightPanelCss(theme)}`;
 }
 
 export function startLibraryTheme(): void {
@@ -137,6 +159,7 @@ export function startLibraryTheme(): void {
     if (theme === "none" || !nav) {
       style?.remove();
       nav?.removeAttribute(THEME_ATTR);
+      document.documentElement.removeAttribute(SIDE_ATTR);
       document.querySelectorAll(`.${SKY_CLASS}`).forEach((el) => el.remove());
       document.querySelectorAll(`.${OPEN_CLASS}`).forEach((el) => el.classList.remove(OPEN_CLASS));
       return;
@@ -149,6 +172,8 @@ export function startLibraryTheme(): void {
     const css = themeCss(theme);
     if (style.textContent !== css) style.textContent = css;
     if (nav.getAttribute(THEME_ATTR) !== theme) nav.setAttribute(THEME_ATTR, theme);
+    const root = document.documentElement;
+    if (root.getAttribute(SIDE_ATTR) !== theme) root.setAttribute(SIDE_ATTR, theme);
 
     // The moving layer: only in the open playlist's row. A playlist with its
     // own theme (14b) shows THAT theme in its row (developer's choice
