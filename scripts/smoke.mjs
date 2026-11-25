@@ -182,15 +182,25 @@ try {
     (await faceShown('[data-prism="flip-prism"]')) && (await faceShown('[data-prism="flip-organize"]')) &&
       !(await faceShown('[data-prism="mode-prism"] .prism-flip-back')) && !(await faceShown('[data-prism="mode-organize"] .prism-flip-back'))
   );
+  // The front face hides after a 320 ms delayed transition, which can run late
+  // while Spotify is in the background: poll for up to 3 s instead of one wait.
+  const flippedTo = async (back) => {
+    for (let waited = 0; waited < 3000; waited += 150) {
+      const ok = back
+        ? (await faceShown('[data-prism="mode-prism"] .prism-flip-back')) && !(await faceShown('[data-prism="flip-prism"]'))
+        : (await faceShown('[data-prism="flip-prism"]')) && !(await faceShown('[data-prism="mode-prism"] .prism-flip-back'));
+      if (ok) return true;
+      await sleep(150);
+    }
+    return false;
+  };
   await cdp.evaluate(`document.querySelector('[data-prism="flip-prism"]').click()`);
-  await sleep(450);
   check(
     "clicking the Prism tile flips it to its details (the other tile stays)",
-    (await faceShown('[data-prism="mode-prism"] .prism-flip-back')) && !(await faceShown('[data-prism="flip-prism"]')) && (await faceShown('[data-prism="flip-organize"]'))
+    (await flippedTo(true)) && (await faceShown('[data-prism="flip-organize"]'))
   );
   await cdp.evaluate(`document.querySelector('[data-prism="unflip-prism"]').click()`);
-  await sleep(450);
-  check("its Back link flips it back to the icon", (await faceShown('[data-prism="flip-prism"]')) && !(await faceShown('[data-prism="mode-prism"] .prism-flip-back')));
+  check("its Back link flips it back to the icon", await flippedTo(false));
   await cdp.evaluate(`document.querySelector('[data-prism="flip-prism"]').click()`);
   await sleep(450);
   info(`playing song shown: ${await cdp.evaluate(`document.querySelector('[data-prism="playing-song"]')?.textContent ?? "(nothing playing)"`)}`);
@@ -546,12 +556,23 @@ try {
         // Count chips (how many songs to recommend). Choosing one saves it in
         // LocalStorage, so remember the developer's choice and put it back.
         const savedCount = await cdp.evaluate(`Spicetify.LocalStorage.get("prism:growCount")`);
+        // New finds are ticked as well, so with "New finds" on (the developer's
+        // saved choice, e.g. 20) "count 10" shows 10 + the new finds once they
+        // load. Turn them Off for the count checks; the New finds checks below
+        // turn them on again, and the saved choice is put back afterwards.
+        const savedNewCount = await cdp.evaluate(`Spicetify.LocalStorage.get("prism:growNewCount")`);
+        const clickNew = async (id) => {
+          await cdp.evaluate(`${PREVIEW}.querySelector('[data-prism="new-count-${id}"]').click()`);
+          await sleep(250);
+        };
+        await clickNew("off");
         const clickCount = async (id) => {
           await cdp.evaluate(`${PREVIEW}.querySelector('[data-prism="count-${id}"]').click()`);
           await sleep(250);
         };
         const recState = () => cdp.evaluate(`({ n: ${REC_BOXES}.length, ticked: ${REC_BOXES}.every((b) => b.checked) })`);
-        const totalMatches = scores.length + (await cdp.evaluate(`(() => { const t = ${PREVIEW}.querySelector('[data-prism="preview-more-toggle"]'); return t ? t.textContent.split(" ").map(Number).find((x) => x > 0) : 0; })()`));
+        const libraryScores = await cdp.evaluate(`${PREVIEW}.querySelectorAll('[data-prism="preview-score"]').length`); // without the new finds
+        const totalMatches = libraryScores + (await cdp.evaluate(`(() => { const t = ${PREVIEW}.querySelector('[data-prism="preview-more-toggle"]'); return t ? t.textContent.split(" ").map(Number).find((x) => x > 0) : 0; })()`));
         await clickCount(10);
         const ten = await recState();
         check("count 10 re-ticks the best 10", ten.n === Math.min(10, totalMatches) && ten.ticked && n(await createLabel()) === ten.n + 1, `${ten.n} recommended`);
@@ -571,12 +592,7 @@ try {
         // New finds (DISCOVER): similar songs NOT in the library, marked with a
         // mint "New find" row. Read-only: it only searches. Choosing a count
         // saves it, so the developer's choice is put back afterwards.
-        const savedNewCount = await cdp.evaluate(`Spicetify.LocalStorage.get("prism:growNewCount")`);
         const NEW_ROWS = `[...${PREVIEW}.querySelectorAll('[data-prism="preview-recommended"] [data-prism="new-find"]')]`;
-        const clickNew = async (id) => {
-          await cdp.evaluate(`${PREVIEW}.querySelector('[data-prism="new-count-${id}"]').click()`);
-          await sleep(250);
-        };
         const newStatus = () => cdp.evaluate(`${PREVIEW}.querySelector('[data-prism="new-status"]').textContent`);
         await clickNew(10);
         const searched = await waitFor(`!${PREVIEW}.querySelector('[data-prism="new-status"]').textContent.includes("Looking")`, 120000);
