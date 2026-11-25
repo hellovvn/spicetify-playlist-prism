@@ -567,6 +567,11 @@ const CSS = `
   border-color: #cdb8ff;
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25), 0 0 0 3px rgba(205, 184, 255, 0.25);
 }
+/* Number boxes: no browser up/down spinner (grey, can't be themed; developer's
+   pick "A"). Typing, arrow keys and the scroll wheel still change the number. */
+.prism-glass-input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+.prism-glass-input[type="number"]::-webkit-inner-spin-button,
+.prism-glass-input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 
 /* ----- Glass panels and bars (playlist stats page) -----
    .prism-glass-panel: a still glass box (like the popup card, no animation).

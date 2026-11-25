@@ -50,7 +50,7 @@ it. The rules for changing or adding elements are in CLAUDE.md under "UI element
 | Segmented choice (pick ONE) | `.prism-seg` holding `<button className="on">` with `aria-pressed` | Glass pill split into parts; the chosen one is lavender | Hover on unchosen parts: faint white. Used for counts, On/Off settings, "Group mostly by" |
 | Tag switch (pick MANY) | `.prism-tag.prism-tag-pick` (+ `.shared` when on, + `.mood` for moods) | Frosted pill with a colour dot. On: bright lavender. Off: faint with a dim dot. Seed screen adds `.prism-tag-big` (13px) | Standard hover. `role="checkbox"`+`aria-checked`, or `aria-pressed` |
 | Drop-down menu | `GlassMenu` component (`src/ui/GlassMenu.tsx`) | Small glass pill with ▾. Its list is a dark glass card | Standard hover. The list is a portal in `<body>`. Never use a native `<select>` |
-| Text box | `.prism-glass-input` | Glass, 12px corners, faint placeholder | Focus: lavender rim + 3px lavender halo |
+| Text box | `.prism-glass-input` | Glass, 12px corners, faint placeholder. As a number box (`type="number"`) it has NO up/down arrows | Focus: lavender rim + 3px lavender halo. Number box: type, or arrow keys / scroll wheel |
 
 ## Showing things
 
@@ -104,6 +104,8 @@ it. The rules for changing or adding elements are in CLAUDE.md under "UI element
 | Top-bar icon | `src/assets/prism.svg` + `headerIcon.ts` | Spotify's top bar; spins on hover with a star halo and rainbow ring |
 
 ## History
+- 2026-11-24: Text box as a number box (Grow's Custom song count) hides the browser's grey
+  up/down spinner (mockup "A" of four, developer's pick).
 
 - 2026-11-24: NEW Search + genre pages "pastel glass tiles" (step 16c, mockup "B" of four).
 
