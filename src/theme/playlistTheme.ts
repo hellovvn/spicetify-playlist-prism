@@ -89,8 +89,11 @@ export function mixCaption(mix: GenreMix): string {
 //                pastel glass (developer's pick "B", 2026-11-24).
 //   "genre"    = a genre/category page (/genre/<id>): the full sky instead of
 //                Spotify's colour header, its tiles as pastel glass too.
+//   "settings" = Spotify's Settings (/preferences): NO sky, Quiet night's
+//                still dark purple with each section on a card, Prism toggles
+//                (developer's pick "C, quiet night + cards", 2026-11-24).
 // null = a page the theme leaves alone.
-export type ThemedPage = "playlist" | "sky" | "band" | "search" | "genre";
+export type ThemedPage = "playlist" | "sky" | "band" | "search" | "genre" | "settings";
 
 export function themedPageKind(path: string | undefined): ThemedPage | null {
   if (path === "/") return "band";
@@ -100,5 +103,6 @@ export function themedPageKind(path: string | undefined): ThemedPage | null {
   if (p === "/collection/tracks") return "sky";
   if (p === "/search" || p.startsWith("/search/")) return "search";
   if (/^\/genre\/[A-Za-z0-9-]+$/.test(p)) return "genre";
+  if (p === "/preferences") return "settings";
   return null;
 }
