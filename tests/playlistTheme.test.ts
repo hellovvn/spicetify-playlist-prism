@@ -92,8 +92,12 @@ describe("themedPageKind", () => {
     expect(themedPageKind("/search/ludovico%20einaudi/tracks")).toBe("search");
     expect(themedPageKind("/genre/0JQ5DAqbMKFEC4WFtoNRpw")).toBe("genre");
   });
+  test("Settings gets its own still kind", () => {
+    expect(themedPageKind("/preferences")).toBe("settings");
+    expect(themedPageKind("/preferences/")).toBe("settings");
+  });
   test("other pages are left alone", () => {
-    for (const path of [undefined, "", "/searching", "/index.html", "/collection", "/artist/09BQyf74gmKlaDkWdbdbqY/discography", "/playlist-prism", "/genre", "/genre/x/y", "/preferences"]) {
+    for (const path of [undefined, "", "/searching", "/index.html", "/collection", "/artist/09BQyf74gmKlaDkWdbdbqY/discography", "/playlist-prism", "/genre", "/genre/x/y", "/preferences/advanced", "/preferencesx"]) {
       expect(themedPageKind(path)).toBeNull();
     }
   });

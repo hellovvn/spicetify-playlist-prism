@@ -586,7 +586,13 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   (`data-prism-chip-row`). Genre pages: the colour header is a pinned picture in
   .before-scroll-node (hidden) and the #121212 block is the parent of
   .main-actionBarBackground-background (cleared).
-  Next: Settings (/preferences), listening history (/history), then the unchecked ones below.
+  16d SETTINGS (2026-11-24, developer's pick "C, quiet night + cards" of four; built, not
+  committed, not yet checked in Spotify): page kind "settings" (/preferences) gets NO sky:
+  #151029 with each `.x-settings-section` on a #1d1638 card, Spotify's switches
+  (`.x-toggle-input:checked + .x-toggle-indicatorWrapper`) in the Prism Toggle's colours, glass
+  dropdowns (`.main-dropDown-dropDown`) and buttons, lavender zoom picker (selected radio =
+  the circle with a 2nd generated class), equalizer canvas hue-shifted, Beta tag gradient.
+  Next: listening history (/history), then the unchecked ones below.
   YOUR LIBRARY has no page in this Spotify: /collection, /collection/playlists etc. all
   redirect to /collection/tracks (Liked Songs), and "Expand Your Library" only widens the left
   panel, which libraryTheme.ts already themes.

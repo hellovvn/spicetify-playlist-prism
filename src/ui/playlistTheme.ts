@@ -178,6 +178,62 @@ const CSS = `
    and the #121212 block under it go, so the sky shows behind the title. */
 [${PAGE_ATTR}="genre"] .before-scroll-node { visibility: hidden; }
 [${PAGE_ATTR}="genre"] div:has(> .main-actionBarBackground-background) { background-color: transparent !important; }
+
+/* SETTINGS ("C, quiet night + cards"): no sky, Quiet night's still dark
+   purple, every section on a card like the right panel's, Spotify's green
+   switches in the Prism Toggle's look (at Spotify's size), glass dropdowns
+   and buttons, lavender instead of green in the zoom picker, the equalizer
+   (a canvas, so hue-shifted like the playing icon) and the Beta tag.
+   Spotify's x-settings-* / x-toggle-* class names are stable. */
+.Root__main-view[${THEME_ATTR}][${PAGE_ATTR}="settings"] { background-color: #151029 !important; }
+[${PAGE_ATTR}="settings"] .x-settings-section {
+  background: #1d1638; border: 1px solid rgba(205, 184, 255, 0.12); border-radius: 12px;
+  padding: 16px 20px;
+}
+[${PAGE_ATTR}="settings"] div:has(> .x-settings-section) { row-gap: 12px !important; }
+[${PAGE_ATTR}="settings"] .x-settings-section > hr { display: none; }
+[${PAGE_ATTR}="settings"] :is(.x-settings-zoomContainer, .x-settings-equalizerSection, .x-settings-outputDeviceSection) {
+  background-color: rgba(205, 184, 255, 0.06) !important; box-shadow: inset 0 0 0 1px rgba(205, 184, 255, 0.1); border-radius: 12px;
+}
+[${PAGE_ATTR}="settings"] .x-toggle-indicatorWrapper {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition: background-color 150ms ease, box-shadow 150ms ease;
+}
+[${PAGE_ATTR}="settings"] .x-toggle-input:checked + .x-toggle-indicatorWrapper {
+  background-color: #b794ff !important; box-shadow: inset 0 0 0 1px #cdb8ff;
+}
+[${PAGE_ATTR}="settings"] .x-toggle-wrapper:hover .x-toggle-indicatorWrapper {
+  box-shadow: inset 0 0 0 1px rgba(205, 184, 255, 0.75), 0 0 12px rgba(205, 184, 255, 0.4);
+}
+[${PAGE_ATTR}="settings"] .x-toggle-indicator { background-color: #ffffff !important; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35); }
+[${PAGE_ATTR}="settings"] .main-dropDown-dropDown {
+  background-color: rgba(255, 255, 255, 0.1) !important; color: #ece6ff !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25); border: 0 !important; border-radius: 999px;
+  /* The browser's own arrow box drew a second edge: off, with a plain chevron. */
+  appearance: none; padding-right: 34px !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5' fill='none' stroke='%23ece6ff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important; background-position: right 14px center !important;
+}
+[${PAGE_ATTR}="settings"] .main-dropDown-dropDown:hover { box-shadow: inset 0 0 0 1px rgba(205, 184, 255, 0.75), 0 0 12px rgba(205, 184, 255, 0.4); }
+[${PAGE_ATTR}="settings"] .main-dropDown-dropDown option { background-color: #1d1638; color: #ece6ff; }
+[${PAGE_ATTR}="settings"] [data-encore-id="buttonSecondary"] {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.05)) !important;
+  border: 1px solid rgba(255, 255, 255, 0.28) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
+}
+[${PAGE_ATTR}="settings"] [data-encore-id="buttonSecondary"]:hover {
+  border-color: rgba(205, 184, 255, 0.75) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 0 12px rgba(205, 184, 255, 0.4) !important;
+}
+[${PAGE_ATTR}="settings"] .x-settings-zoomButtonIcon.selected { color: #b794ff !important; }
+[${PAGE_ATTR}="settings"] .x-settings-zoomRadioCircle { background-color: transparent !important; }
+[${PAGE_ATTR}="settings"] .x-settings-zoomRadioCircle[class*=" "] { background-color: #b794ff !important; box-shadow: 0 0 10px rgba(205, 184, 255, 0.5); }
+[${PAGE_ATTR}="settings"] .x-settings-zoomRadioCircle[class*=" "]::before { background-color: #1d1638 !important; }
+[${PAGE_ATTR}="settings"] .x-settings-zoomRadioWrapper { background-color: transparent !important; }
+[${PAGE_ATTR}="settings"] .x-settings-zoomRadioGroup::before { background-color: rgba(205, 184, 255, 0.2) !important; }
+[${PAGE_ATTR}="settings"] .x-settings-equalizerPanelCanvas { filter: hue-rotate(190deg) saturate(0.7) brightness(1.25); }
+[${PAGE_ATTR}="settings"] .encore-bright-accent-set { background: linear-gradient(135deg, #f6a6c8, #b9a7ff) !important; color: #2b1d52 !important; }
 /* Spotify's filter chips (All / Music / Podcasts...) on every themed page
    and in the themed left panel (Playlists / Albums; LIB_ATTR is set by
    src/ui/libraryTheme.ts): glass pills; the chosen one gets the
@@ -502,6 +558,13 @@ export function startPlaylistTheme(): void {
     if (kind === "search") markChipRow(main);
     else document.querySelectorAll(`[${CHIP_ROW_ATTR}]`).forEach((el) => el.removeAttribute(CHIP_ROW_ATTR));
     let sky = main.querySelector(`:scope > .${SKY_CLASS}`) as HTMLElement | null;
+    // Settings: no sky at all (still Quiet night purple, the CSS does the rest).
+    if (kind === "settings") {
+      sky?.remove();
+      data = null;
+      main.querySelectorAll(`.${RAIL_CLASS}, [${MIX_ATTR}]`).forEach((el) => el.remove());
+      return;
+    }
     if (sky && (sky.dataset.theme !== theme || sky.dataset.band !== (band ? "1" : ""))) {
       sky.remove();
       sky = null;
