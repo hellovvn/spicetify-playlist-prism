@@ -551,6 +551,17 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   their #121212 block is found by structure (generated class names), and the artist photo sits
   in `.before-scroll-node` (pinned, never scrolls), so it fades out on scroll via
   --prism-banner-fade. Next: Home, Search, Your Library, Settings, history, genre pages.
+  16b HOME (2026-11-24, developer's pick "D, sky band" of four; built, not committed): with a
+  playlist theme on, Home ("/", page kind "band") gets the theme's sky only behind its top part
+  (`[data-prism-band]`, --prism-band-height = 42% of the view, 320-560px, masked to fade out),
+  Quiet night's #151029 below, and the band fades out on scroll (--prism-band-fade). Spotify's
+  `.main-home-homeHeader` wash is cleared, shortcut tiles are lavender glass, cards hover
+  lavender, the stuck filter-chip row is top-bar glass. Spotify's filter chips
+  (`[data-encore-id="chip"]`, inner `[class*="legacy-chip__inner"]`; the class prefix carries
+  Spotify's version) are glass with a gradient chosen chip on every themed page.
+  YOUR LIBRARY has no page in this Spotify: /collection, /collection/playlists etc. all
+  redirect to /collection/tracks (Liked Songs), and "Expand Your Library" only widens the left
+  panel, which libraryTheme.ts already themes.
   Not checked yet: search results, podcast/episode/show pages, profile (/user/...), right-click
   menus and Spotify's dialogs. Check them as part of this step.
   Facts found: every page above has `.Root__main-view` at #121212 and no data-prism-theme;

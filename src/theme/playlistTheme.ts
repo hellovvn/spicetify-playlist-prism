@@ -81,10 +81,14 @@ export function mixCaption(mix: GenreMix): string {
 //   "sky"      = album, artist and Liked Songs pages: the same sky, cleared
 //                cover washes, glass bars and pastel play button, but no rail
 //                or genre mix (developer's decision: those stay playlist-only).
+//   "band"     = Home: the sky only as a band behind the top of the page,
+//                fading into Quiet night's dark purple below and as you scroll
+//                (developer's pick "D, sky band", 2026-11-24).
 // null = a page the theme leaves alone.
-export type ThemedPage = "playlist" | "sky";
+export type ThemedPage = "playlist" | "sky" | "band";
 
 export function themedPageKind(path: string | undefined): ThemedPage | null {
+  if (path === "/") return "band";
   const p = (path ?? "").replace(/\/$/, "");
   if (/^\/playlist\/[A-Za-z0-9]{22}$/.test(p)) return "playlist";
   if (/^\/(album|artist)\/[A-Za-z0-9]{22}$/.test(p)) return "sky";
