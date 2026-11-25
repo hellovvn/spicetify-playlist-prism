@@ -92,7 +92,7 @@ it. The rules for changing or adding elements are in CLAUDE.md under "UI element
 | Element | Where | Notes |
 |---|---|---|
 | Twilight background | `.prism-cosmos` (PrismPage, side panel) | Gradient, drifting glows, rainbow light waves, sparkles |
-| Header | `.prism-header` + `PrismIcon` | Glass bar, diamond icon with twinkling sparkles, title, 32px secondary buttons |
+| Header | `.prism-header` + `PrismIcon` | Glass bar, Prism star icon (rainbow 4-point star, white glint) with twinkling sparkles, title, 32px secondary buttons |
 | Start tiles | `FlipTile` + `HomeIcons` | The ONLY place with the rainbow-swirl hover. Click flips to details, which have a quiet "← Back" |
 | Start bar (approved 2026-11-23, mockup "B") | `button.prism-home-bar` + `MergeIcon` (HomeIcons), under the start tiles | Wide glass card (tile glass, 16px corners, min 64px tall): still matte icon, 15px label, one 13px line. Standard hover + 2px lift, press 0.97, NO flip and NO rainbow swirl. Used for Merge playlists (`MergeIcon`) and Add a song to your playlists (`AddSongIcon`, same matte boxes) |
 | Loading | `.prism-spinner` (small), `ScanningPrism` (scan) | Spinner ring; big diamond with a star halo while scanning |
@@ -112,6 +112,7 @@ it. The rules for changing or adding elements are in CLAUDE.md under "UI element
 
 - 2026-11-24: NEW Spotify Settings "quiet night + cards" (step 16d, mockup "C" of four). The Toggle's
   look is also used on Spotify's own Settings switches (at Spotify's size).
+- 2026-11-25: The page header icon and Spotify's top-bar icon switched from the glass diamond to the Prism star (mockup "E", developer's pick). Top-bar hover (mockup "C, colour-matched glow"): the star's rainbow flows along while a soft glow breathes behind it, cycling through the rainbow; the star never turns (was a coin spin). The top-bar button's moving neon ring was removed (developer's request). The scanning diamond is unchanged.
 - 2026-11-24: NEW Prism star (look "A" of four) replaces the ✦ character everywhere (New finds status, New find pill, Tone strip). The 3 sparkles round a New find's score ring were removed (developer's request). The New finds status line got the standard progress bar.
 - 2026-11-24: NEW Search + genre pages "pastel glass tiles" (step 16c, mockup "B" of four).
 - 2026-11-24: NEW Home sky band (step 16, mockup "D" of four) and the themed Spotify filter chip.
