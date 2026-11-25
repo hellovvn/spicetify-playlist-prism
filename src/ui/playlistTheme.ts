@@ -26,12 +26,14 @@
 // Nothing is sent to Last.fm for this, and the playlist is never touched.
 // Pure parts: src/theme/playlistTheme.ts (tests/playlistTheme.test.ts).
 
-import { loadPlaylistThemeSetting, loadTagCacheText } from "../storage";
+import { loadPlaylistThemeOverrides, loadPlaylistThemeSetting, loadTagCacheText } from "../storage";
 import { getSourceTracks } from "../spotify/read";
 import { TagCache } from "../scan/tagCache";
 import { LOG_PREFIX } from "../log";
-import { genreColours, genreMix, mainGenre, mixCaption, parsePlaylistTheme, PLAYLIST_THEME_CHANGED_EVENT, themedPageKind, type PlaylistThemeId } from "../theme/playlistTheme";
+import { effectiveTheme, genreColours, genreMix, mainGenre, mixCaption, parsePlaylistTheme, parseThemeOverrides, PLAYLIST_THEME_CHANGED_EVENT, themedPageKind, type PlaylistThemeId } from "../theme/playlistTheme";
 import { playlistUriFromPath } from "./toneView";
+import { RING_ANGLE_PROPERTY, RING_GLINT, RING_RAINBOW } from "./ringColours";
+import { isNewSkyTheme, NEW_SKY_CSS, newSkyHtml, wireSky } from "./themeSkies";
 
 const STYLE_ID = "playlist-prism-playlist-theme";
 const THEME_ATTR = "data-prism-theme"; // on .Root__main-view while a themed playlist shows
@@ -80,7 +82,11 @@ const CSS = `
    fully see-through, so the sky shows; it turns to glass only once stuck
    (HEADER_STUCK_ATTR, set by updateHeader), or songs would scroll under the text. */
 [${THEME_ATTR}] .main-topBar-background,
-[${THEME_ATTR}] .main-trackList-trackListHeader[${HEADER_STUCK_ATTR}] { background-color: rgba(38, 26, 76, 0.94) !important; backdrop-filter: blur(16px); }
+/* Spotify's stuck header is ~1px narrower than the top bar on each side, so
+   the sky showed through two thin strips while scrolling. Two 2px side
+   shadows in the header's colour cover them without moving the layout
+   (Spotify sets the header's own margins, so don't touch those). */
+[${THEME_ATTR}] .main-trackList-trackListHeader[${HEADER_STUCK_ATTR}] { background-color: rgba(38, 26, 76, 0.94) !important; backdrop-filter: blur(16px); box-shadow: -2px 0 0 rgba(38, 26, 76, 0.94), 2px 0 0 rgba(38, 26, 76, 0.94); }
 [${THEME_ATTR}] .main-trackList-trackListHeader { background-color: transparent !important; border-bottom-color: rgba(205, 184, 255, 0.18) !important; transition: background-color 0.2s ease; }
 /* Spotify fades its top bar in with an inline opacity as you scroll. Once the
    column header is stuck under it, the top bar is always fully shown, or a
@@ -133,8 +139,68 @@ const CSS = `
 }
 /* Album/playlist cards in the rows: lavender hover instead of grey. */
 [${BAND_ATTR}] [data-encore-id="card"]:hover::after,
+[${PAGE_ATTR}="profile"] [data-encore-id="card"]:hover::after,
 [${PAGE_ATTR}="search"] [data-encore-id="card"]:hover::after,
 [${PAGE_ATTR}="genre"] [data-encore-id="card"]:hover::after { background-color: rgba(205, 184, 255, 0.12) !important; }
+
+/* PROFILE pages (step 16f, developer's pick "A, full sky + avatar ring"):
+   the sky (cleared washes come from the shared rules above), each section
+   ("Top artists this month", "Followers"...) on lavender glass like Home's
+   shortcut tiles, and the avatar inside the stats page's moving cover ring
+   ("Cover ring" in docs/ui-elements.md, round here). The ring and its glow
+   sit behind the photo (negative z-index in an isolated box), just outside it. */
+${RING_ANGLE_PROPERTY}
+[${PAGE_ATTR}="profile"] section.main-shelf-shelf {
+  padding: 12px 16px 8px;
+  border-radius: 12px;
+  background-color: rgba(205, 184, 255, 0.09);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(12px);
+}
+/* Spotify puts a grey #333 square behind every card picture; behind the round
+   profile and artist photos it showed as grey corners on the glass. Cleared
+   when there's a picture, and its square drop shadow moves onto the picture
+   itself (round or square, it follows the picture's own shape). The no-photo
+   placeholder becomes faint lavender. */
+[${PAGE_ATTR}="profile"] .main-cardImage-imageWrapper:has(img) { background-color: transparent !important; box-shadow: none !important; }
+[${PAGE_ATTR}="profile"] .main-cardImage-imageWrapper img { box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5); }
+[${PAGE_ATTR}="profile"] .main-cardImage-imageWrapper:not(:has(img)) { background-color: rgba(205, 184, 255, 0.12) !important; }
+[${PAGE_ATTR}="profile"] .main-entityHeader-imageContainer {
+  position: relative;
+  isolation: isolate;
+  border-radius: 50%;
+  overflow: visible;
+  animation: prism-ring-turn 3.5s linear infinite;
+}
+[${PAGE_ATTR}="profile"] .main-entityHeader-imageContainer::after,
+[${PAGE_ATTR}="profile"] .main-entityHeader-imageContainer::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  border-radius: 50%;
+  pointer-events: none;
+}
+[${PAGE_ATTR}="profile"] .main-entityHeader-imageContainer::after { inset: -4px; background: ${RING_GLINT}, ${RING_RAINBOW}; filter: blur(1.5px); opacity: 0.9; }
+[${PAGE_ATTR}="profile"] .main-entityHeader-imageContainer::before { inset: -8px; background: ${RING_RAINBOW}; filter: blur(12px); opacity: 0.7; }
+@media (prefers-reduced-motion: reduce) {
+  [${PAGE_ATTR}="profile"] .main-entityHeader-imageContainer { animation: none; }
+}
+
+/* PODCAST shows and episodes (step 16g, developer's pick "A, full sky"): the
+   sky and cleared washes come from the shared rules; the episode page's solid
+   #121212 block under its header (the parent of the action bar background,
+   generated class) is cleared like the artist page's. Spotify's blue
+   "not played yet" dots read --spice-notification -> Prism lavender. The
+   show's trailer card and its "Trailer" tag become lavender glass. */
+[${PAGE_ATTR}="podcast"] { --spice-notification: #b9a7ff; --spice-rgb-notification: 185, 167, 255; }
+[${PAGE_ATTR}="podcast"] [data-testid="episode"] div:has(> .playlist-playlist-actionBarBackground-background) { background-color: transparent !important; }
+[${PAGE_ATTR}="podcast"] [data-testid="trailer-component"] {
+  background-color: rgba(205, 184, 255, 0.09) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(12px);
+}
+[${PAGE_ATTR}="podcast"] [data-testid="trailer-component"]:hover { background-color: rgba(205, 184, 255, 0.18) !important; }
+[${PAGE_ATTR}="podcast"] [data-testid="trailer-component"] [data-encore-id="tag"] { background-color: rgba(205, 184, 255, 0.16) !important; color: #ece6ff !important; }
 
 /* SEARCH + GENRE pages (step 16c, developer's pick "B, full sky + pastel
    glass tiles"). Browse all's category tiles (a grid item holding a link
@@ -303,6 +369,8 @@ const CSS = `
 @keyframes prism-pl-ray { 0%, 100% { opacity: 0.35; transform: scaleY(0.9); } 50% { opacity: 0.9; transform: scaleY(1.08); } }
 @keyframes prism-pl-sway { 0%, 100% { transform: translateX(0) skewX(0); } 50% { transform: translateX(-30px) skewX(-6deg); } }
 @keyframes prism-pl-breathe { 0%, 100% { opacity: 0.5; } 50% { opacity: 0.85; } }
+.prism-pl-aurora-hue { inset: 0; animation: prism-pl-aurora-hue 70s ease-in-out infinite; }
+@keyframes prism-pl-aurora-hue { 0%, 100% { filter: hue-rotate(0deg); } 30% { filter: hue-rotate(45deg); } 55% { filter: hue-rotate(120deg); } 75% { filter: hue-rotate(-30deg); } }
 /* Tiny dots (aurora sky, nebula) */
 .prism-pl-dot { border-radius: 50%; background: #fff; animation: prism-pl-twinkle var(--d) var(--l) infinite; }
 @keyframes prism-pl-twinkle { 0%, 100% { opacity: 0.2; } 50% { opacity: 1; } }
@@ -322,6 +390,7 @@ const CSS = `
   50% { transform: translate(14px, -55vh); }
   100% { transform: translate(-6px, -115vh); opacity: 0; }
 }
+${NEW_SKY_CSS}
 @media (prefers-reduced-motion: reduce) {
   .${SKY_CLASS} *, .${RAIL_CLASS} { animation: none !important; }
 }
@@ -375,14 +444,19 @@ function curtainHtml(baseY: number, amplitude: number, phase: number, topColour:
 // and `width` sizes the nebula clouds like in the mockup.
 function skyHtml(theme: PlaylistThemeId, width: number, scale: number): { background: string; html: string } {
   const n = (count: number) => Math.round(count * scale);
+  if (isNewSkyTheme(theme)) return newSkyHtml(theme, width, scale);
   if (theme === "aurora") {
     return {
       background: "linear-gradient(180deg, #0f0d28, #171338 50%, #1b1335)",
       html:
         dotsHtml(n(50)) +
         `<div style="left:-10%;right:-10%;top:8%;height:200px;background:radial-gradient(ellipse at 50% 60%,#7ff5c833,transparent 65%);filter:blur(30px);animation:prism-pl-breathe 8s ease-in-out infinite"></div>` +
+        // The lights slowly drift through other colours (green -> teal/blue ->
+        // violet/pink and back, ~70 s; developer's request 2026-11-25).
+        `<div class="prism-pl-aurora-hue">` +
         curtainHtml(26, 3.5, 0, "#c49bff", 46, 10, 0.85, 18) +
         curtainHtml(30, 2.5, 2, "#f6a6c8", 34, 14, 0.55, 24) +
+        `</div>` +
         `<div style="left:0;right:0;bottom:0;height:52%;background:linear-gradient(transparent,#150f2cdd)"></div>`,
     };
   }
@@ -416,7 +490,8 @@ function skyHtml(theme: PlaylistThemeId, width: number, scale: number): { backgr
 // How tall Home's sky band is: the top part of the view, 320-560px.
 const bandHeight = (main: Element) => Math.round(Math.min(560, Math.max(320, main.getBoundingClientRect().height * 0.42)));
 
-function buildSky(theme: PlaylistThemeId, main: Element, band: boolean): HTMLElement {
+// Also used by the lyrics view (src/ui/lyricsTheme.ts), with any box as `main`.
+export function buildSky(theme: PlaylistThemeId, main: Element, band: boolean): HTMLElement {
   const sky = document.createElement("div");
   sky.className = SKY_CLASS;
   sky.dataset.theme = theme;
@@ -434,6 +509,7 @@ function buildSky(theme: PlaylistThemeId, main: Element, band: boolean): HTMLEle
       star.style.top = `${rand(0, 98).toFixed(1)}%`;
     })
   );
+  wireSky(sky);
   return sky;
 }
 
@@ -480,7 +556,8 @@ export function startPlaylistTheme(): void {
   style.textContent = CSS;
   document.head.appendChild(style);
 
-  let theme = parsePlaylistTheme(loadPlaylistThemeSetting());
+  let mainTheme = parsePlaylistTheme(loadPlaylistThemeSetting());
+  let overrides = parseThemeOverrides(loadPlaylistThemeOverrides()); // themes for single playlists (14b)
   let data: PlaylistData | null = null;
   let scheduled = false;
   let lastPath: string | undefined;
@@ -513,7 +590,11 @@ export function startPlaylistTheme(): void {
     main?.removeAttribute(THEME_ATTR);
     main?.removeAttribute(BAND_ATTR);
     main?.removeAttribute(PAGE_ATTR);
-    document.querySelectorAll(`.${SKY_CLASS}, .${RAIL_CLASS}, [${MIX_ATTR}]`).forEach((el) => el.remove());
+    // Only the page's own sky (a direct child of the main view): the same sky
+    // is also used by the lyrics view and the Settings preview strip, which
+    // must stay when the page itself isn't themed.
+    main?.querySelectorAll(`:scope > .${SKY_CLASS}`).forEach((el) => el.remove());
+    document.querySelectorAll(`.${RAIL_CLASS}, [${MIX_ATTR}]`).forEach((el) => el.remove());
     document.querySelectorAll(`[${CHIP_ROW_ATTR}]`).forEach((el) => el.removeAttribute(CHIP_ROW_ATTR));
   };
 
@@ -544,6 +625,8 @@ export function startPlaylistTheme(): void {
       (main as HTMLElement | null)?.style.removeProperty("--prism-band-fade");
     }
     const uri = playlistUriFromPath(path);
+    // A playlist page shows the playlist's own theme if it has one (14b).
+    const theme = effectiveTheme(mainTheme, overrides, kind === "playlist" ? uri : null);
     if (!main || !kind || theme === "none") {
       clear(main);
       if (!uri) data = null;
@@ -723,7 +806,8 @@ export function startPlaylistTheme(): void {
   Spicetify.Platform.History.listen(() => schedule());
   Spicetify.Player?.addEventListener?.("songchange", () => schedule());
   window.addEventListener(PLAYLIST_THEME_CHANGED_EVENT, () => {
-    theme = parsePlaylistTheme(loadPlaylistThemeSetting());
+    mainTheme = parsePlaylistTheme(loadPlaylistThemeSetting());
+    overrides = parseThemeOverrides(loadPlaylistThemeOverrides());
     schedule();
   });
   window.setInterval(() => {

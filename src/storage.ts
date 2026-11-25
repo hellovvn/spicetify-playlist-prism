@@ -104,9 +104,19 @@ export function savePanelStatsSetting(on: boolean): void {
 }
 
 // ----- Playlist theme (see src/theme/playlistTheme.ts) -----
-// "none" / "aurora" / "stars" / "nebula". Never set = no theme.
+// A PlaylistThemeId (src/theme/playlistTheme.ts), e.g. "nebula". Never set = no theme.
 
 const PLAYLIST_THEME_KEY = "prism:playlistTheme";
+
+// Themes for single playlists (14b): JSON map playlist URI -> theme id
+// (parseThemeOverrides in src/theme/playlistTheme.ts). Local only.
+const PLAYLIST_THEMES_KEY = "prism:playlistThemes";
+export function loadPlaylistThemeOverrides(): string | null {
+  return Spicetify.LocalStorage.get(PLAYLIST_THEMES_KEY);
+}
+export function savePlaylistThemeOverrides(json: string): void {
+  Spicetify.LocalStorage.set(PLAYLIST_THEMES_KEY, json);
+}
 
 export function loadPlaylistThemeSetting(): string | null {
   return Spicetify.LocalStorage.get(PLAYLIST_THEME_KEY);

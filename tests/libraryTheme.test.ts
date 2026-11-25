@@ -50,3 +50,22 @@ describe("rowSkyHtml", () => {
     for (const t of ["aurora", "stars", "nebula"] as const) expect(rowBackground(t)).toBeTruthy();
   });
 });
+
+describe("newer themes (2026-11-25)", () => {
+  const newer = ["twilight", "afterglow", "mist", "milkyway", "rain", "blossom"] as const;
+  test("each has its own still panel, row colour and moving row pieces", () => {
+    const panels = new Set<string>();
+    for (const theme of newer) {
+      panels.add(panelBackground(theme));
+      expect(rowBackground(theme)).not.toBe("#2a1a4a"); // not the nebula fallback
+      expect(rowSkyHtml(theme, fixed)).toContain("prism-lib-");
+    }
+    expect(panels.size).toBe(newer.length);
+  });
+  test("blossom's row has petals, rain's has lights and drops on the glass", () => {
+    expect(rowSkyHtml("blossom", fixed)).toContain("prism-lib-petal");
+    expect(rowSkyHtml("rain", fixed)).toContain("prism-lib-veil");
+    expect(rowSkyHtml("rain", fixed)).not.toContain("prism-lib-drop");
+    expect(rowSkyHtml("rain", fixed)).toContain("prism-lib-wdrop");
+  });
+});
