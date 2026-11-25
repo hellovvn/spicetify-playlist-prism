@@ -544,7 +544,8 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   looked up on Last.fm if not cached. Write: `addSongToPlaylist` in write.ts (re-reads the playlist
   first so a song is never added twice; refuses non-playlists, !canAdd, already there).
   Debug hook: openAddTo(uri?), getAddWithPrismState(), findPlaylistsForSong(uri) (read-only).
-- START BARS (2026-11-25, developer's picks after six mockup rounds): the Merge and Add a song
+- START BARS (2026-11-25, developer's picks after six mockup rounds; tested by the developer,
+  merged in PR #22): the Merge and Add a song
   bars are `src/ui/StartBar.tsx`. Icons in HomeIcons.tsx animate on hover/focus and finish their
   loop on leave (like FlipTile): Merge = "Q1 bubbles" (pink + sky bubbles drift into one mint
   bubble with green notes), Add a song = "S1 compass" (needle settles on the mint playlist of
