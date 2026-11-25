@@ -66,3 +66,14 @@ describe("isPlaylistUri", () => {
     expect(isPlaylistUri(text)).toBe(false);
   });
 });
+
+describe("addto requests (Add with Prism)", () => {
+  test("round-trips with and without a song", () => {
+    const song = "spotify:track:4uLU6hMCjMI75M1A2tKUQC";
+    const withSong = new URL(pageUrl({ go: "addto", song }, "1"), "https://x").search;
+    expect(parsePageRequest(withSong)?.request).toEqual({ go: "addto", song });
+    const without = new URL(pageUrl({ go: "addto" }, "2"), "https://x").search;
+    expect(parsePageRequest(without)?.request).toEqual({ go: "addto" });
+    expect(parsePageRequest("?go=addto&song=spotify:playlist:x&r=3")).toBeNull();
+  });
+});

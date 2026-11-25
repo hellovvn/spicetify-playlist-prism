@@ -7,6 +7,7 @@
 //   tone       set a playlist's tone (right-click it > "Prism tone")
 //   organize   split several playlists into new ones by genre/mood (step 13)
 //   merge      join several playlists into one, without duplicates
+//   addto      "Add with Prism": the 5 playlists that fit a song best
 //   demo-scan  DEV/TEST: scan screen with a fake scan (smoke test)
 //   demo-stats DEV/TEST: stats page with sample numbers (smoke test)
 // Settings (the Last.fm key) open ON TOP of whichever of these is showing:
@@ -33,8 +34,9 @@ import { isPanelStatsOn } from "./sidePanel";
 
 import { OrganizeFlow } from "./OrganizeFlow";
 import { MergeFlow } from "./MergeFlow";
-import { MergeIcon } from "./HomeIcons";
-import { createFromPreview, createOrganizedPlaylist, findNewSongs, mergePlaylists, friendlyError, loadPlaylistExtras, loadPlaylistStats, loadSeed, loadToneFit, loadToneSongs, loadTones, runScan, saveTone } from "../flow";
+import { AddSongIcon, MergeIcon } from "./HomeIcons";
+import { AddToScreen } from "./AddToScreen";
+import { addSongTo, findPlaylistsForSong, createFromPreview, createOrganizedPlaylist, findNewSongs, mergePlaylists, friendlyError, loadPlaylistExtras, loadPlaylistStats, loadSeed, loadToneFit, loadToneSongs, loadTones, runScan, saveTone } from "../flow";
 import { getPlaylistName } from "../spotify/read";
 import { ToneEditor } from "./ToneEditor";
 import { PAGE_PATH, parsePageRequest, parseTrackLink, type PageRequest } from "../nav";
@@ -61,6 +63,7 @@ type View =
   | { kind: "tone"; playlist: string; id: string } // set a playlist's tone
   | { kind: "organize"; id: string } // Organize playlists (step 13)
   | { kind: "merge"; id: string } // Merge playlists
+  | { kind: "addto"; song?: string; id: string } // Add with Prism
   | { kind: "demo-scan"; id: string }
   | { kind: "demo-stats"; id: string };
 
@@ -95,6 +98,8 @@ function actionFor(request: PageRequest, id: string): PageAction {
       return { view: { kind: "stats", playlist: request.playlist, id } };
     case "tone":
       return { view: { kind: "tone", playlist: request.playlist, id } };
+    case "addto":
+      return { view: { kind: "addto", song: request.song, id } };
     case "demo-scan":
       return { view: { kind: "demo-scan", id } };
     case "demo-stats":
@@ -326,6 +331,15 @@ export function PrismPage() {
         onOpenPlaylist={(uri) => History.push(`/playlist/${uri.split(":")[2]}`)}
       />
     );
+  } else if (view.kind === "addto") {
+    body = (
+      <AddToRoute
+        key={view.id}
+        song={view.song}
+        onHome={goHome}
+        onOpenPlaylist={(uri) => History.push(`/playlist/${uri.split(":")[2]}`)}
+      />
+    );
   } else if (view.kind === "demo-stats") {
     body = <StatsScreen key={view.id} load={async () => SAMPLE_RECORD} />;
   } else {
@@ -334,6 +348,7 @@ export function PrismPage() {
         onStart={start}
         onOrganize={() => apply({ view: { kind: "organize", id: newId() } })}
         onMerge={() => apply({ view: { kind: "merge", id: newId() } })}
+        onAddTo={() => apply({ view: { kind: "addto", id: newId() } })}
       />
     );
   }
@@ -430,7 +445,7 @@ export function PrismPage() {
 
 // ----- Start screen -----
 
-function HomeScreen({ onStart, onOrganize, onMerge }: { onStart: (seed: string) => void; onOrganize: () => void; onMerge: () => void }) {
+function HomeScreen({ onStart, onOrganize, onMerge, onAddTo }: { onStart: (seed: string) => void; onOrganize: () => void; onMerge: () => void; onAddTo: () => void }) {
   const { ButtonPrimary, ButtonSecondary } = Spicetify.ReactComponent as any;
   const [link, setLink] = React.useState("");
   const [linkError, setLinkError] = React.useState<string | null>(null);
@@ -528,7 +543,30 @@ function HomeScreen({ onStart, onOrganize, onMerge }: { onStart: (seed: string) 
         <span style={styles.barLabel}>Merge playlists</span>
         <span style={styles.barText}>Join playlists into one and leave out duplicates</span>
       </button>
+
+      {/* Add with Prism: the same start bar, for one song. */}
+      <button type="button" className="prism-home-bar" onClick={onAddTo} data-prism="start-addto">
+        <AddSongIcon />
+        <span style={styles.barLabel}>Add a song to your playlists</span>
+        <span style={styles.barText}>Find the 5 playlists that fit a song best</span>
+      </button>
     </div>
+  );
+}
+
+// The Add with Prism screen, with the playing song and the real lookups.
+function AddToRoute({ song, onHome, onOpenPlaylist }: { song?: string; onHome: () => void; onOpenPlaylist: (uri: string) => void }) {
+  const playing = usePlayingSong();
+  return (
+    <AddToScreen
+      song={song}
+      playing={playing}
+      find={findPlaylistsForSong}
+      add={addSongTo}
+      describeError={friendlyError}
+      onOpenPlaylist={onOpenPlaylist}
+      onHome={onHome}
+    />
   );
 }
 

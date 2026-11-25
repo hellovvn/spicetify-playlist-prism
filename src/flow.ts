@@ -10,7 +10,9 @@ import { searchTracks } from "./spotify/search";
 import { getArtistTopTracks, getSimilarArtists, getSimilarTracks, LastfmError } from "./lastfm/client";
 import { bestSearchHit, pickCandidates, type FoundTrack, type SimilarSong } from "./discover/discover";
 import { scoreSong, tagMatch } from "./scoring/score";
-import { createMergedPlaylist, createPrismPlaylist, PrismWriteError, type MergeResult } from "./spotify/write";
+import { addSongToPlaylist, createMergedPlaylist, createPrismPlaylist, PrismWriteError, type MergeResult } from "./spotify/write";
+import { hasSong, rankPlaylists, type CandidatePlaylist, type FitSong, type PlaylistFit } from "./addto/fitPlaylists";
+import type { TrackInfo } from "./spotify/read";
 import { lastfmFetchers } from "./lastfm/fetchers";
 import { LOG_PREFIX } from "./log";
 import {
@@ -524,6 +526,90 @@ export function loadPlaylistExtras(uri: string): Promise<PlaylistExtras> {
   extrasCache.set(uri, { at: Date.now(), extras });
   extras.catch(() => extrasCache.delete(uri)); // a failure isn't remembered
   return extras;
+}
+
+// ----- Add with Prism (src/addto/fitPlaylists.ts) -----
+// The top 5 of the user's playlists for one song. READ-ONLY until the user
+// clicks a playlist (addSongTo). The library side uses the scan CACHES only
+// (nothing sent to Last.fm for it): playlists the user has scanned before are
+// judged, others need a scan first. The song itself is looked up if needed.
+
+export interface SongFits {
+  song: TrackInfo;
+  tagged: boolean; // false = Last.fm has no tags for the song, so nothing can be judged
+  fits: PlaylistFit[];
+  unjudged: number; // playlists the user can add to but with too few scanned songs
+}
+
+// The playlists the user may add to, with their songs and cached signals.
+// Remembered for 2 minutes so the right-click menu opens fast; cleared after an add.
+const LIBRARY_FRESH_MS = 2 * 60 * 1000;
+let library: { at: number; playlists: Promise<CandidatePlaylist[]> } | null = null;
+
+function loadAddableLibrary(): Promise<CandidatePlaylist[]> {
+  if (library && Date.now() - library.at < LIBRARY_FRESH_MS) return library.playlists;
+  const playlists = (async () => {
+    const sources = (await getSources()).filter((s) => s.canAdd && s.uri.startsWith("spotify:playlist:"));
+    const lists = await Promise.all(sources.map((s) => getSourceTracks(s.uri)));
+    const allUris = [...new Set(([] as ScanTrack[]).concat(...lists).map((t) => t.uri))];
+    const audio = await getAudioAttributes(allUris).catch(() => new Map());
+    const now = Date.now();
+    const tagCache = new TagCache(loadTagCacheText());
+    const moodCache = new MoodCache(loadMoodCacheText());
+    return sources.map((source, i) => ({
+      uri: source.uri,
+      name: source.name,
+      songs: lists[i].map((t) => ({
+        uri: t.uri,
+        name: t.name,
+        artists: t.artists,
+        tags: tagCache.get(t.uri, now)?.tags ?? [],
+        audio: audio.get(t.uri) ?? null,
+        mood: moodCache.get(t.uri, now) ?? null,
+      })),
+    }));
+  })();
+  library = { at: Date.now(), playlists };
+  playlists.catch(() => (library = null)); // a failure isn't remembered
+  return playlists;
+}
+
+// The song's own signals: cached tags if a scan saw it, otherwise Last.fm
+// (when a key is saved; the result is cached like a scan's).
+async function songSignals(uri: string): Promise<{ track: TrackInfo; song: FitSong }> {
+  const track = await getTrackInfo(uri);
+  const now = Date.now();
+  const tagCache = new TagCache(loadTagCacheText());
+  let tags = tagCache.get(uri, now)?.tags ?? null;
+  const apiKey = getLastfmKey();
+  if (!tags && apiKey) {
+    const result = await getSongTags(track, lastfmFetchers(apiKey));
+    tags = result.tags;
+    tagCache.set(uri, { tags: result.tags, matchedTitle: result.matchedTitle }, now);
+    saveTagCacheText(tagCache.toJSON(now));
+  }
+  const [audioMap, mood] = await Promise.all([getAudioAttributes([uri]).catch(() => new Map()), seedMood(uri)]);
+  return { track, song: { uri, name: track.name, artists: track.artists, tags: tags ?? [], audio: audioMap.get(uri) ?? null, mood } };
+}
+
+export async function findPlaylistsForSong(uri: string): Promise<SongFits> {
+  const [{ track, song }, playlists] = await Promise.all([songSignals(uri), loadAddableLibrary()]);
+  const fits = song.tags.length > 0 ? rankPlaylists(song, playlists) : [];
+  const unjudged = playlists.filter((p) => p.songs.filter((s) => s.tags.length > 0).length < 3).length;
+  console.log(`${LOG_PREFIX} add with Prism: ${track.name}: ${fits.map((f) => `${f.name} ${Math.round(f.score * 100)}%`).join(", ") || "(no fits)"}`);
+  return { song: track, tagged: song.tags.length > 0, fits, unjudged };
+}
+
+// Adds the song to the END of one playlist the user clicked. The playlist is
+// re-read first, so a song added in the meantime is never added twice.
+export async function addSongTo(playlist: { uri: string; name: string }, song: { uri: string; name: string; artists: string[] }): Promise<void> {
+  const sources = await getSources();
+  const source = sources.find((s) => s.uri === playlist.uri);
+  const tracks = await getSourceTracks(playlist.uri);
+  const already = hasSong({ uri: playlist.uri, name: playlist.name, songs: tracks.map((t) => ({ ...t, tags: [], audio: null })) }, song);
+  await addSongToPlaylist({ uri: playlist.uri, name: source?.name ?? playlist.name, canAdd: source?.canAdd === true, hasSong: already }, song.uri);
+  library = null; // the next lookup sees the new song
+  console.log(`${LOG_PREFIX} added ${song.name} to ${playlist.name}`);
 }
 
 // Turns known errors into messages a user can act on (shown on the page).

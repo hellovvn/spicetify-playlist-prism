@@ -13,6 +13,9 @@ export interface SourceOption {
   // Spotify says the user may edit its details (their own playlists). Only
   // Merge uses it, to know which originals can get the "[merged] " tag.
   canRename?: boolean;
+  // Spotify says the user may ADD songs (their own or collaborative playlists).
+  // Only "Add with Prism" uses it.
+  canAdd?: boolean;
 }
 
 // Spotify's URI for Liked Songs.
@@ -39,6 +42,7 @@ export function flattenRootlist(items: any[], folder: string | null = null): Sou
         // canEditMetadata is false here even for your own playlists (checked
         // 2026-11-23), so ownership is what counts. Collaborators can't rename.
         canRename: item.isOwnedBySelf === true || item.canEditMetadata === true,
+        canAdd: item.canAdd === true,
       });
     }
   }
