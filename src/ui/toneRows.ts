@@ -23,6 +23,7 @@ import { LOG_PREFIX } from "../log";
 import { openTonePopup } from "./tonePopup";
 import { moodColour, tagColour } from "./tagLabels";
 import { playlistUriFromPath, ringSvg, stripStatus } from "./toneView";
+import { PRISM_STAR_CSS, PRISM_STAR_HTML } from "./prismStar";
 
 const STYLE_ID = "playlist-prism-tone-rows";
 const STRIP_ATTR = "data-prism-tone-strip";
@@ -104,7 +105,7 @@ function buildStrip(): HTMLElement {
   strip.setAttribute(STRIP_ATTR, "");
   strip.innerHTML =
     `<button type="button" class="prism-toggle" role="switch" aria-checked="false" aria-label="Show tone rings on the songs"></button>` +
-    `<span class="prism-tone-strip-title">✦ Tone</span>` +
+    `<span class="prism-tone-strip-title">${PRISM_STAR_HTML} Tone</span>` +
     `<span class="prism-tone-strip-chips"></span>` +
     `<span class="prism-tone-strip-status" aria-live="polite"></span>` +
     `<button type="button" class="prism-quiet-button" data-prism-tone-edit>Edit</button>`;
@@ -125,7 +126,7 @@ function buildStrip(): HTMLElement {
 export function startToneRows(): void {
   const style = document.createElement("style");
   style.id = STYLE_ID;
-  style.textContent = CSS;
+  style.textContent = CSS + PRISM_STAR_CSS;
   document.head.appendChild(style);
 
   let scores: Scores | null = null;

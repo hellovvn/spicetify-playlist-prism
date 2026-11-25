@@ -58,7 +58,7 @@ it. The rules for changing or adding elements are in CLAUDE.md under "UI element
 |---|---|---|---|
 | Tag label (read-only) | `.prism-tag` (+ `.shared` for tags the seed shares, `.wrap` next to bars, `.mood` dashed) via `TagLabels` | Frosted pill, colour dot from `tagColour`/`tagColours` (genre) or `moodColour` (mood) | Not clickable |
 | List row | `.prism-row` (+ `.is-clickable`, `.is-glass` for the seed, `.is-head` for "Select all") | 8px corners, thin line between rows | Clickable rows: faint white hover |
-| New find row | `.prism-row` + `.prism-new-find`, `.prism-new-pill` "✦ New find", `.prism-sparkle` round the score ring | Mint glass | Sparkles twinkle (they stay visible but still with reduced motion) |
+| New find row | `.prism-row` + `.prism-new-find`, `.prism-new-pill` (Prism star + "New find") | Mint glass | The pill's star twinkles. No sparkles round the score ring (removed 2026-11-24) |
 | Score ring | `ScoreRing` in PreviewScreen | 52px ring, lavender-to-pink arc, % in the middle | Static |
 | Tone ring (approved 2026-11-24, mockup "A") | `ringSvg` in `src/ui/toneRows.ts`, a `.prism-tone-ring` span put into Spotify's own track rows (before the duration) | The score ring at 32px: lavender-to-pink arc, % (no sign) in the middle. Rough guess (no Last.fm tags, mood + tempo only): the same ring at half strength ("faded ring", developer's pick). Not scored: dashed ring with "–" | Tooltip says the % and what fits / is off ("~58% … a rough guess" for faded ones). Songs under 50% get a GREY ring (grey arc and %); the song's row is never faded |
 | Tone strip (approved 2026-11-24, mockup "E") | `[data-prism-tone-strip]` div put right after Spotify's playlist action bar row (`src/ui/toneRows.ts`, own CSS: outside the Prism page) | Slim glass band (12px corners, faint lavender glass): Toggle, "✦ Tone", the tone's labels as read-only tag labels (4 max, then "+N", then "slow tempo"), quiet "Edit" button at the right end (opens the tone editor in a wide pop-up over the playlist) | Toggle (or clicking "✦ Tone") shows/hides the rings. Only while they load: "Scoring songs: 12 of 39…" before Edit (or "Couldn't score the songs"). No summary text (removed at the developer's request; the overall fit is the stats page's "Tone fit"). Edit opens the tone editor. Only on playlists with a tone |
@@ -75,6 +75,8 @@ it. The rules for changing or adding elements are in CLAUDE.md under "UI element
 | Stat card | `StatCard` in StatsScreen | Glass panel, 12px label, 24px value | Static. "Tone fit" (a playlist with a tone) is a 5th card in the same row, breakdown on hover; in the side panel it's a 5th number cell spanning the row |
 | Bar (stats) | `.prism-bar-track` + `.prism-bar-fill` with `--tag` | 14px glass track, glossy bar in the genre colour | Bars grow in one after another |
 | Progress bar | `.prism-progress` + `.prism-progress-fill` | 10px glass track, pastel rainbow fill | Width animates 300 ms |
+| Prism star | `.prism-star-icon` span (`src/ui/prismStar.ts`: `PRISM_STAR_CSS`, `PRISM_STAR_HTML`), never the ✦ character | 4-point star filled with the pastel rainbow, 1em (follows the text size) | Gentle twinkle (2.4 s); still with reduced motion. Used in the New finds status lines, the New find pill and the Tone strip title |
+| Inline progress | Text + `.prism-progress` (140px) + muted count (tabular numbers), in one row | The standard progress bar, sized for a status line | Used by the New finds status ("Looking for similar songs…") |
 | Fingerprint bubbles | `Fingerprint` | See-through bubbles in the genre colour | Float + wobble; click pops (droplets), back after 3 s |
 | Cover ring | `.prism-artwork` | Cover inside a moving pastel neon ring | Ring turns (3.5 s) |
 | Notice | `.prism-notice` | Glass box, 12px corners, rainbow bar on the left | Used for tips, warnings and errors (`role="status"` / `alert`) |
@@ -105,8 +107,8 @@ it. The rules for changing or adding elements are in CLAUDE.md under "UI element
 
 ## History
 
+- 2026-11-24: NEW Prism star (look "A" of four) replaces the ✦ character everywhere (New finds status, New find pill, Tone strip). The 3 sparkles round a New find's score ring were removed (developer's request). The New finds status line got the standard progress bar.
 - 2026-11-24: NEW Search + genre pages "pastel glass tiles" (step 16c, mockup "B" of four).
-
 - 2026-11-24: NEW Home sky band (step 16, mockup "D" of four) and the themed Spotify filter chip.
 - 2026-11-24: Library panel theme: its Playlists / Albums chips now use the themed filter chip (developer's OK).
 - 2026-11-24: New "Add with Prism" flyout (mockup "C"). The Add page uses existing elements only
