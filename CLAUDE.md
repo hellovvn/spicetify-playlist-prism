@@ -575,6 +575,18 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   lavender, the stuck filter-chip row is top-bar glass. Spotify's filter chips
   (`[data-encore-id="chip"]`, inner `[class*="legacy-chip__inner"]`; the class prefix carries
   Spotify's version) are glass with a gradient chosen chip on every themed page.
+  16c SEARCH + GENRE PAGES (2026-11-24, developer's pick "B, full sky + pastel glass tiles" of
+  four; tested by the developer, merged in PR #17): page kinds "search" (/search, /search/<words>[/tab]) and "genre"
+  (/genre/<id>) get the full sky; `data-prism-page` on .Root__main-view carries the kind.
+  Browse tiles are found by STRUCTURE (`.main-gridContainer-gridContainer > * > a >
+  div[style*=background-color]:has(> img)`): not all link to /genre/ (Live Events = /concerts,
+  Podcast Charts = /podcastcharts). Lavender glass + a pastel glow by grid place (nth-child 5n).
+  Results: top-result box = `[class*="legacy-box--tinted"]` -> lavender glass; the sticky chip
+  row has generated classes, so JS marks the chips' nearest sticky ancestor
+  (`data-prism-chip-row`). Genre pages: the colour header is a pinned picture in
+  .before-scroll-node (hidden) and the #121212 block is the parent of
+  .main-actionBarBackground-background (cleared).
+  Next: Settings (/preferences), listening history (/history), then the unchecked ones below.
   YOUR LIBRARY has no page in this Spotify: /collection, /collection/playlists etc. all
   redirect to /collection/tracks (Liked Songs), and "Expand Your Library" only widens the left
   panel, which libraryTheme.ts already themes.
