@@ -551,7 +551,7 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   their #121212 block is found by structure (generated class names), and the artist photo sits
   in `.before-scroll-node` (pinned, never scrolls), so it fades out on scroll via
   --prism-banner-fade. Next: Home, Search, Your Library, Settings, history, genre pages.
-  16b HOME (2026-11-24, developer's pick "D, sky band" of four; built, not committed): with a
+  16b HOME (2026-11-24, developer's pick "D, sky band" of four; tested, merged in PR #15): with a
   playlist theme on, Home ("/", page kind "band") gets the theme's sky only behind its top part
   (`[data-prism-band]`, --prism-band-height = 42% of the view, 320-560px, masked to fade out),
   Quiet night's #151029 below, and the band fades out on scroll (--prism-band-fade). Spotify's
