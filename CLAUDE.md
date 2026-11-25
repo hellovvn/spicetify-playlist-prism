@@ -672,9 +672,14 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   plain `npx tsc` fetches an unrelated package).
 - TESTING SCOPE (developer's rule, 2026-11-24): while developing, test only the AFFECTED AREA:
   the unit tests for the changed code (`npx vitest run tests/<file>.test.ts`) and the smoke checks
-  or a quick in-Spotify check for the screens touched. The FULL run (`npm test` + `npm run smoke`)
-  happens only when the developer confirms a commit, before committing. Report results either way,
-  and say which parts were not tested.
+  or a quick in-Spotify check for the screens touched. Report results either way, and say which
+  parts were not tested.
+  CI (2026-11-25, `.github/workflows/checks.yml`, GitHub Actions): every push to a PR and to main
+  runs the type check, the FULL `npm test` (incl. writeGuard) and `npm run build-local` (into
+  `dist/`, gitignored). So these no longer run by hand before a commit: after pushing, check the
+  PR's CI result and push a fix if it's red. Never call a PR ready / mergeable while CI is red.
+  The SMOKE TEST can't run in CI (needs Spotify on the developer's PC): the full `npm run smoke`
+  still runs locally before the PR is merged (at the latest when the developer asks to merge).
   Smoke test is READ-ONLY (uses `window.__playlistPrism` debug hook in src/extensions/prism.tsx); it never
   prints the API key. Screenshots go to `smoke-output/` (gitignored; they show the user's library).
 - Test fixtures in `tests/fixtures/` are real recorded Last.fm data: don't "fix" them.
