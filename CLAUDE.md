@@ -560,7 +560,7 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   (`[data-encore-id="chip"]`, inner `[class*="legacy-chip__inner"]`; the class prefix carries
   Spotify's version) are glass with a gradient chosen chip on every themed page.
   16c SEARCH + GENRE PAGES (2026-11-24, developer's pick "B, full sky + pastel glass tiles" of
-  four; built, not committed): page kinds "search" (/search, /search/<words>[/tab]) and "genre"
+  four; tested by the developer, merged in PR #17): page kinds "search" (/search, /search/<words>[/tab]) and "genre"
   (/genre/<id>) get the full sky; `data-prism-page` on .Root__main-view carries the kind.
   Browse tiles are found by STRUCTURE (`.main-gridContainer-gridContainer > * > a >
   div[style*=background-color]:has(> img)`): not all link to /genre/ (Live Events = /concerts,
