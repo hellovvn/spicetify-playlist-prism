@@ -447,7 +447,12 @@ const CSS = `
 .prism-home-bar:hover { transform: translateY(-2px); border-color: var(--prism-hover-rim); box-shadow: var(--prism-hover-glow); }
 .prism-home-bar:active { transform: scale(0.97); }
 .prism-home-bar:focus-visible { outline: 2px solid #cdb8ff; outline-offset: 2px; }
-@media (prefers-reduced-motion: reduce) { .prism-home-bar, .prism-home-bar:hover, .prism-home-bar:active { transition: none; transform: none; } }
+/* The bar's one line shows only on hover/focus (developer's wish, 2026-11-25):
+   it fades in with a small slide, like the flip tiles' hover line. Its space
+   stays reserved, so nothing moves. */
+.prism-home-bar-text { opacity: 0; transform: translateX(-6px); transition: opacity 250ms, transform 250ms; }
+.prism-home-bar:hover .prism-home-bar-text, .prism-home-bar:focus-visible .prism-home-bar-text { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) { .prism-home-bar, .prism-home-bar:hover, .prism-home-bar:active, .prism-home-bar-text { transition: none; transform: none; } }
 /* "Start from scratch" builder (step 13c-2). The chosen group in the list
    gets a lavender edge; genre/mood labels are buttons you turn on and off
    (on = the bright .shared look). Moods have a dashed edge. */
@@ -883,6 +888,26 @@ const CSS = `
   100% { transform: translate(var(--dx), var(--dy)) scale(1.05) rotate(12deg); opacity: 0; }
 }
 @keyframes prism-ic-spin { to { transform: rotate(360deg); } }
+/* Start bar icons (HomeIcons.tsx: MergeIcon "Q1 bubbles", AddSongIcon "S1
+   compass"). They run only while the bar has "is-animating" (StartBar.tsx,
+   which lets the current loop finish on leave). Plain styles = resting pose =
+   the start and end of every loop. */
+.prism-bar-ic { transform-box: fill-box; transform-origin: center; }
+.prism-bar-ic-joined { opacity: 0; }
+.prism-bar-ic-needle { transform-box: view-box; transform-origin: 19px 20px; transform: rotate(20deg); }
+.prism-bar-ic-sparkle { opacity: 0; }
+.prism-home-bar.is-animating .prism-bar-ic-left { animation: prism-bar-left 2.4s ease-in-out infinite; }
+.prism-home-bar.is-animating .prism-bar-ic-right { animation: prism-bar-right 2.4s ease-in-out infinite; }
+.prism-home-bar.is-animating .prism-bar-ic-joined { animation: prism-bar-joined 2.4s ease-in-out infinite; }
+.prism-home-bar.is-animating .prism-bar-ic-needle { animation: prism-bar-needle 2.6s ease-in-out infinite; }
+.prism-home-bar.is-animating .prism-bar-ic-best { animation: prism-bar-best 2.6s ease-in-out infinite; }
+.prism-home-bar.is-animating .prism-bar-ic-sparkle { animation: prism-bar-sparkle 2.6s ease-in-out infinite; }
+@keyframes prism-bar-left { 0%, 15% { transform: translateX(0); opacity: 1; } 45% { transform: translateX(9px); opacity: 1; } 55%, 85% { transform: translateX(9px); opacity: 0; } 100% { transform: translateX(0); opacity: 1; } }
+@keyframes prism-bar-right { 0%, 15% { transform: translateX(0); opacity: 1; } 45% { transform: translateX(-9px); opacity: 1; } 55%, 85% { transform: translateX(-9px); opacity: 0; } 100% { transform: translateX(0); opacity: 1; } }
+@keyframes prism-bar-joined { 0%, 45% { opacity: 0; transform: scale(0.7); } 55%, 85% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(1); } }
+@keyframes prism-bar-needle { 0% { transform: rotate(20deg); } 22% { transform: rotate(150deg); } 40% { transform: rotate(65deg); } 55% { transform: rotate(100deg); } 65%, 90% { transform: rotate(90deg); } 100% { transform: rotate(20deg); } }
+@keyframes prism-bar-best { 0%, 58%, 100% { fill-opacity: 0.5; } 68%, 90% { fill-opacity: 0.9; } }
+@keyframes prism-bar-sparkle { 0%, 58%, 100% { opacity: 0; transform: scale(0.4); } 68%, 88% { opacity: 1; transform: scale(1); } }
   0%   { transform: translateY(6px) scale(0.6); opacity: 0; }
   25%  { opacity: 1; }
   50%  { transform: translateY(-8px) scale(1) rotate(-10deg); opacity: 1; }
@@ -1039,7 +1064,7 @@ const CSS = `
   .prism-cosmos.is-wide-stats, .prism-ghost, [data-prism="panel-stats"], .prism-artwork, .prism-head-sparkle { animation: none; }
   /* Start page tiles: swap faces without the turn, and keep the hover glow still. */
   .prism-flip-inner, .prism-mode-icon { transition: none; }
-  .prism-mode-tile::before, .prism-ic-anim { animation: none !important; }
+  .prism-mode-tile::before, .prism-ic-anim, .prism-bar-ic { animation: none !important; }
   .prism-spinner { animation-duration: 2400ms; }
 }
 

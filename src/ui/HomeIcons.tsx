@@ -156,34 +156,107 @@ export function OrganizeIcon() {
   );
 }
 
-// Merge playlists (the start page's glass bar): two little tapes, pink and
-// sky, whose lines flow together into one mint tape. Same matte finish.
-// Still (no animation): the bar only gets the standard hover.
+// ----- Start bar icons (Merge, Add a song) -----
+// Developer's picks (2026-11-24): "Q1 bubbles" for Merge and "S1 compass" for
+// Add a song. Small (64 x 40) and in the bar mockups' pastels. Parts with
+// "prism-bar-ic" move only while the bar has "is-animating" (StartBar.tsx);
+// each loop starts and ends in the resting pose (see styles.ts).
+const BAR_PINK = "#f7a8cf";
+const BAR_SKY = "#9fcdf3";
+const BAR_MINT = "#9fe3c8";
+
+// A small music note whose box is 8 x 10 at (x, y), drawn w wide.
+function BarNote({ x, y, w, fill, opacity = 1 }: { x: number; y: number; w: number; fill: string; opacity?: number }) {
+  const s = w / 8;
+  return (
+    <g transform={`translate(${x} ${y}) scale(${s})`} fill={fill} fillOpacity={opacity}>
+      <circle cx={2.2} cy={8} r={2} />
+      <path d="M3.9 8V1.2L7.6.2V2.6L3.9 3.6Z" />
+    </g>
+  );
+}
+
+// A four-point sparkle in a 10 x 10 box at (x, y), drawn `size` wide.
+function BarSparkle({ x, y, size, className }: { x: number; y: number; size: number; className?: string }) {
+  return (
+    <g transform={`translate(${x} ${y}) scale(${size / 10})`}>
+      <path className={className} d="M5 0Q5 5 10 5Q5 5 5 10Q5 5 0 5Q5 5 5 0Z" fill="#ffffff" />
+    </g>
+  );
+}
+
+// A see-through bubble: clear in the middle, its colour strongest at the rim,
+// with a white shine at the top left (like the stats page's fingerprint).
+function Bubble({ cx, cy, r, color, gradient, strokeWidth = 1.1 }: { cx: number; cy: number; r: number; color: string; gradient: string; strokeWidth?: number }) {
+  return (
+    <>
+      <circle cx={cx} cy={cy} r={r} fill={`url(#${gradient})`} stroke={color} strokeOpacity={0.9} strokeWidth={strokeWidth} />
+      <path
+        d={`M${cx - 0.6 * r} ${cy - 0.5 * r}A${0.7 * r} ${0.7 * r} 0 0 1 ${cx - 0.2 * r} ${cy - 0.75 * r}`}
+        fill="none" stroke="#ffffff" strokeOpacity={0.75} strokeWidth={1.3} strokeLinecap="round"
+      />
+    </>
+  );
+}
+
+function BubbleGradient({ id, color }: { id: string; color: string }) {
+  return (
+    <radialGradient id={id}>
+      <stop offset="0.55" stopColor={color} stopOpacity={0.08} />
+      <stop offset="1" stopColor={color} stopOpacity={0.7} />
+    </radialGradient>
+  );
+}
+
+// Merge playlists: a pink and a sky bubble (two playlists, a note in each).
+// On hover they drift together and become one bigger mint-green bubble with
+// two green notes (developer's wish), then split again.
 export function MergeIcon() {
   return (
-    <svg viewBox="0 0 64 40" width={56} height={35} aria-hidden="true" style={{ flexShrink: 0 }}>
-      <MatteBox x={2} y={3} w={18} h={12} r={3} color={PINK} />
-      <MatteBox x={2} y={25} w={18} h={12} r={3} color={SKY} />
-      <path d="M21 9 C32 9 32 20 40 20 M21 31 C32 31 32 20 40 20" fill="none" stroke="#ffffff" strokeOpacity={0.55} strokeWidth={1.6} strokeLinecap="round" />
-      <MatteBox x={41} y={12} w={21} h={16} r={3.5} color={MINT} />
-      <circle cx={47} cy={20} r={2.2} fill="#ffffff" fillOpacity={0.6} />
-      <circle cx={56} cy={20} r={2.2} fill="#ffffff" fillOpacity={0.6} />
+    <svg viewBox="0 0 64 40" width={64} height={40} aria-hidden="true" style={{ flexShrink: 0, overflow: "visible" }}>
+      <defs>
+        <BubbleGradient id="prism-bar-bub-pink" color={BAR_PINK} />
+        <BubbleGradient id="prism-bar-bub-sky" color={BAR_SKY} />
+        <BubbleGradient id="prism-bar-bub-mint" color={BAR_MINT} />
+      </defs>
+      <g className="prism-bar-ic prism-bar-ic-left">
+        <Bubble cx={21} cy={20} r={10} color={BAR_PINK} gradient="prism-bar-bub-pink" />
+        <BarNote x={18} y={16} w={6} fill="#ffffff" opacity={0.8} />
+      </g>
+      <g className="prism-bar-ic prism-bar-ic-right">
+        <Bubble cx={43} cy={20} r={10} color={BAR_SKY} gradient="prism-bar-bub-sky" />
+        <BarNote x={40} y={16} w={6} fill="#ffffff" opacity={0.8} />
+      </g>
+      <g className="prism-bar-ic prism-bar-ic-joined">
+        <Bubble cx={32} cy={20} r={14} color={BAR_MINT} gradient="prism-bar-bub-mint" strokeWidth={1.2} />
+        <BarNote x={25} y={15} w={6} fill={BAR_MINT} />
+        <BarNote x={33} y={17} w={6} fill={BAR_MINT} />
+      </g>
     </svg>
   );
 }
 
-// Start bar icon for "Add a song to your playlists": one song (pink) with a
-// line flowing into the top of a stack of playlists (sky, mint). Same matte
-// boxes as MergeIcon.
+// Add a song to your playlists: a glass compass beside three playlists. On
+// hover the pink needle swings, wobbles and settles on the mint playlist (the
+// best fit), which lights up with a sparkle.
 export function AddSongIcon() {
+  const box = (y: number, color: string, className?: string) => (
+    <rect className={className} x={45} y={y} width={11} height={11} rx={2.5} fill={color} fillOpacity={0.5} stroke="#ffffff" strokeOpacity={0.45} />
+  );
   return (
-    <svg viewBox="0 0 64 40" width={56} height={35} aria-hidden="true" style={{ flexShrink: 0 }}>
-      <MatteBox x={2} y={13} w={16} h={14} r={3} color={PINK} />
-      <circle cx={10} cy={20} r={2.4} fill="#ffffff" fillOpacity={0.6} />
-      <path d="M19 20 C28 20 30 9 38 9" fill="none" stroke="#ffffff" strokeOpacity={0.55} strokeWidth={1.6} strokeLinecap="round" />
-      <MatteBox x={40} y={3} w={22} h={10} r={3} color={MINT} />
-      <MatteBox x={40} y={15} w={22} h={10} r={3} color={SKY} />
-      <MatteBox x={40} y={27} w={22} h={10} r={3} color={PINK} />
+    <svg viewBox="0 0 64 40" width={64} height={40} aria-hidden="true" style={{ flexShrink: 0, overflow: "visible" }}>
+      <circle cx={19} cy={20} r={15} fill="#ffffff" fillOpacity={0.1} stroke="#ffffff" strokeOpacity={0.55} strokeWidth={1.2} />
+      <circle cx={19} cy={20} r={11.5} fill="none" stroke="#ffffff" strokeOpacity={0.2} />
+      <path d="M19 6.5V9M19 31V33.5M5.5 20H8M30 20H32.5" stroke="#ffffff" strokeOpacity={0.6} strokeWidth={1.2} strokeLinecap="round" />
+      <g className="prism-bar-ic prism-bar-ic-needle">
+        <polygon points="19,8.5 22,20 16,20" fill={BAR_PINK} fillOpacity={0.95} />
+        <polygon points="16,20 22,20 19,31.5" fill="#ffffff" fillOpacity={0.45} />
+      </g>
+      <circle cx={19} cy={20} r={2} fill="#ffffff" />
+      {box(2, BAR_SKY)}
+      {box(14.5, BAR_MINT, "prism-bar-ic prism-bar-ic-best")}
+      {box(27, BAR_PINK)}
+      <BarSparkle x={56} y={11} size={7} className="prism-bar-ic prism-bar-ic-sparkle" />
     </svg>
   );
 }

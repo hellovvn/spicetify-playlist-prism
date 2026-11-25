@@ -92,7 +92,7 @@ it. The rules for changing or adding elements are in CLAUDE.md under "UI element
 | Twilight background | `.prism-cosmos` (PrismPage, side panel) | Gradient, drifting glows, rainbow light waves, sparkles |
 | Header | `.prism-header` + `PrismIcon` | Glass bar, diamond icon with twinkling sparkles, title, 32px secondary buttons |
 | Start tiles | `FlipTile` + `HomeIcons` | The ONLY place with the rainbow-swirl hover. Click flips to details, which have a quiet "← Back" |
-| Start bar (approved 2026-11-23, mockup "B") | `button.prism-home-bar` + `MergeIcon` (HomeIcons), under the start tiles | Wide glass card (tile glass, 16px corners, min 64px tall): still matte icon, 15px label, one 13px line. Standard hover + 2px lift, press 0.97, NO flip and NO rainbow swirl. Used for Merge playlists (`MergeIcon`) and Add a song to your playlists (`AddSongIcon`, same matte boxes) |
+| Start bar (approved 2026-11-23, mockup "B"; icons 2026-11-24) | `StartBar` (StartBar.tsx, `button.prism-home-bar`) + an icon from HomeIcons, under the start tiles | Wide glass card (tile glass, 16px corners, min 64px tall): 64x40 pastel see-through icon, 15px label, one 13px line (`.prism-home-bar-text`) that shows ONLY on hover/focus: fades in with a 6px slide from the left in 250ms, space kept so nothing moves. Standard hover + 2px lift, press 0.97, NO flip and NO rainbow swirl. The icon animates while hovered/focused (`is-animating`, parts with `.prism-bar-ic`) and finishes its loop on leave; still with reduced motion. Merge playlists = `MergeIcon` ("Q1 bubbles": pink and sky bubbles drift into one mint-green bubble with green notes); Add a song to your playlists = `AddSongIcon` ("S1 compass": the needle swings and settles on the mint playlist, which lights up with a sparkle) |
 | Loading | `.prism-spinner` (small), `ScanningPrism` (scan) | Spinner ring; big diamond with a star halo while scanning |
 | Side-panel stats | `PanelStats` | Same elements as the stats page, compact |
 | Playlist themes (approved 2026-11-24, mockups H1/H2/H3) | `.prism-pl-sky` behind Spotify's playlist pages (`src/ui/playlistTheme.ts`), picked in Settings with a segmented choice | "Northern lights": soft blurred aurora streaks (mint edge, violet/pink tops) swaying over a night sky. "Starry night": four-point sparkle stars at random spots, each moving somewhere new after it fades. "Bubble nebula": slow pastel clouds, tiny stars and rising glass bubbles. Spotify's cover-colour washes are cleared; while scrolling, the top bar and the song list's sticky column header are the same nearly solid twilight glass (Spotify paints the header grey). Before it sticks, the column header is fully see-through (just its thin lavender line), so the sky shows behind it. Spotify's green turns Prism: play buttons get the pink-to-lavender gradient with a dark purple triangle; liked ticks, the playing title and toggled icons turn pink; the playing equaliser is hue-shifted to pink. Densities scale with the window size. Reduced motion: still |
@@ -139,6 +139,15 @@ it. The rules for changing or adding elements are in CLAUDE.md under "UI element
   card: "Tone fit" as a 5th card. Later the same day the strip's summary line ("59% tone fit ·
   19 of 28 songs fit · 9 drift · 9 rough guesses") was removed (developer's request).
 - 2026-11-24: NEW Tone switch and Tone ring (playlist tones, mockup "A").
+
+- 2026-11-25: Start bar line shows only on hover/focus (developer's choice: change the element
+  everywhere). Before: always visible. Merge's joined bubble + notes are mint green and the
+  compass's third playlist is pink (both were lavender).
+
+- 2026-11-24: Start bar icons redrawn and animated (developer's picks after five mockup rounds):
+  Merge = "Q1 bubbles", Add a song = "S1 compass". Before: still matte boxes joined by lines.
+  The bars are now the `StartBar` component. New lines: "Stack your playlists together and
+  drop the doubles" / "Let Prism find the best home for a song".
 
 - 2026-11-24: NEW Show/hide list (quiet button + in-place glass list) for Merge's duplicates.
 

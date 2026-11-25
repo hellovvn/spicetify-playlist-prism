@@ -544,6 +544,14 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   looked up on Last.fm if not cached. Write: `addSongToPlaylist` in write.ts (re-reads the playlist
   first so a song is never added twice; refuses non-playlists, !canAdd, already there).
   Debug hook: openAddTo(uri?), getAddWithPrismState(), findPlaylistsForSong(uri) (read-only).
+- START BARS (2026-11-25, developer's picks after six mockup rounds): the Merge and Add a song
+  bars are `src/ui/StartBar.tsx`. Icons in HomeIcons.tsx animate on hover/focus and finish their
+  loop on leave (like FlipTile): Merge = "Q1 bubbles" (pink + sky bubbles drift into one mint
+  bubble with green notes), Add a song = "S1 compass" (needle settles on the mint playlist of
+  sky/mint/pink). Lines: "Stack your playlists together and drop the doubles" / "Let Prism find
+  the best home for a song", shown ONLY on hover/focus. Rejected along the way: matte boxes,
+  records, prism beams, tapes, jars, ribbons, hearts/home, puzzle pieces (several styles),
+  constellations, bouquet, paint drops, and bubble ideas for Add.
 - 15 (to-do): rename the internal ids from "playlist-prism" / "Playlist Prism" to just "prism"
   (custom app nameId and folder, `window.__playlistPrism` hook, `[Playlist Prism]` console
   prefix, "playlist-prism:*" window events, the header icon's aria-label). Storage keys are
