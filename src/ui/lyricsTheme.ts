@@ -23,7 +23,9 @@
 //
 // Nothing here reads or stores lyrics text: it's colours only.
 
-import { loadLyricsThemeSetting } from "../storage";
+import { loadLyricsThemeSetting, loadPlaylistThemeOverrides, loadPlaylistThemeSetting } from "../storage";
+import { effectiveTheme, LYRICS_LINE_COLOURS, parsePlaylistTheme, parseThemeOverrides, PLAYLIST_THEME_CHANGED_EVENT, type PlaylistThemeId } from "../theme/playlistTheme";
+import { buildSky } from "./playlistTheme";
 
 const STYLE_ID = "playlist-prism-lyrics-theme";
 
@@ -87,6 +89,25 @@ export const LYRICS_THEME_CSS = `
   --lyrics-color-passed: #e9dcff !important;
   --lyrics-color-messaging: #e9dcff !important;
 }
+/* WITH A PLAYLIST THEME ON (14c, pick "D, moving sky + reading veil"): the
+   theme's own moving sky (.prism-lyrics-sky, built like the playlist page's,
+   placed by syncLyricsSky below) replaces the twilight sky, and a soft dark
+   veil behind the lyric column keeps the lines easy to read. The lines take
+   the theme's colours (html[data-prism-lyrics-sky], LYRICS_LINE_COLOURS). */
+.Root__cinema-view > .main-actionBar-ActionBarContainer:has(> .prism-lyrics-sky) {
+  background: #150e22 !important;
+  animation: none;
+  isolation: isolate;
+}
+.prism-lyrics-sky .prism-lyrics-veil {
+  inset: 0;
+  background: linear-gradient(90deg, rgba(12, 8, 28, 0.62) 0%, rgba(12, 8, 28, 0.5) 55%, transparent 82%);
+}
+${Object.entries(LYRICS_LINE_COLOURS).map(([theme, c]) => `html[data-prism-lyrics-sky="${theme}"] [style*="--lyrics-color-background"] {
+  --lyrics-color-inactive: ${c.inactive} !important;
+  --lyrics-color-passed: ${c.passed} !important;
+  --lyrics-color-messaging: ${c.passed} !important;
+}`).join("\n")}
 /* No "Full screen" for the lyrics. Spotify's Full screen makes the lyrics
    view cover the top bar and the player bar (it adds the class
    Root__cinema-view--controls-hidden: negative margins and a higher
@@ -169,5 +190,68 @@ export function applyLyricsTheme(on: boolean): void {
 // whenever Settings changes it.
 export function startLyricsTheme(): void {
   applyLyricsTheme(isLyricsThemeOn(loadLyricsThemeSetting()));
-  window.addEventListener(LYRICS_THEME_CHANGED_EVENT, () => applyLyricsTheme(isLyricsThemeOn(loadLyricsThemeSetting())));
+  window.addEventListener(LYRICS_THEME_CHANGED_EVENT, () => {
+    applyLyricsTheme(isLyricsThemeOn(loadLyricsThemeSetting()));
+    syncLyricsSky();
+  });
+  window.addEventListener(PLAYLIST_THEME_CHANGED_EVENT, syncLyricsSky);
+  Spicetify.Player?.addEventListener?.("songchange", () => syncLyricsSky()); // another playlist may have its own theme
+  watchLyricsView();
+}
+
+// ----- The playlist theme's sky in the expanded lyrics view -----
+const SKY_ATTR = "data-prism-lyrics-sky"; // on <html>: which theme's line colours apply
+const LYRICS_BOX = ".Root__cinema-view > .main-actionBar-ActionBarContainer"; // the still box around the lyrics
+
+// The theme the lyrics should show, or "none" for Prism's twilight lyrics
+// (or Spotify's own, when the lyrics switch is off).
+function lyricsSkyTheme(): PlaylistThemeId {
+  if (!isLyricsThemeOn(loadLyricsThemeSetting())) return "none";
+  // Playing from a playlist with its own theme (14b)? Then that one.
+  const playingFrom = Spicetify.Player?.data?.context?.uri;
+  return effectiveTheme(parsePlaylistTheme(loadPlaylistThemeSetting()), parseThemeOverrides(loadPlaylistThemeOverrides()), playingFrom);
+}
+
+// Puts the theme's sky (plus the reading veil) into the lyrics view when it's
+// open, swaps it when the theme changes and removes it when it's turned off.
+function syncLyricsSky(): void {
+  const theme = lyricsSkyTheme();
+  const root = document.documentElement;
+  if (theme === "none") root.removeAttribute(SKY_ATTR);
+  else if (root.getAttribute(SKY_ATTR) !== theme) root.setAttribute(SKY_ATTR, theme);
+  const box = document.querySelector(LYRICS_BOX);
+  document.querySelectorAll<HTMLElement>(".prism-lyrics-sky").forEach((sky) => {
+    if (theme === "none" || sky.parentElement !== box || sky.dataset.theme !== theme) sky.remove();
+  });
+  if (theme === "none" || !box || box.querySelector(":scope > .prism-lyrics-sky")) return;
+  const sky = buildSky(theme, box, false);
+  sky.classList.add("prism-lyrics-sky");
+  const veil = document.createElement("span");
+  veil.className = "prism-lyrics-veil";
+  sky.appendChild(veil);
+  box.insertBefore(sky, box.firstChild);
+}
+
+// The lyrics view (.Root__cinema-view) is added to .Root__top-container when
+// it opens, and its still box is added to it a moment later: watch both
+// (children only, not the whole page).
+function watchLyricsView(): void {
+  const top = document.querySelector(".Root__top-container");
+  if (!top) {
+    window.setTimeout(watchLyricsView, 1000);
+    return;
+  }
+  let viewObserver: MutationObserver | null = null;
+  const hookView = () => {
+    viewObserver?.disconnect();
+    viewObserver = null;
+    const view = top.querySelector(":scope > .Root__cinema-view");
+    if (view) {
+      viewObserver = new MutationObserver(syncLyricsSky);
+      viewObserver.observe(view, { childList: true });
+    }
+    syncLyricsSky();
+  };
+  new MutationObserver(hookView).observe(top, { childList: true });
+  hookView();
 }

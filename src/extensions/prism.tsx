@@ -37,6 +37,7 @@ import { startChromeTheme } from "../ui/chromeTheme";
 import { findPlaylistsForSong, loadTones } from "../flow";
 import { injectStyles } from "../ui/styles";
 import { addWithPrismState, startAddWithPrism } from "../ui/addWithPrism";
+import { startPlaylistThemeMenu } from "../ui/playlistThemeMenu";
 
 async function main() {
   // This can run before Spotify's UI and the Spicetify APIs are ready.
@@ -55,6 +56,7 @@ async function main() {
   startAddWithPrism(PRISM_MENU_ICON); // "Add with Prism" flyout: the 5 playlists that fit a song best
   registerStatsMenu();
   registerToneMenu();
+  startPlaylistThemeMenu(PRISM_MENU_ICON, isSinglePlaylist); // "Prism theme" flyout: a theme for one playlist (14b)
   startToneRows(); // "Tone" switch (with the Prism star) + score rings on playlists with a tone
   startPlaylistTheme(); // playlist page themes: sky, colour rail, genre mix (Settings, off by default)
   startLibraryTheme(); // the same theme on the left panel: still background, moving open-playlist row

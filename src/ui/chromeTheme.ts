@@ -115,6 +115,9 @@ ${ON} [data-trigger="ContextMenuSubmenu"] [data-encore-id="menu"] {
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
+/* That inner menu scrolls (overflow: auto) with no padding of its own, so the
+   hover rim + glow of its first and last rows were cut off. Room for them: */
+${ON} [data-trigger="ContextMenuSubmenu"] [data-encore-id="menu"] { padding: 4px !important; }
 /* Spotify fades a scrolling menu's top/bottom edge into its grey (#242424). */
 ${ON} [data-encore-id="menu"]::before,
 ${ON} [data-encore-id="menu"]::after { background-image: none !important; }
@@ -137,6 +140,63 @@ ${MENU_ICON_COLOURS.map(
   (c, i) =>
     `${ON} [data-encore-id="menuRow"]:nth-child(${MENU_ICON_COLOURS.length}n+${i + 1}) > :first-child svg { color: ${c} !important; fill: ${c} !important; }`,
 ).join("\n")}
+
+/* Spotify's DIALOGS (step 16h, developer's pick "A, Prism pop-up"): every
+   pop-up Spotify opens in its GenericModal (Edit details, credits, keyboard
+   shortcuts...) looks like Prism's own pop-up: the page behind dims and blurs
+   (.prism-overlay) and the box is the glass card (.prism-glass-card, 20px
+   corners). Text boxes are the glass text box (.prism-glass-input), the main
+   button is Prism's main button (solid lavender, dark text, glow on hover),
+   and Spotify's blue character counters turn lavender. The values are copied
+   from styles.ts because these dialogs live outside the Prism page. */
+${ON} .GenericModal__overlay,
+${ON} dialog[open]::backdrop {
+  background: rgba(20, 8, 40, 0.45) !important;
+  backdrop-filter: blur(6px);
+}
+${ON} .GenericModal__overlay { --spice-notification: #b794ff; }
+/* Some of Spotify's pop-ups (Keyboard shortcuts, Credits) are native <dialog>
+   elements instead: the <dialog> is exactly the box, so it gets the glass card
+   and a single box inside it (Credits' #121212 container) goes clear. */
+${ON} dialog[open] { overflow: hidden; }
+${ON} dialog[open] > :only-child { background: transparent !important; border-radius: 0 !important; }
+${ON} dialog[open],
+${ON} .GenericModal__overlay [role="dialog"] > * {
+  border-radius: 20px !important;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.05)), rgba(43, 26, 82, 0.55) !important;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 20px 50px rgba(10, 0, 30, 0.5) !important;
+  backdrop-filter: blur(18px) saturate(140%);
+}
+${ON} .GenericModal__overlay :is(input:not([type="file"]):not([type="checkbox"]):not([type="radio"]), textarea) {
+  border-radius: 12px !important;
+  color: #ffffff !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25) !important;
+  outline: none !important;
+}
+${ON} .GenericModal__overlay :is(input, textarea):focus {
+  border-color: #cdb8ff !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25), 0 0 0 3px rgba(205, 184, 255, 0.25) !important;
+}
+${ON} .GenericModal__overlay :is(input, textarea)::placeholder { color: rgba(255, 255, 255, 0.5) !important; }
+${ON} :is(.GenericModal__overlay, dialog[open]) ::selection { background: rgba(183, 148, 255, 0.55); color: #ffffff; }
+${ON} .GenericModal__overlay [class*="CharacterCounter"] { background-color: #b794ff !important; color: #1a1030 !important; }
+${ON} .GenericModal__overlay [data-encore-id="buttonPrimary"],
+${ON} .GenericModal__overlay [data-encore-id="buttonPrimary"] > span { transform: none !important; }
+${ON} .GenericModal__overlay [data-encore-id="buttonPrimary"] > span {
+  background: #b794ff !important;
+  color: #1a1030 !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  transition: background-color 150ms ease-out, box-shadow 150ms ease-out;
+}
+${ON} .GenericModal__overlay [data-encore-id="buttonPrimary"]:hover:not(:disabled) > span {
+  background: #c6a8ff !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 0 14px rgba(205, 184, 255, 0.55);
+}
+${ON} .GenericModal__overlay [data-encore-id="buttonPrimary"]:active:not(:disabled) > span { transform: scale(0.97) !important; }
+
 `;
 
 export function startChromeTheme(): void {

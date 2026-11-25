@@ -11,6 +11,7 @@ import { parsePlaylistTheme, PLAYLIST_THEMES, PLAYLIST_THEME_CHANGED_EVENT, type
 import { isPanelStatsOn, PANEL_STATS_CHANGED_EVENT } from "./sidePanel";
 import { isLyricsThemeOn, LYRICS_THEME_CHANGED_EVENT } from "./lyricsTheme";
 import { testApiKey } from "../lastfm/client";
+import { ThemeStrip } from "./ThemeStrip";
 
 export interface SettingsPanelProps {
   // Shown above the form, e.g. "Add your Last.fm key first".
@@ -124,14 +125,16 @@ export function SettingsPanel({ notice, onSaved }: SettingsPanelProps) {
         <span style={{ fontSize: 13, fontWeight: 600 }} id="prism-playlist-theme-label">
           Background for playlists
         </span>
-        <div className="prism-seg" role="group" aria-labelledby="prism-playlist-theme-label">
-          {PLAYLIST_THEMES.map((t) => (
-            <button key={t.id} type="button" className={playlistTheme === t.id ? "on" : ""} aria-pressed={playlistTheme === t.id} onClick={() => chooseTheme(t.id)} data-prism={`playlist-theme-${t.id}`}>
-              {t.label}
-            </button>
-          ))}
-        </div>
       </div>
+      {/* Picker "D" (developer's pick 2026-11-25): wrapping pills + a strip with the chosen sky. */}
+      <div className="prism-seg is-pills" role="group" aria-labelledby="prism-playlist-theme-label">
+        {PLAYLIST_THEMES.map((t) => (
+          <button key={t.id} type="button" className={playlistTheme === t.id ? "on" : ""} aria-pressed={playlistTheme === t.id} onClick={() => chooseTheme(t.id)} data-prism={`playlist-theme-${t.id}`}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+      <ThemeStrip theme={playlistTheme} />
       <p style={{ color: "var(--spice-subtext)", fontSize: 13, margin: 0 }}>
         A theme gives every playlist page a moving background, a colour rail beside the songs (each song in its main
         genre's colour) and a genre mix under the title. Genres come from songs Prism has already scanned. No theme:
@@ -153,7 +156,7 @@ export function SettingsPanel({ notice, onSaved }: SettingsPanelProps) {
         </div>
       </div>
       <p style={{ color: "var(--spice-subtext)", fontSize: 13, margin: 0 }}>
-        On: Spotify's lyrics get Prism's twilight sky, and the top and bottom bars always stay (no full screen or
+        On: Spotify's lyrics get your playlist theme's sky (Prism's twilight sky with No theme), and the top and bottom bars always stay (no full screen or
         immersive mode). Off: Spotify's own lyrics, exactly as Spotify makes them.
       </p>
 

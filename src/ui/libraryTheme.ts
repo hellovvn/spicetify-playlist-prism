@@ -14,8 +14,8 @@
 //
 // Pure parts (colours, the row's HTML): src/theme/libraryTheme.ts.
 
-import { loadPlaylistThemeSetting } from "../storage";
-import { parsePlaylistTheme, PLAYLIST_THEME_CHANGED_EVENT, type PlaylistThemeId } from "../theme/playlistTheme";
+import { loadPlaylistThemeOverrides, loadPlaylistThemeSetting } from "../storage";
+import { effectiveTheme, parsePlaylistTheme, parseThemeOverrides, PLAYLIST_THEME_CHANGED_EVENT, type PlaylistThemeId } from "../theme/playlistTheme";
 import { isLikedSongsPage, LIKED_SONGS_COVER, panelBackground, rowBackground, rowSkyHtml } from "../theme/libraryTheme";
 
 const STYLE_ID = "playlist-prism-library-theme";
@@ -67,6 +67,51 @@ const BASE_CSS = `
 @keyframes prism-lib-cloud { 0%, 100% { transform: translate(0, 0) scale(1); } 50% { transform: translate(30px, -20px) rotate(8deg) scale(1.1); } }
 .prism-lib-bubble { bottom: -16px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.3); animation: prism-lib-rise var(--d) var(--l) linear infinite; }
 @keyframes prism-lib-rise { 0% { transform: translateY(0); opacity: 0; } 15% { opacity: 0.9; } 100% { transform: translate(6px, -80px); opacity: 0; } }
+/* The newer themes' row pieces (2026-11-25). */
+.prism-lib-band { left: -60%; top: -40%; width: 220%; height: 180%; background: linear-gradient(105deg, transparent 40%, rgba(255, 150, 200, 0.3) 44%, rgba(255, 240, 150, 0.26) 49%, rgba(150, 240, 190, 0.26) 52%, rgba(140, 200, 255, 0.3) 56%, transparent 60%); animation: prism-lib-drift var(--d) var(--l) ease-in-out infinite alternate; }
+.prism-lib-galaxy { left: -20%; top: 10%; width: 140%; height: 60%; transform: rotate(-12deg); background: radial-gradient(ellipse, rgba(200, 180, 255, 0.4), transparent 70%); filter: blur(6px); animation: prism-lib-twinkle 8s ease-in-out infinite; }
+.prism-lib-drop { top: -6px; border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.85), rgba(200, 210, 255, 0.2)); animation: prism-lib-slide var(--d) var(--l) ease-in infinite; }
+@keyframes prism-lib-slide { 0% { transform: translateY(0); opacity: 0; } 10% { opacity: 0.9; } 100% { transform: translateY(64px); opacity: 0.4; } }
+.prism-lib-petal { top: -8px; width: 8px; height: 5px; border-radius: 70% 0 70% 0; animation: prism-lib-fall var(--d) var(--l) linear infinite; }
+@keyframes prism-lib-fall { 0% { transform: translate(0, 0) rotate(0); opacity: 0; } 12% { opacity: 1; } 100% { transform: translate(14px, 70px) rotate(300deg); opacity: 0; } }
+.prism-lib-ripple { top: 50%; margin-top: -25px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.55); opacity: 0; animation: prism-lib-ripple var(--d) var(--l) cubic-bezier(0.15, 0.6, 0.35, 1) infinite; }
+@keyframes prism-lib-ripple { 0% { transform: scale(0.1); opacity: 0; } 4% { opacity: 0.8; } 40% { transform: scale(1); opacity: 0; } 100% { opacity: 0; } }
+/* Window rain's drops on the glass (look "D1") and the one that slides. */
+.prism-lib-wdrop {
+  background: radial-gradient(circle at 34% 28%, rgba(255, 255, 255, 0.9) 0 12%, transparent 20%), radial-gradient(circle at 50% 65%, rgba(225, 230, 255, 0.38), rgba(190, 200, 245, 0.1) 55%, rgba(14, 16, 38, 0.4) 100%);
+  box-shadow: 0 1.5px 0.5px rgba(6, 8, 26, 0.55), inset 0 -1px 1px rgba(230, 235, 255, 0.25);
+}
+.prism-lib-wrunner { top: -10px; opacity: 0; animation: prism-lib-wrunner var(--d) var(--l) linear infinite; }
+@keyframes prism-lib-wrunner {
+  0%, 20% { opacity: 0; transform: translateY(0); }
+  24% { opacity: 1; transform: translateY(14px); }
+  40% { transform: translateY(18px); }
+  60% { transform: translateY(46px); }
+  68% { transform: translateY(50px); }
+  88% { opacity: 1; transform: translateY(84px); }
+  100% { opacity: 0; transform: translateY(84px); }
+}
+/* The sliding drop's trail ("wiped path", like the page): a clean, slightly
+   darker channel with faint glossy edges, its top faded. It grows behind
+   the drop (same steps as prism-lib-wrunner) and dries up afterwards. */
+.prism-lib-wtrail {
+  top: -10px; width: 5px; height: 94px; margin-left: 1.5px;
+  background: linear-gradient(90deg, rgba(225, 232, 255, 0.28) 0 1px, rgba(10, 12, 30, 0.28) 1px calc(100% - 1px), rgba(225, 232, 255, 0.28) calc(100% - 1px));
+  -webkit-mask: linear-gradient(180deg, transparent, #000 35%);
+  mask: linear-gradient(180deg, transparent, #000 35%);
+  transform-origin: top;
+  opacity: 0;
+  animation: prism-lib-wtrail var(--d) var(--l) linear infinite;
+}
+@keyframes prism-lib-wtrail {
+  0%, 20% { opacity: 0; transform: scaleY(0); }
+  24% { opacity: 1; transform: scaleY(0.15); }
+  40% { transform: scaleY(0.19); }
+  60% { transform: scaleY(0.49); }
+  68% { transform: scaleY(0.53); }
+  88% { opacity: 1; transform: scaleY(0.9); }
+  100% { opacity: 0; transform: scaleY(0.9); }
+}
 @media (prefers-reduced-motion: reduce) {
   .${SKY_CLASS} > * { animation: none !important; }
   .Root__nav-bar[${THEME_ATTR}] [role="row"]:hover [data-encore-id="listRow"] { transform: none; }
@@ -77,12 +122,12 @@ const BASE_CSS = `
 function themeCss(theme: Exclude<PlaylistThemeId, "none">): string {
   return `${BASE_CSS}
 .Root__nav-bar[${THEME_ATTR}] .main-yourLibraryX-entryPoints.main-yourLibraryX-library { background: ${panelBackground(theme)} !important; }
-.${SKY_CLASS} { background: ${rowBackground(theme)}; }
 `;
 }
 
 export function startLibraryTheme(): void {
   let theme = parsePlaylistTheme(loadPlaylistThemeSetting());
+  let overrides = parseThemeOverrides(loadPlaylistThemeOverrides()); // themes for single playlists (14b)
   let scheduled = false;
 
   const update = () => {
@@ -105,24 +150,30 @@ export function startLibraryTheme(): void {
     if (style.textContent !== css) style.textContent = css;
     if (nav.getAttribute(THEME_ATTR) !== theme) nav.setAttribute(THEME_ATTR, theme);
 
-    // The moving layer: only in the open playlist's row.
+    // The moving layer: only in the open playlist's row. A playlist with its
+    // own theme (14b) shows THAT theme in its row (developer's choice
+    // 2026-11-25: "row only"; the rest of the panel keeps the main theme).
+    const path = Spicetify.Platform.History.location?.pathname ?? "";
+    const openPlaylist = /^\/playlist\/([A-Za-z0-9]+)/.exec(path)?.[1];
+    const rowTheme = effectiveTheme(theme, overrides, openPlaylist ? `spotify:playlist:${openPlaylist}` : null);
     let box = nav.querySelector(SELECTED_BOX);
     if (!box && isLikedSongsPage(Spicetify.Platform.History.location?.pathname)) {
       box = nav.querySelector(`[data-encore-id="listRow"]:has(${LIKED_SONGS_COVER})`);
     }
     nav.querySelectorAll(`.${SKY_CLASS}`).forEach((sky) => {
-      if (sky.parentElement !== box || (sky as HTMLElement).dataset.theme !== theme) sky.remove();
+      if (sky.parentElement !== box || (sky as HTMLElement).dataset.theme !== rowTheme) sky.remove();
     });
     nav.querySelectorAll(`.${OPEN_CLASS}`).forEach((el) => {
       if (el !== box) el.classList.remove(OPEN_CLASS);
     });
     if (box && !box.classList.contains(OPEN_CLASS)) box.classList.add(OPEN_CLASS);
-    if (box && !box.querySelector(`:scope > .${SKY_CLASS}`)) {
+    if (box && rowTheme !== "none" && !box.querySelector(`:scope > .${SKY_CLASS}`)) {
       const sky = document.createElement("div");
       sky.className = SKY_CLASS;
-      sky.dataset.theme = theme;
+      sky.dataset.theme = rowTheme;
       sky.setAttribute("aria-hidden", "true");
-      sky.innerHTML = rowSkyHtml(theme);
+      sky.style.background = rowBackground(rowTheme);
+      sky.innerHTML = rowSkyHtml(rowTheme);
       // Each sparkle star moves to a new spot after it fades out (like the page sky).
       sky.querySelectorAll<HTMLElement>(".prism-lib-star").forEach((star) =>
         star.addEventListener("animationiteration", () => {
@@ -159,6 +210,7 @@ export function startLibraryTheme(): void {
   Spicetify.Platform.History.listen(() => schedule()); // Liked Songs has no aria-selected change
   window.addEventListener(PLAYLIST_THEME_CHANGED_EVENT, () => {
     theme = parsePlaylistTheme(loadPlaylistThemeSetting());
+    overrides = parseThemeOverrides(loadPlaylistThemeOverrides());
     schedule();
   });
   window.setInterval(() => {
