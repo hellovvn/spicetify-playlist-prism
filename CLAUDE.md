@@ -421,9 +421,15 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
 - START PAGE WORDING (developer's picks): Grow = "Start with a favourite song and grow a
   playlist of songs that feel like it." Remix = "Shuffle your playlists into fresh ones sorted
   by genre and mood. Make several, or just the one you want."
-- PAGE HEADER ICON (PrismIcon in PrismIcon.tsx, mockup "H2 + sparkles"): glass diamond with a
-  pastel rainbow edge + facet lines, and 3 sparkles that twinkle in turn
-  (.prism-head-sparkle). The Spotify top-bar icon (src/assets/prism.svg) is unchanged.
+- PRISM ICONS (2026-11-25, mockup "E" of nine, developer's pick): the page header icon
+  (PrismIcon in PrismIcon.tsx) AND the Spotify top-bar icon (src/assets/prism.svg) are the
+  Prism star: the 4-point star filled with the pastel rainbow (same shape as
+  .prism-star-icon), a white glint, and 3 sparkles that twinkle in turn
+  (.prism-head-sparkle / .prism-sparkle). Top-bar hover (mockup "C, colour-matched glow", picked
+  2026-11-25): a flowing copy of the star (.prism-flow, SMIL gradient slide) fades in and a
+  glow (.prism-glow) breathes behind it with hue-rotate. The star NEVER turns (developer's
+  request); the moving neon ring round the top-bar button was REMOVED (purple circle only,
+  3px inside the button). prism-active.svg = same picture with "-active" gradient ids. The scanning diamond is unchanged.
 - Smoke note: "Cancel stops the scan part-way" can fail as a race when nearly every song is
   cached (the scan finishes before the Cancel click lands); a re-run reports it as SKIPPED.
 - MERGE PLAYLISTS (2026-11-23, built on branch feature/merge-playlists, waiting for the

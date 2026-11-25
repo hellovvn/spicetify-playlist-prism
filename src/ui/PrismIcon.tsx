@@ -1,11 +1,11 @@
-// The Prism diamond, drawn in React for use ON the page: a small one for the
-// page header (PrismIcon, glass + rainbow edge + sparkles) and a big animated
-// one while scanning (ScanningPrism, the same faceted diamond as the Spotify
-// header icon, src/assets/prism.svg). Animations are in src/ui/styles.ts.
+// Prism's icons drawn in React for use ON the page: the page header's Prism
+// star (PrismIcon, the same star as the Spotify header icon,
+// src/assets/prism.svg) and the big animated faceted diamond shown while
+// scanning (ScanningPrism). Animations are in src/ui/styles.ts.
 
 import React from "react";
 
-// The diamond's lines (24x24 picture, centre 12,12). Shared by both icons.
+// The scanning diamond's lines (24x24 picture, centre 12,12).
 // A "faceted pyramid": a straight-edged card diamond whose peak sits a little
 // up and left of centre (11, 10.6), so its 4 faces catch the light
 // differently. Each face has its own see-through fill: lit top-left,
@@ -72,10 +72,13 @@ export function ScanningPrism({ size = 132 }: { size?: number }) {
   );
 }
 
-// The page header's icon (mockup "H2 + sparkles"): a see-through glass
-// diamond with a pastel rainbow edge, and three little sparkles round it that
-// twinkle one after another (animation in styles.ts, .prism-head-sparkle).
-const EDGE = "prism-head-edge"; // the gradient's id (only one header on the page)
+// The page header's icon: the Prism star (mockup "E", developer's pick
+// 2026-11-25), the same 4-point star filled with the pastel rainbow as the
+// Spotify header icon (src/assets/prism.svg) and the app's .prism-star-icon,
+// with a white glint and three little sparkles round it that twinkle one
+// after another (animation in styles.ts, .prism-head-sparkle).
+const FILL = "prism-head-fill"; // the gradient's id (only one header on the page)
+const STAR = "M12 2.5C12.8 8.6 15.4 11.2 21.5 12 15.4 12.8 12.8 15.4 12 21.5 11.2 15.4 8.6 12.8 2.5 12 8.6 11.2 11.2 8.6 12 2.5Z";
 export function PrismIcon({ size = 36 }: { size?: number }) {
   return (
     <svg
@@ -91,7 +94,7 @@ export function PrismIcon({ size = 36 }: { size?: number }) {
     >
       <defs>
         {/* Pink -> butter -> mint -> sky -> lavender, corner to corner. */}
-        <linearGradient id={EDGE} x1="0" y1="0" x2="1" y2="1">
+        <linearGradient id={FILL} x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor="#ffb8d9" />
           <stop offset="0.35" stopColor="#ffe2a8" />
           <stop offset="0.6" stopColor="#a8ecc9" />
@@ -99,13 +102,13 @@ export function PrismIcon({ size = 36 }: { size?: number }) {
           <stop offset="1" stopColor="#d5c2ff" />
         </linearGradient>
       </defs>
-      {/* Glass body with the rainbow edge, then the faint facet lines. */}
-      <path d="M12 2 20 12 12 22 4 12Z" fill="rgba(255, 255, 255, 0.14)" stroke={`url(#${EDGE})`} strokeWidth={1.6} />
-      <path d="M12 2 11 10.6 4 12M11 10.6 20 12M11 10.6 12 22" stroke={`url(#${EDGE})`} strokeWidth={0.8} opacity={0.8} />
-      {/* Sparkles: a butter plus (top right), a sky plus (bottom left), a pink dot. */}
-      <path className="prism-head-sparkle" d="M20 2.5v3M18.5 4h3" stroke="#ffe2a8" strokeWidth={0.9} />
-      <path className="prism-head-sparkle" style={{ animationDelay: "-1.2s" }} d="M4.5 17.5v2.4M3.3 18.7h2.4" stroke="#a9cdff" strokeWidth={0.8} />
-      <circle className="prism-head-sparkle" style={{ animationDelay: "-2.2s" }} cx={19.5} cy={18} r={0.7} fill="#ffb8d9" />
+      {/* The rainbow star, then a soft white glint along its upper right edge. */}
+      <path d={STAR} fill={`url(#${FILL})`} />
+      <path d="M12 5.8C12.5 9.4 14.2 11.2 17.6 12" stroke="#ffffff" strokeOpacity={0.65} strokeWidth={0.7} />
+      {/* Sparkles: a butter plus (top right), a sky dot (bottom left), a pink dot (bottom right). */}
+      <path className="prism-head-sparkle" d="M19.5 3v2.6M18.2 4.3h2.6" stroke="#ffe2a8" strokeWidth={0.9} />
+      <circle className="prism-head-sparkle" style={{ animationDelay: "-1.2s" }} cx={5} cy={18.5} r={0.7} fill="#a9cdff" />
+      <circle className="prism-head-sparkle" style={{ animationDelay: "-2.2s" }} cx={19} cy={19} r={0.6} fill="#ffb8d9" />
     </svg>
   );
 }
