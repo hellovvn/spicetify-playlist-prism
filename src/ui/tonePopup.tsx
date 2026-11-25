@@ -1,6 +1,6 @@
 // The tone editor as a POP-UP over Spotify's playlist page: "Edit" in the
-// tone strip (src/ui/toneRows.ts) opens it, so editing a tone doesn't leave
-// the playlist. Same editor as the Prism page's (src/ui/ToneEditor.tsx), in
+// tone strip (src/ui/toneRows.ts) and the right-click "Prism tone" / "Add
+// Prism tone" items open it, so editing a tone doesn't leave the playlist. Same editor as the Prism page's (src/ui/ToneEditor.tsx), in
 // the standard Prism pop-up (.prism-overlay + .prism-glass-card, wide).
 //
 // It sits inside Spotify's main view (like the Prism page's own pop-ups sit
@@ -14,8 +14,29 @@ import React from "react";
 import { friendlyError, loadTones, loadToneSongs, saveTone } from "../flow";
 import { getPlaylistName } from "../spotify/read";
 import { ToneEditor } from "./ToneEditor";
+import { playlistUriFromPath } from "./toneView";
 
 const HOST_ID = "playlist-prism-tone-popup";
+
+// From the right-click menu: the playlist may not be the page that's open
+// (e.g. right-clicked in the left panel). Then open the playlist first and
+// show the pop-up once its page is drawn; the pop-up closes on any page
+// change, so it must not open before the navigation.
+export function openTonePopupOnPlaylist(playlist: string): void {
+  const history = Spicetify.Platform.History;
+  if (playlistUriFromPath(history.location?.pathname) === playlist) {
+    openTonePopup(playlist);
+    return;
+  }
+  history.push(`/playlist/${playlist.split(":")[2]}`);
+  const started = Date.now();
+  const wait = () => {
+    if (playlistUriFromPath(history.location?.pathname) !== playlist) return; // the user went elsewhere
+    if (document.querySelector('[data-testid="action-bar-row"]')) openTonePopup(playlist);
+    else if (Date.now() - started < 5000) setTimeout(wait, 100);
+  };
+  setTimeout(wait, 100);
+}
 
 export function openTonePopup(playlist: string): void {
   const view = document.querySelector(".Root__main-view");

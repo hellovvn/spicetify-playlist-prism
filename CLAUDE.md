@@ -456,7 +456,10 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   while the rings load, or "Couldn't score the songs". Edit opens the SAME ToneEditor
   (variant "popup": Cancel instead of Back) in a wide pop-up over the playlist
   (`src/ui/tonePopup.tsx`, host inside .Root__main-view, overlay has `prism-cosmos` for Prism's
-  colours); right-click > Prism tone still opens it on the Prism page. Pure strip/ring helpers
+  colours). Right-click > Prism tone / Add Prism tone opens the SAME pop-up (2026-11-24,
+  `openTonePopupOnPlaylist`): from another page it opens the playlist first and shows the pop-up
+  once its action bar is drawn (the pop-up closes on any page change). `?go=tone` on the Prism
+  page still exists (debug hook openTone). Pure strip/ring helpers
   are in `src/ui/toneView.ts` (toneRows imports React via the pop-up, which tests can't load).
   On = a 32px score ring in every song row (in .main-trackList-rowSectionEnd); songs under 50%
   get a GREY ring (rows are never faded, developer's request 2026-11-24). Songs with no Last.fm tags are scored on mood + tempo only ("partial", a FADED ring at
