@@ -615,12 +615,21 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   (`.x-toggle-input:checked + .x-toggle-indicatorWrapper`) in the Prism Toggle's colours, glass
   dropdowns (`.main-dropDown-dropDown`) and buttons, lavender zoom picker (selected radio =
   the circle with a 2nd generated class), equalizer canvas hue-shifted, Beta tag gradient.
-  Next: listening history (/history), then the unchecked ones below.
+  LISTENING HISTORY needs no page theme: in this Spotify /history is NOT a page, it opens the
+  right panel's Queue > "Recently played" tab (and sends the main view to /), which Quiet night
+  already themes.
+  16e RIGHT-CLICK MENUS (2026-11-25, developer's pick "D, clear frost" of four; built, not
+  committed): with a playlist theme on, every Spotify menu/sub-menu is frosted glass with pastel
+  icons and the standard lavender hover (CSS in chromeTheme.ts). Hooks: [data-encore-id="menu"],
+  [data-encore-id="menuRow"] (hover = data-hovered/data-focused/data-open), "Add to playlist"
+  = [data-encore-id="popover"][data-trigger="ContextMenuSubmenu"] (search box + clear inner
+  menu); Spotify's scroll fades are the menu's ::before/::after gradients in #242424.
+  Next: profile page (/user/...: grey avatar wash on #121212), then the unchecked ones below.
   YOUR LIBRARY has no page in this Spotify: /collection, /collection/playlists etc. all
   redirect to /collection/tracks (Liked Songs), and "Expand Your Library" only widens the left
   panel, which libraryTheme.ts already themes.
-  Not checked yet: search results, podcast/episode/show pages, profile (/user/...), right-click
-  menus and Spotify's dialogs. Check them as part of this step.
+  Not checked yet: search results, podcast/episode/show pages and Spotify's dialogs. Check
+  them as part of this step.
   Facts found: every page above has `.Root__main-view` at #121212 and no data-prism-theme;
   album/artist/Liked headers use the same `.main-entityHeader-*` + action bar +
   `.main-trackList-*` song list as playlists, and `.main-topBar-background` takes the cover
