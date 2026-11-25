@@ -1,6 +1,6 @@
 // Set or edit a playlist's TONE (right-click a playlist > "Prism tone").
 // The tone = the genres and lyrics moods the playlist is meant to have, plus
-// an optional tempo. With a tone set, the playlist page gets a "✦ Tone"
+// an optional tempo. With a tone set, the playlist page gets a "Tone"
 // switch that shows each song's fit as a score ring (src/ui/toneRows.tsx).
 //
 // Reuses the Remix builder's pieces: genre search + tag switches (PickChip)
@@ -103,7 +103,7 @@ export function ToneEditor({ playlist, loadName, loadSongs, saved, onSave, onRem
           <>Pick the genres and moods this playlist is meant to have. The rings update when you save. </>
         ) : (
           <>
-            Pick the genres and moods this playlist is meant to have. Then switch on <b>✦ Tone</b> on the playlist to see how well
+            Pick the genres and moods this playlist is meant to have. Then switch on <b><span className="prism-star-icon" aria-hidden="true" /> Tone</b> on the playlist to see how well
             each song fits.{" "}
           </>
         )}

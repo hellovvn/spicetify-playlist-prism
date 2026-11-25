@@ -5,6 +5,8 @@
 // Everything is scoped to our own class names (prism-...), so Spotify's
 // other pages are never affected.
 
+import { PRISM_STAR_CSS } from "./prismStar";
+
 const STYLE_ID = "playlist-prism-styles";
 
 // Height of the flow's later screens (sources, scan, preview), so the page
@@ -567,6 +569,11 @@ const CSS = `
   border-color: #cdb8ff;
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25), 0 0 0 3px rgba(205, 184, 255, 0.25);
 }
+/* Number boxes: no browser up/down spinner (grey, can't be themed; developer's
+   pick "A"). Typing, arrow keys and the scroll wheel still change the number. */
+.prism-glass-input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+.prism-glass-input[type="number"]::-webkit-inner-spin-button,
+.prism-glass-input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 
 /* ----- Glass panels and bars (playlist stats page) -----
    .prism-glass-panel: a still glass box (like the popup card, no animation).
@@ -1059,17 +1066,6 @@ const CSS = `
   color: #d7fff2; background: rgba(159, 225, 203, 0.2); border: 1px solid rgba(159, 225, 203, 0.75);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
-.prism-ring-wrap { position: relative; display: inline-flex; flex-shrink: 0; }
-.prism-sparkle {
-  position: absolute; pointer-events: none; color: #fff7c2; line-height: 1;
-  text-shadow: 0 0 6px rgba(255, 240, 180, 0.85);
-  animation: prism-sparkle 2.4s ease-in-out infinite;
-}
-@keyframes prism-sparkle {
-  0%, 100% { opacity: 0.15; transform: scale(0.6) rotate(0deg); }
-  50% { opacity: 1; transform: scale(1) rotate(20deg); }
-}
-@media (prefers-reduced-motion: reduce) { .prism-sparkle { animation: none; opacity: 0.8; } }
 `;
 
 // Adds the styles once (safe to call again: it checks first).
@@ -1077,6 +1073,6 @@ export function injectStyles(): void {
   if (document.getElementById(STYLE_ID)) return;
   const style = document.createElement("style");
   style.id = STYLE_ID;
-  style.textContent = CSS;
+  style.textContent = CSS + PRISM_STAR_CSS;
   document.head.appendChild(style);
 }

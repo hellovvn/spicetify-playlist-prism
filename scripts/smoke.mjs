@@ -598,8 +598,8 @@ try {
         const searched = await waitFor(`!${PREVIEW}.querySelector('[data-prism="new-status"]').textContent.includes("Looking")`, 120000);
         const status = await newStatus();
         check("new finds: the search finishes", searched && /found|No new songs/.test(status), status);
-        const tenNew = await cdp.evaluate(`({ n: ${NEW_ROWS}.length, ticked: ${NEW_ROWS}.every((r) => r.querySelector("input").checked), pill: ${NEW_ROWS}.every((r) => r.textContent.includes("New find")), sparkles: ${NEW_ROWS}.every((r) => r.querySelectorAll(".prism-sparkle").length === 3) })`);
-        check("new finds: up to 10 ticked, each with the New find pill and sparkles", tenNew.n > 0 && tenNew.n <= 10 && tenNew.ticked && tenNew.pill && tenNew.sparkles, JSON.stringify(tenNew));
+        const tenNew = await cdp.evaluate(`({ n: ${NEW_ROWS}.length, ticked: ${NEW_ROWS}.every((r) => r.querySelector("input").checked), pill: ${NEW_ROWS}.every((r) => r.textContent.includes("New find") && !!r.querySelector(".prism-new-pill .prism-star-icon")) })`);
+        check("new finds: up to 10 ticked, each with the New find pill and its Prism star", tenNew.n > 0 && tenNew.n <= 10 && tenNew.ticked && tenNew.pill, JSON.stringify(tenNew));
         info(`new finds shown: ${tenNew.n}`);
         await cdp.evaluate(`${PREVIEW}.querySelector('[data-prism="new-find"]')?.scrollIntoView({ block: "center" })`);
         await screenshot("preview-new-finds.png");

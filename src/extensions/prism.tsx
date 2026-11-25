@@ -30,6 +30,7 @@ import { injectHeaderIconStyles } from "../ui/headerIcon";
 import { startLyricsTheme } from "../ui/lyricsTheme";
 import { startPanelStats } from "../ui/panelHost";
 import { startToneRows } from "../ui/toneRows";
+import { openTonePopupOnPlaylist } from "../ui/tonePopup";
 import { startPlaylistTheme } from "../ui/playlistTheme";
 import { startLibraryTheme } from "../ui/libraryTheme";
 import { startChromeTheme } from "../ui/chromeTheme";
@@ -54,7 +55,7 @@ async function main() {
   startAddWithPrism(PRISM_MENU_ICON); // "Add with Prism" flyout: the 5 playlists that fit a song best
   registerStatsMenu();
   registerToneMenu();
-  startToneRows(); // "✦ Tone" switch + score rings on playlists with a tone
+  startToneRows(); // "Tone" switch (with the Prism star) + score rings on playlists with a tone
   startPlaylistTheme(); // playlist page themes: sky, colour rail, genre mix (Settings, off by default)
   startLibraryTheme(); // the same theme on the left panel: still background, moving open-playlist row
   startChromeTheme(); // and on Spotify's bars: "Quiet night" (deep purple, pastel instead of green)
@@ -96,7 +97,8 @@ function registerStatsMenu() {
 // "Prism tone" (has one). Spotify runs the check each time the menu opens.
 function registerToneMenu() {
   const hasTone = (uris: string[]) => isSinglePlaylist(uris) && !!loadTones()[uris[0]];
-  const open = (uris: string[]) => openPage({ go: "tone", playlist: uris[0] });
+  // Opens the editor as a pop-up over the playlist (not on the Prism page).
+  const open = (uris: string[]) => openTonePopupOnPlaylist(uris[0]);
   new Spicetify.ContextMenu.Item("Add Prism tone", open, (uris) => isSinglePlaylist(uris) && !hasTone(uris), PRISM_MENU_ICON as Spicetify.Icon).register();
   new Spicetify.ContextMenu.Item("Prism tone", open, hasTone, PRISM_MENU_ICON as Spicetify.Icon).register();
 }
