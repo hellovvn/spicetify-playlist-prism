@@ -271,6 +271,17 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   - 14b PER-PLAYLIST THEME: a theme can be set on one playlist. Opening that playlist in Spotify
     changes the background to its theme. This is a local setting only (LocalStorage keyed by
     playlist URI) and must NEVER write to the playlist itself (hard rule).
+    BUILT 2026-11-25 (developer's pick "A, right-click sub-menu"; not committed): right-click one
+    playlist > "Prism theme" > one of the 10 themes (the main one says "(default)"; picking it removes the playlist's own theme), each with
+    a gradient swatch icon; the current choice's row is tinted lavender (`data-prism-chosen` on its swatch; `src/ui/playlistThemeMenu.ts`, item
+    names re-set in shouldAdd -> redraw, like Add with Prism). Saved in `prism:playlistThemes`
+    (JSON URI -> theme id; parseThemeOverrides / withThemeOverride / effectiveTheme in
+    src/theme/playlistTheme.ts, tested). An entry may be "none" (that playlist keeps Spotify's
+    look). The playlist PAGE and the LYRICS (while playing FROM that playlist, Player context uri,
+    re-checked on songchange) use it, and so does that playlist's OPEN ROW in the left panel
+    (developer's choice 2026-11-25, "row only": libraryTheme.ts sets the row sky's theme and
+    background per row; only while a main theme is on). The rest of the left panel, the bars
+    ("Quiet night" on/off) and the other pages follow the MAIN theme only.
   - 14c The LYRICS view follows the active theme (the playlist's theme if it has one).
     FIRST PART BUILT 2026-11-22 (not committed): `src/ui/lyricsTheme.ts`, injected by the
     always-on extension, gives Spotify's lyrics views the twilight colours. It overrides the
@@ -298,6 +309,12 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
     tested). Off removes the whole style tag, so Spotify's own lyrics (cover colours, full
     screen, immersive) come back. The switch sends LYRICS_THEME_CHANGED_EVENT, so it takes
     effect without a reload. startLyricsTheme() in the always-on script applies it.
+    FOLLOWS THE PLAYLIST THEME (2026-11-25, developer's pick "D, moving sky + reading veil";
+    built, not committed): with a playlist theme on, `syncLyricsSky` (lyricsTheme.ts) puts the
+    theme's sky (`buildSky`, exported from ui/playlistTheme.ts) + `.prism-lyrics-veil` into the
+    lyrics view's still box; lines use LYRICS_LINE_COLOURS (theme/playlistTheme.ts) via
+    html[data-prism-lyrics-sky]. Watches .Root__top-container (children only) for the cinema view.
+    No theme = twilight lyrics as before.
   - 14d NEW VIEW: the playlist and its lyrics side by side, so the user can see the playlist
     while singing along. Never store or log lyrics text.
   - 14e DISCOVER in Prism playlists: BUILT 2026-11-23 (not committed; smoke-tested, waiting for
@@ -506,7 +523,42 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   songs + tag cache only, nothing sent to Last.fm. Prism's own page keeps its twilight sky
   (developer's choice). Code: `src/theme/playlistTheme.ts` (pure, tests/playlistTheme.test.ts),
   `src/ui/playlistTheme.ts` (always-on). Densities scale with the window (mockups were 680px).
-  This covers part of 14a (themes); 14a's per-page theme picker is still open.
+  MORE THEMES (14a, decided 2026-11-25 after five mockup rounds; built, not committed): 6 more,
+  so 9 + No theme (an "Ocean" theme was built and then REMOVED at the developer's request,
+  2026-11-25; a saved "ocean" falls back to No theme / the main theme). Ids/labels (Settings order): twilight "Twilight" (Prism's page sky:
+  glows + rainbow light bands, NO sparkles), aurora, stars, milkyway "Milky Way" (M2),
+  nebula, afterglow "Afterglow" (S2), mist "Misty morning", blossom
+  "Blossom canopy" (B2), rain "Window rain" (R1).
+  TWEAKS after seeing them in Spotify (2026-11-25, developer's requests): Twilight got the Prism
+  page's twinkling sparkles back; Northern lights' curtains drift through other colours
+  (hue-rotate on .prism-pl-aurora-hue, 70 s); Milky Way = a detailed band (glow, warm core,
+  pink/blue wisps, dark dust lanes, dense stars) + 3 shooting stars that all fly down-left;
+  Blossom petals at three depths (far small/faint, near big/blurred) in three petal shapes
+  (plain, notched cherry via a CSS mask, oval; a five-petal flower was dropped) and the canopy
+  is soft blurred PETALS too (not round blobs) over blurred dark BRANCH shadows (SVG, swaying); Window rain = a few small + many big city
+  lights that now and then dim, behind a RAIN-ON-GLASS SIMULATION on one canvas
+  (`src/ui/rainGlass.ts`, developer's reference "Raindrops on Window Loop", calmer): lumpy
+  drop sprites (never perfect circles), new drops landing and merging, drops >= SLIDE_RADIUS
+  sliding (max 3 at once) nearly STRAIGHT down (steering from drop to drop looked odd), swallowing
+  drops in its way and wiping small ones from its path; trail look "T3, wiped path" (a clean
+  darker channel with faint glossy edges, drawn in chunks so no line shows down the middle;
+  drops look "D1"; its top fades in over TRAIL_TAPER px) that dries up over TRAIL_LIFE (12 s). ~30 fps, pauses while
+  hidden, stops when the canvas leaves the page, one still frame with reduced motion; the
+  canvas carries data-drops/-sliding/-trails counts for checks. Pure parts tested in
+  tests/rainGlass.test.ts. (Earlier tries: white drops and falling streaks looked like snow);
+  Misty morning = "M8, fogged glass" (pastel glows drifting and dimming behind misted glass,
+  no drops). Left-panel colours/rows follow.
+  Left-panel open rows: rain = D1-style drops on the glass (.prism-lib-wdrop) with one sliding
+  through now and then, leaving a "wiped path" trail (.prism-lib-wtrail, same steps, top faded,
+  dries up).
+  Skies: `src/ui/themeSkies.ts` (newSkyHtml + NEW_SKY_CSS; drops/petals/ripples move on
+  animationiteration via wireSky). Left panel: NEWER_PANELS/NEWER_ROWS + rowSkyHtml branches in
+  `src/theme/libraryTheme.ts`. Lyrics: LYRICS_LINE_COLOURS. Afterglow, Misty morning and Window
+  rain were made darker/calmer than the mockups so Spotify's grey song text stays readable.
+  Prism's own page still keeps its twilight sky. SETTINGS PICKER = "D": `.prism-seg.is-pills`
+  (wrapping pills) + `ThemeStrip` (the chosen theme's real sky). BUG FIXED with it: the page
+  updater's clear() removed EVERY .prism-pl-sky in the window (lyrics view, preview strip); it
+  now only removes the main view's own sky.
 - LIBRARY PANEL THEME (2026-11-24, developer's picks after 4 mockup rounds; committed and merged
   2026-11-24 in PR #11):
   with a playlist theme on, Spotify's left panel gets a STILL background (the developer hated a
@@ -567,6 +619,9 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   the best home for a song", shown ONLY on hover/focus. Rejected along the way: matte boxes,
   records, prism beams, tapes, jars, ribbons, hearts/home, puzzle pieces (several styles),
   constellations, bouquet, paint drops, and bubble ideas for Add.
+- TESTING NOTE (2026-11-25): reloading Spotify over CDP with `Page.reload {ignoreCache: true}`
+  left Spotify's own chunks half-loaded (lottie-animation "Cannot access 'f' before
+  initialization") and playlist pages showed "Something went wrong". Use a plain Page.reload.
 - 15 (to-do): rename the internal ids from "playlist-prism" / "Playlist Prism" to just "prism"
   (custom app nameId and folder, `window.__playlistPrism` hook, `[Playlist Prism]` console
   prefix, "playlist-prism:*" window events, the header icon's aria-label). Storage keys are
@@ -624,12 +679,31 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   [data-encore-id="menuRow"] (hover = data-hovered/data-focused/data-open), "Add to playlist"
   = [data-encore-id="popover"][data-trigger="ContextMenuSubmenu"] (search box + clear inner
   menu); Spotify's scroll fades are the menu's ::before/::after gradients in #242424.
-  Next: profile page (/user/...: grey avatar wash on #121212), then the unchecked ones below.
+  16f PROFILE (2026-11-25, developer's pick "A, full sky" + the avatar ring from "D"; built, not
+  committed): page kind "profile" = /user/<id> and its Show all pages (followers, following,
+  top/artists, top/tracks, playlists). Full sky (shared cleared washes), each
+  `section.main-shelf-shelf` on lavender glass, the photo (`.main-entityHeader-imageContainer`)
+  in the round Cover ring (colours shared via `src/ui/ringColours.ts`; @property is registered
+  in the always-on CSS too). Spotify's #333 square + square shadow behind round card photos
+  (`.main-cardImage-imageWrapper`) are cleared, the shadow moved onto the img.
+  16g PODCASTS (2026-11-25, developer's pick "A, full sky"; built, not committed): page kind
+  "podcast" = /show/<id> and /episode/<id>. Shared sky + cleared washes; the episode page's
+  #121212 block = `[data-testid="episode"] div:has(> .playlist-playlist-actionBarBackground-background)`;
+  Spotify's blue "not played" dot reads `--spice-notification` (set to lavender on the page);
+  `[data-testid="trailer-component"]` = lavender glass. SEARCH RESULTS were checked 2026-11-25:
+  already themed by 16c (podcast results tab included).
+  Spicetify's own Marketplace page (/marketplace) is still plain #121212 (not Spotify's; ask).
+  16h DIALOGS (2026-11-25, developer's pick "A, Prism pop-up"; built, not committed): CSS in
+  chromeTheme.ts. Two kinds: `.GenericModal__overlay [role=dialog] > *` (Edit details) and
+  native `dialog[open]` (Keyboard shortcuts = the dialog itself, Credits = its only child
+  `.main-trackCreditsModalV2-container`), backdrop = `dialog::backdrop`. Glass card + Text box +
+  Main button looks. The page also holds a hidden [role=dialog] language list: find dialogs by
+  content. Test openers: playlist title (Edit details, close with Escape), Ctrl+/ (shortcuts),
+  song row right-click > View credits.
   YOUR LIBRARY has no page in this Spotify: /collection, /collection/playlists etc. all
   redirect to /collection/tracks (Liked Songs), and "Expand Your Library" only widens the left
   panel, which libraryTheme.ts already themes.
-  Not checked yet: search results, podcast/episode/show pages and Spotify's dialogs. Check
-  them as part of this step.
+  Step 16 pages are all done (2026-11-25); left: Marketplace (Spicetify's, ask).
   Facts found: every page above has `.Root__main-view` at #121212 and no data-prism-theme;
   album/artist/Liked headers use the same `.main-entityHeader-*` + action bar +
   `.main-trackList-*` song list as playlists, and `.main-topBar-background` takes the cover

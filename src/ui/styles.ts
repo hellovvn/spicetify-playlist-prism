@@ -6,6 +6,7 @@
 // other pages are never affected.
 
 import { PRISM_STAR_CSS } from "./prismStar";
+import { RING_ANGLE_PROPERTY, RING_GLINT, RING_RAINBOW } from "./ringColours";
 
 const STYLE_ID = "playlist-prism-styles";
 
@@ -417,6 +418,23 @@ const CSS = `
 .prism-seg button:hover:not(.on) { background: rgba(255, 255, 255, 0.12); }
 .prism-seg button.on { background: #b794ff; color: #1b0b33; }
 .prism-seg button:focus-visible { outline: 2px solid #cdb8ff; outline-offset: -2px; }
+/* PILLS variant (2026-11-25, theme picker "D"): the same choice, but each
+   option is its own glass pill and they wrap onto more lines (for long lists
+   like the playlist themes). Chosen = the same lavender. */
+.prism-seg.is-pills { display: flex; flex-wrap: wrap; gap: 6px; border: none; background: none; box-shadow: none; overflow: visible; border-radius: 0; }
+.prism-seg.is-pills button { border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.28); background: rgba(255, 255, 255, 0.06); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2); }
+.prism-seg.is-pills button + button { border-left: 1px solid rgba(255, 255, 255, 0.28); }
+.prism-seg.is-pills button.on { border-color: #b794ff; background: #b794ff; color: #1b0b33; }
+.prism-seg.is-pills button:hover:not(.on) { background: rgba(255, 255, 255, 0.12); }
+.prism-seg.is-pills button:focus-visible { outline-offset: 2px; }
+/* Theme preview strip (src/ui/ThemeStrip.tsx): the chosen theme's real sky. */
+/* The sky's moving parts are their own GPU layers, which slipped past the
+   rounded corners (overflow + border-radius didn't clip them) and made the
+   edge look ragged. clip-path clips them too, and the rim is drawn ON TOP
+   of the sky (::after), so it's one even line all the way round. */
+.prism-theme-strip { position: relative; height: 72px; border-radius: 12px; overflow: hidden; clip-path: inset(0 round 12px); isolation: isolate; background: #121212; display: flex; align-items: center; justify-content: center; }
+.prism-theme-strip::after { content: ""; position: absolute; inset: 0; z-index: 2; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.22); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15); pointer-events: none; }
+.prism-theme-strip-none { font-size: 12px; color: rgba(255, 255, 255, 0.55); }
 
 /* ----- Organize review (step 13c) -----
    Group cards lift a little on hover; the x button is glass. */
@@ -975,11 +993,7 @@ const CSS = `
    round a centre, like a colour wheel) that STARTS at that angle, so as the
    angle turns, every colour slides round the border. On top, a white
    "comet" of light chases round with it. */
-@property --prism-ring-angle {
-  syntax: "<angle>";
-  inherits: true;
-  initial-value: 0deg;
-}
+${RING_ANGLE_PROPERTY}
 .prism-artwork {
   position: relative;
   isolation: isolate; /* keeps the glow (z-index -1) behind the cover, not behind the page */
@@ -1002,9 +1016,7 @@ const CSS = `
   inset: 0;
   z-index: -1;
   border-radius: 15px;
-  background:
-    conic-gradient(from var(--prism-ring-angle), transparent 0 70%, rgba(255, 255, 255, 0.7) 84%, transparent 94%),
-    conic-gradient(from var(--prism-ring-angle), #ff8fc6, #ffd98a, #86e8b8, #8ec5ff, #c3a6ff, #f59cf0, #ff8fc6);
+  background: ${RING_GLINT}, ${RING_RAINBOW};
   filter: blur(1.5px);
   opacity: 0.9;
 }
@@ -1016,7 +1028,7 @@ const CSS = `
   inset: -4px;
   z-index: -1;
   border-radius: 18px;
-  background: conic-gradient(from var(--prism-ring-angle), #ff8fc6, #ffd98a, #86e8b8, #8ec5ff, #c3a6ff, #f59cf0, #ff8fc6);
+  background: ${RING_RAINBOW};
   filter: blur(12px);
   opacity: 0.7;
 }
@@ -1026,7 +1038,6 @@ const CSS = `
 .prism-artwork.mosaic img:nth-child(2) { border-top-right-radius: 12px; }
 .prism-artwork.mosaic img:nth-child(3) { border-bottom-left-radius: 12px; }
 .prism-artwork.mosaic img:nth-child(4) { border-bottom-right-radius: 12px; }
-@keyframes prism-ring-turn { to { --prism-ring-angle: 360deg; } }
 
 /* A glass pill button for places outside Spotify's own buttons (the side
    panel's "View full stats", the stats page's "Back to playlist"). It looks

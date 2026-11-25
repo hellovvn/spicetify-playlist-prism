@@ -10,14 +10,23 @@ import type { SourcedTag } from "../tags/combineTags";
 import { isJunkTagName } from "../tags/cleanTags";
 import { tagColours } from "../ui/tagLabels";
 
-export type PlaylistThemeId = "none" | "aurora" | "stars" | "nebula";
+export type PlaylistThemeId =
+  | "none" | "aurora" | "stars" | "nebula"
+  // Added 2026-11-25 (developer's picks): Prism's own twilight sky and six new looks.
+  | "twilight" | "afterglow" | "mist" | "milkyway" | "rain" | "blossom";
 
 // In the order Settings shows them.
 export const PLAYLIST_THEMES: { id: PlaylistThemeId; label: string }[] = [
   { id: "none", label: "No theme" },
+  { id: "twilight", label: "Twilight" },
   { id: "aurora", label: "Northern lights" },
   { id: "stars", label: "Starry night" },
+  { id: "milkyway", label: "Milky Way" },
   { id: "nebula", label: "Bubble nebula" },
+  { id: "afterglow", label: "Afterglow" },
+  { id: "mist", label: "Misty morning" },
+  { id: "blossom", label: "Blossom canopy" },
+  { id: "rain", label: "Window rain" },
 ];
 
 // Settings sends this after a change, so open playlists update at once.
@@ -26,6 +35,42 @@ export const PLAYLIST_THEME_CHANGED_EVENT = "playlist-prism:playlist-theme-chang
 // The saved text -> a theme. Nothing saved, or anything unknown, = no theme.
 export function parsePlaylistTheme(saved: string | null): PlaylistThemeId {
   return PLAYLIST_THEMES.some((t) => t.id === saved) ? (saved as PlaylistThemeId) : "none";
+}
+
+// ----- A theme for ONE playlist (14b, developer's pick "A, right-click sub-menu", 2026-11-25) -----
+// Saved ONLY in Prism (Spicetify.LocalStorage "prism:playlistThemes", a JSON map
+// playlist URI -> theme id). The playlist itself is NEVER changed (hard rule).
+// A playlist without an entry uses the main theme from Settings ("Use my
+// default"); an entry may also be "none" (this playlist keeps Spotify's look).
+export type ThemeOverrides = Record<string, PlaylistThemeId>;
+
+// The saved JSON -> overrides. Broken text or unknown themes are dropped.
+export function parseThemeOverrides(saved: string | null): ThemeOverrides {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(saved ?? "{}");
+  } catch {
+    return {};
+  }
+  const out: ThemeOverrides = {};
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return out;
+  for (const [uri, id] of Object.entries(raw as Record<string, unknown>)) {
+    if (uri.startsWith("spotify:playlist:") && typeof id === "string" && PLAYLIST_THEMES.some((t) => t.id === id)) out[uri] = id as PlaylistThemeId;
+  }
+  return out;
+}
+
+// A copy with this playlist's theme set, or removed (null = back to the main theme).
+export function withThemeOverride(overrides: ThemeOverrides, uri: string, theme: PlaylistThemeId | null): ThemeOverrides {
+  const next = { ...overrides };
+  if (theme === null) delete next[uri];
+  else next[uri] = theme;
+  return next;
+}
+
+// The theme to show: the playlist's own one if it has one, else the main theme.
+export function effectiveTheme(main: PlaylistThemeId, overrides: ThemeOverrides, playlistUri: string | null | undefined): PlaylistThemeId {
+  return (playlistUri && overrides[playlistUri]) || main;
 }
 
 // A song's main genre: its strongest tag that isn't a personal label.
@@ -75,6 +120,23 @@ export function mixCaption(mix: GenreMix): string {
   return parts.join(" · ") + from;
 }
 
+// The lyrics view with a playlist theme on (14c, developer's pick "D, moving
+// sky + reading veil", 2026-11-25): the theme's own sky behind the lyrics, a
+// soft dark veil behind the lines, and the lines tinted to the theme. The line
+// being sung stays white; "passed" = lines already sung, "inactive" = lines
+// still to come. "none" keeps Prism's twilight lyrics (src/ui/lyricsTheme.ts).
+export const LYRICS_LINE_COLOURS: Record<Exclude<PlaylistThemeId, "none">, { passed: string; inactive: string }> = {
+  aurora: { passed: "#c9fbe6", inactive: "rgba(143, 247, 207, 0.55)" },
+  stars: { passed: "#fff1cc", inactive: "rgba(255, 232, 180, 0.7)" },
+  nebula: { passed: "#ffd9ea", inactive: "rgba(246, 166, 200, 0.6)" },
+  twilight: { passed: "#e9dcff", inactive: "rgba(205, 184, 255, 0.6)" },
+  afterglow: { passed: "#ffe0d2", inactive: "rgba(255, 190, 170, 0.62)" },
+  mist: { passed: "#fff3ea", inactive: "rgba(255, 235, 240, 0.65)" },
+  milkyway: { passed: "#e6e0ff", inactive: "rgba(200, 190, 255, 0.58)" },
+  rain: { passed: "#ffe9cf", inactive: "rgba(255, 213, 158, 0.6)" },
+  blossom: { passed: "#ffe2ee", inactive: "rgba(255, 190, 215, 0.62)" },
+};
+
 // Which of Spotify's pages a playlist theme paints (step 16, developer's pick
 // "A, full sky", 2026-11-24):
 //   "playlist" = /playlist/<id>: the sky plus the colour rail and genre mix,
@@ -92,8 +154,16 @@ export function mixCaption(mix: GenreMix): string {
 //   "settings" = Spotify's Settings (/preferences): NO sky, Quiet night's
 //                still dark purple with each section on a card, Prism toggles
 //                (developer's pick "C, quiet night + cards", 2026-11-24).
+//   "profile"  = a profile (/user/<id>) and its "Show all" pages (followers,
+//                following, top artists/tracks, playlists): the full sky, its
+//                sections on lavender glass and the moving cover ring round
+//                the avatar (developer's pick "A, full sky + avatar ring",
+//                2026-11-25).
+//   "podcast"  = a podcast show (/show/<id>) or episode (/episode/<id>): the
+//                full sky like albums, Spotify's greens/blues turned Prism
+//                (developer's pick "A, full sky", 2026-11-25).
 // null = a page the theme leaves alone.
-export type ThemedPage = "playlist" | "sky" | "band" | "search" | "genre" | "settings";
+export type ThemedPage = "playlist" | "sky" | "band" | "search" | "genre" | "settings" | "profile" | "podcast";
 
 export function themedPageKind(path: string | undefined): ThemedPage | null {
   if (path === "/") return "band";
@@ -104,5 +174,7 @@ export function themedPageKind(path: string | undefined): ThemedPage | null {
   if (p === "/search" || p.startsWith("/search/")) return "search";
   if (/^\/genre\/[A-Za-z0-9-]+$/.test(p)) return "genre";
   if (p === "/preferences") return "settings";
+  if (/^\/(show|episode)\/[A-Za-z0-9]{22}$/.test(p)) return "podcast";
+  if (/^\/user\/[^/]+(\/(followers|following|playlists|top\/artists|top\/tracks))?$/.test(p)) return "profile";
   return null;
 }

@@ -1,7 +1,7 @@
 // Unit tests for playlist themes (pure parts). Run with: npm test
 
 import { describe, expect, test } from "vitest";
-import { genreColours, genreMix, mainGenre, mixCaption, parsePlaylistTheme, themedPageKind } from "../src/theme/playlistTheme";
+import { LYRICS_LINE_COLOURS, PLAYLIST_THEMES, effectiveTheme, parseThemeOverrides, withThemeOverride, genreColours, genreMix, mainGenre, mixCaption, parsePlaylistTheme, themedPageKind } from "../src/theme/playlistTheme";
 
 const tag = (name: string, weight: number) => ({ name, weight, source: "track" as const });
 
@@ -15,7 +15,8 @@ describe("parsePlaylistTheme", () => {
     expect(parsePlaylistTheme("nebula")).toBe("nebula");
   });
   test("anything unknown is no theme", () => {
-    expect(parsePlaylistTheme("ocean")).toBe("none");
+    expect(parsePlaylistTheme("volcano")).toBe("none");
+    expect(parsePlaylistTheme("ocean")).toBe("none"); // Ocean was removed 2026-11-25: old saves fall back
     expect(parsePlaylistTheme("")).toBe("none");
   });
 });
@@ -96,9 +97,59 @@ describe("themedPageKind", () => {
     expect(themedPageKind("/preferences")).toBe("settings");
     expect(themedPageKind("/preferences/")).toBe("settings");
   });
+  test("profiles and their Show all pages get the profile kind", () => {
+    expect(themedPageKind("/user/someone")).toBe("profile");
+    expect(themedPageKind("/user/12159898392/")).toBe("profile");
+    expect(themedPageKind("/user/some.one_x-1/followers")).toBe("profile");
+    expect(themedPageKind("/user/someone/following")).toBe("profile");
+    expect(themedPageKind("/user/someone/top/artists")).toBe("profile");
+    expect(themedPageKind("/user/someone/top/tracks")).toBe("profile");
+    expect(themedPageKind("/user/someone/playlists")).toBe("profile");
+  });
+  test("podcast shows and episodes get the podcast kind", () => {
+    expect(themedPageKind("/show/3IM0lmZxpFAY7CwMuv9H4g")).toBe("podcast");
+    expect(themedPageKind("/episode/4v5XrpL3Iw2soqXZSDNscC/")).toBe("podcast");
+  });
   test("other pages are left alone", () => {
-    for (const path of [undefined, "", "/searching", "/index.html", "/collection", "/artist/09BQyf74gmKlaDkWdbdbqY/discography", "/playlist-prism", "/genre", "/genre/x/y", "/preferences/advanced", "/preferencesx"]) {
+    for (const path of [undefined, "", "/searching", "/index.html", "/collection", "/artist/09BQyf74gmKlaDkWdbdbqY/discography", "/playlist-prism", "/genre", "/genre/x/y", "/preferences/advanced", "/preferencesx", "/user", "/user/", "/user/someone/other", "/user/someone/top", "/show/x", "/show/3IM0lmZxpFAY7CwMuv9H4g/episodes"]) {
       expect(themedPageKind(path)).toBeNull();
     }
+  });
+});
+
+describe("LYRICS_LINE_COLOURS", () => {
+  test("every theme (except No theme) has lyric line colours", () => {
+    for (const { id } of PLAYLIST_THEMES) {
+      if (id === "none") continue;
+      expect(LYRICS_LINE_COLOURS[id].passed).toMatch(/^#/);
+      expect(LYRICS_LINE_COLOURS[id].inactive).toMatch(/^rgba\(/);
+    }
+  });
+});
+
+describe("themes for single playlists (14b)", () => {
+  const A = "spotify:playlist:37i9dQZF1DXcBWIGoYBM5M";
+  const B = "spotify:playlist:5nR6DVire9op0SxTxFNlQZ";
+  test("parseThemeOverrides keeps only playlists with known themes", () => {
+    expect(parseThemeOverrides(null)).toEqual({});
+    expect(parseThemeOverrides("not json")).toEqual({});
+    expect(parseThemeOverrides("[1,2]")).toEqual({});
+    expect(parseThemeOverrides(JSON.stringify({ [A]: "rain", [B]: "volcano", "spotify:album:x": "rain", [`${A}x`]: 3 }))).toEqual({ [A]: "rain" });
+    expect(parseThemeOverrides(JSON.stringify({ [A]: "none" }))).toEqual({ [A]: "none" });
+  });
+  test("withThemeOverride sets and removes without changing the original", () => {
+    const start = { [A]: "rain" as const };
+    const set = withThemeOverride(start, B, "blossom");
+    expect(set).toEqual({ [A]: "rain", [B]: "blossom" });
+    expect(withThemeOverride(set, A, null)).toEqual({ [B]: "blossom" });
+    expect(start).toEqual({ [A]: "rain" });
+  });
+  test("effectiveTheme: the playlist's own theme wins, else the main one", () => {
+    const o = { [A]: "blossom" as const, [B]: "none" as const };
+    expect(effectiveTheme("nebula", o, A)).toBe("blossom");
+    expect(effectiveTheme("nebula", o, B)).toBe("none");
+    expect(effectiveTheme("nebula", o, "spotify:playlist:other")).toBe("nebula");
+    expect(effectiveTheme("none", o, A)).toBe("blossom");
+    expect(effectiveTheme("twilight", o, null)).toBe("twilight");
   });
 });
