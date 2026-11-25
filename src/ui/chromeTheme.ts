@@ -30,6 +30,12 @@ const PINK = "#f6a6c8";
 const GRADIENT = "linear-gradient(90deg, #f6a6c8, #b9a7ff)";
 const RAINBOW = "linear-gradient(90deg, #f6a6c8, #ffd59e, #9fe3d0, #a9d4ff, #b9a7ff)";
 
+// Right-click menus: clear frost over a deep purple tint (so the menu stays
+// readable over a light album cover), icons in Prism pastels by turn.
+const MENU_GLASS =
+  "linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.06)), rgba(43, 26, 82, 0.62)";
+const MENU_ICON_COLOURS = ["#f4c0d1", "#cdb8ff", "#9fe1cb", "#b5d4f4"];
+
 const ON = `html[${ATTR}]`;
 const BARS = [".Root__globalNav", ".Root__now-playing-bar", ".Root__right-sidebar"].map((s) => `${ON} ${s}`).join(",\n");
 
@@ -81,6 +87,56 @@ ${ON} .main-connectBar-connectBar::after {
   content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 3px;
   border-radius: 3px; background: ${RAINBOW}; pointer-events: none;
 }
+
+/* Right-click menus and their sub-menus (look "D, clear frost", developer's
+   pick 2026-11-25): see-through frosted glass with a white rim and top shine,
+   pastel icons (pink, lavender, mint, sky in turn), and Prism's standard
+   hover (lavender rim + glow). Spotify's menus are Encore components: the box
+   is [data-encore-id="menu"], each line [data-encore-id="menuRow"], which
+   marks hover / keyboard focus / an open sub-menu with data-hovered,
+   data-focused and data-open. They live in <body> (tippy pop-ups), so they
+   are styled on every page. */
+${ON} [data-encore-id="menu"],
+${ON} [data-encore-id="popover"][data-trigger="ContextMenuSubmenu"] {
+  background: ${MENU_GLASS} !important;
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  border-radius: 16px !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 14px 34px rgba(10, 0, 30, 0.45) !important;
+  backdrop-filter: blur(22px) saturate(140%);
+  -webkit-backdrop-filter: blur(22px) saturate(140%);
+}
+/* A sub-menu with a search box ("Add to playlist") is a popover holding the
+   search box and a menu: the popover is the one glass card, the menu inside
+   it goes clear, and the search box is a glass text box. */
+${ON} [data-trigger="ContextMenuSubmenu"] [data-encore-id="menu"] {
+  background: transparent !important;
+  border: 0;
+  box-shadow: none !important;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+/* Spotify fades a scrolling menu's top/bottom edge into its grey (#242424). */
+${ON} [data-encore-id="menu"]::before,
+${ON} [data-encore-id="menu"]::after { background-image: none !important; }
+${ON} [data-trigger="ContextMenuSubmenu"] input {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  border-radius: 12px !important;
+}
+${ON} [data-trigger="ContextMenuSubmenu"] input:focus { border-color: rgba(205, 184, 255, 0.75) !important; box-shadow: 0 0 0 3px rgba(205, 184, 255, 0.25); }
+${ON} [data-encore-id="menuRow"] {
+  border-radius: 9px;
+  transition: background 150ms ease-out, box-shadow 150ms ease-out;
+}
+${ON} [data-encore-id="menuRow"]:is([data-hovered], [data-focused], [data-open]) {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.24), rgba(205, 184, 255, 0.1)) !important;
+  box-shadow: inset 0 0 0 1px rgba(205, 184, 255, 0.75), 0 0 12px rgba(205, 184, 255, 0.4);
+}
+${ON} [data-encore-id="menu"] [class*="menu-divider"] { border-color: rgba(255, 255, 255, 0.14) !important; background-color: rgba(255, 255, 255, 0.14) !important; }
+${MENU_ICON_COLOURS.map(
+  (c, i) =>
+    `${ON} [data-encore-id="menuRow"]:nth-child(${MENU_ICON_COLOURS.length}n+${i + 1}) > :first-child svg { color: ${c} !important; fill: ${c} !important; }`,
+).join("\n")}
 `;
 
 export function startChromeTheme(): void {
