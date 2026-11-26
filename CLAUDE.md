@@ -110,7 +110,7 @@ Since step 12a this is a Spicetify CUSTOM APP (src/settings.json has an "icon"),
   Last.fm credit in Settings > About, linking to ko-fi.com/<username> in the browser.
 - The username is ONE constant, `KOFI_USERNAME` in `src/support.ts` ("hellovvn"); while empty
   the button is hidden. Also `.github/FUNDING.yml` (GitHub Sponsor button) and the README's
-  Support section. Payments go through a PayPal business account (developer's own setup). A plain link only: never load Ko-fi's widget/overlay script inside Spotify.
+  Support section. A plain link only: never load Ko-fi's widget/overlay script inside Spotify.
 
 ## Secrets
 - The Last.fm API key is entered by the user in a settings field and stored in
@@ -824,11 +824,18 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   has no `.__prism` hook, and zips with Windows' tar ("/" paths; Compress-Archive's "\" paths break
   macOS/Linux unzip). The page bundle keeps the demo code, switched off.
   MARKETPLACE (2026-11-26, developer's request): listed via repo topic `spicetify-apps` +
-  root `manifest.json` (name, description, preview docs/media/preview.png = a still of home.webp,
+  root `manifest.json` (name, description, preview docs/media/preview.png = mockup
+  "B, collage", developer's pick of five: star + "Prism" + tagline over three glass screens (Grow,
+  stats page, Northern lights playlist), frames from the docs/media clips, 1200x900,
   readme). The Marketplace can't install custom apps: it shows the README, whose Install section
   says: download the release zip, unzip into CustomApps, `spicetify config custom_apps prism`,
   apply. So every user-facing change needs a NEW GitHub Release (bump package.json version, run
   `npm run release`, attach the zip) or users never get it.
+  INSTALL SCRIPT (2026-11-26): `install.ps1` (repo root, README's one-liner `iwr -useb
+  https://raw.githubusercontent.com/hellovvn/spicetify-prism/main/install.ps1 | iex`) downloads the
+  LATEST release's prism-*.zip, replaces only CustomApps\prism (folder found via `spicetify -c`),
+  adds prism to custom_apps if missing, runs `spicetify apply`. Re-running = update. Never run it on
+  the dev machine: it would replace the dev build with the release.
 
 ## Dev loop (Claude runs this, not the developer)
 - If Spotify is restarted normally (not by the watch tab), the debug port 9222 is closed and the

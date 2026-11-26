@@ -240,8 +240,17 @@ profile, and the lyrics themselves are never stored.
 You need: the Spotify desktop app, [Spicetify](https://spicetify.app/docs/getting-started) and a
 free [Last.fm API key](https://www.last.fm/api/account/create).
 
-Prism is a Spicetify **custom app**. You'll find it in the Spicetify Marketplace, but the
-Marketplace can't install custom apps itself, so it takes three steps:
+**Windows, one step:** paste this into PowerShell.
+
+```powershell
+iwr -useb https://raw.githubusercontent.com/hellovvn/spicetify-prism/main/install.ps1 | iex
+```
+
+It downloads the latest release into Spicetify's `CustomApps` folder and turns Prism on
+([read the script](install.ps1) first if you like). Run it again any time to update.
+
+**By hand (any system):** Prism is a Spicetify **custom app**. You'll find it in the Spicetify
+Marketplace, but the Marketplace can't install custom apps itself, so it takes three steps:
 
 1. Download `prism-<version>.zip` from the [latest release](https://github.com/hellovvn/spicetify-prism/releases/latest).
 2. Unzip it into Spicetify's `CustomApps` folder, so you end up with `CustomApps/prism`.
@@ -259,7 +268,8 @@ Marketplace can't install custom apps itself, so it takes three steps:
 Then open Spotify, click the Prism star in the top bar, open **Settings** and paste your Last.fm
 API key.
 
-**Updating:** download the new zip, replace the `prism` folder, and run `spicetify apply`. Your
+**Updating:** run the PowerShell line again, or download the new zip, replace the `prism`
+folder, and run `spicetify apply`. Your
 settings, tones and stats stay (they're saved in Spotify, not in the folder).
 
 **After a Spotify update** Spicetify may be switched off: run `spicetify restore backup apply`
