@@ -18,9 +18,11 @@ export interface SettingsPanelProps {
   notice?: string;
   // Called after a key was tested and saved (e.g. to continue a Prism).
   onSaved?: () => void;
+  // Opens "Report a bug" / "Suggest an idea" (ReportScreen.tsx).
+  onReport?: (kind: "bug" | "idea") => void;
 }
 
-export function SettingsPanel({ notice, onSaved }: SettingsPanelProps) {
+export function SettingsPanel({ notice, onSaved, onReport }: SettingsPanelProps) {
   const { ButtonPrimary, ButtonSecondary } = Spicetify.ReactComponent;
 
   // useState(initial) returns [currentValue, functionToChangeIt].
@@ -179,6 +181,23 @@ export function SettingsPanel({ notice, onSaved }: SettingsPanelProps) {
         song playing now at the top). Off: the panel stays as Spotify makes it. Right-click a playlist &gt; Prism stats
         always opens the full stats page.
       </p>
+
+      {onReport && (
+        <>
+          <h3 className="prism-heading" style={{ margin: "12px 0 0" }}>Help make Prism better</h3>
+          <p style={{ color: "var(--spice-subtext)", fontSize: 13, margin: 0 }}>
+            Found something broken, or wish Prism did something? Tell us. Reports are posted publicly on Prism's GitHub.
+          </p>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <ButtonSecondary buttonSize="sm" onClick={() => onReport("bug")} data-prism="report-bug">
+              Report a bug
+            </ButtonSecondary>
+            <ButtonSecondary buttonSize="sm" onClick={() => onReport("idea")} data-prism="report-idea">
+              Suggest an idea
+            </ButtonSecondary>
+          </div>
+        </>
+      )}
     </div>
   );
 }

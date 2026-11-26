@@ -652,6 +652,27 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
 - TESTING NOTE (2026-11-25): reloading Spotify over CDP with `Page.reload {ignoreCache: true}`
   left Spotify's own chunks half-loaded (lottie-animation "Cannot access 'f' before
   initialization") and playlist pages showed "Something went wrong". Use a plain Page.reload.
+- BUG REPORTS + IDEAS (asked 2026-11-25; relay deployed and tested 2026-11-25): users send a report from
+  inside Prism; it becomes a PUBLIC issue on spicetify-prism (developer's choice; may switch to a
+  private repo later). Prism calls a relay (`relay/`, Cloudflare Worker, setup in
+  relay/README.md) that opens the issue as the GitHub App `prism-reports` (App ID 5928498,
+  Issues read/write only, installed on spicetify-prism only). The App's .pem key lives ONLY as
+  the Worker secret GITHUB_PRIVATE_KEY: never in Prism, never committed (*.pem is gitignored).
+  No replies to users (no contact field). Relay: 3/sender/hour, 50/day, @mentions defused,
+  pure parts tested (tests/relayReport.test.ts).
+  FORM (mockup "B", developer's pick 2026-11-25): Settings > "Help make Prism better" > "Report a
+  bug" / "Suggest an idea" opens `src/ui/ReportScreen.tsx` INSIDE the Settings layer
+  (SettingsState.report), so the screen underneath is kept. Pure parts `src/report/report.ts`
+  (+ tests/report.test.ts): the same relay parseReport check runs in Prism; details = versions,
+  OS, screen, playlist theme, last 5 Prism warnings (`src/report/errorLog.ts` wraps
+  console.warn/error for "[Playlist Prism]" lines, memory only) scrubbed by scrubText (Last.fm
+  key, api_key=, Spotify ids, quoted names, text after " for "). User sees the details and can
+  untick them. RELAY LIVE at https://prism-reports.hellovvn-spicetify-prism.workers.dev
+  (REPORT_RELAY_URL in `src/report/send.ts`; empty = Send says "Reporting isn't set up yet").
+  Cloudflare account = the developer's (workers.dev subdomain hellovvn-spicetify-prism, KV
+  LIMITS id in relay/wrangler.toml); redeploy with `npx wrangler deploy` in relay/. Real test
+  2026-11-25: issue #33 by the bot, labels idea + from-prism, @mention defused (closed).
+  Testing note: never send a real report without the developer's OK (it's a public issue).
 - 15 (to-do): rename the internal ids from "playlist-prism" / "Playlist Prism" to just "prism"
   (custom app nameId and folder, `window.__playlistPrism` hook, `[Playlist Prism]` console
   prefix, "playlist-prism:*" window events, the header icon's aria-label). Storage keys are

@@ -594,6 +594,9 @@ const CSS = `
 }
 /* Number boxes: no browser up/down spinner (grey, can't be themed; developer's
    pick "A"). Typing, arrow keys and the scroll wheel still change the number. */
+/* Multi-line text box (approved 2026-11-25 with the report form, mockup "B"):
+   the text box's look, taller, grows by dragging its bottom edge only. */
+.prism-glass-input.is-multiline { font-family: inherit; font-size: 14px; line-height: 1.45; resize: vertical; min-height: 44px; }
 .prism-glass-input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 .prism-glass-input[type="number"]::-webkit-inner-spin-button,
 .prism-glass-input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
