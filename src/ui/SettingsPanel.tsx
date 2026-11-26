@@ -106,17 +106,6 @@ export function SettingsPanel({ notice, onSaved, onReport }: SettingsPanelProps)
           {notice}
         </p>
       )}
-      <p>
-        Prism uses Last.fm to get song-level genre and mood tags. Get a free API key at{" "}
-        <a href="https://www.last.fm/api/account/create" target="_blank" rel="noreferrer" style={{ color: "inherit", textDecoration: "underline" }}>
-          last.fm/api/account/create
-        </a>
-        , then paste the "API key" (not the "Shared secret") below. New to this?{" "}
-        <a href={LASTFM_KEY_GUIDE_URL} target="_blank" rel="noreferrer" data-prism="lastfm-key-guide" style={{ color: "inherit", textDecoration: "underline" }}>
-          Step-by-step guide
-        </a>
-        .
-      </p>
       <p style={{ color: "var(--spice-subtext)", fontSize: 13 }}>
         The key is stored only in Spotify on this computer. It is never added to the code or git.
       </p>
@@ -129,6 +118,23 @@ export function SettingsPanel({ notice, onSaved, onReport }: SettingsPanelProps)
         className="prism-glass-input"
         style={{ fontSize: 14 }}
       />
+      {/* How to get a key: short steps instead of one long sentence. */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        <p style={{ margin: 0 }}>
+          1. Get a free API key at{" "}
+          <a href="https://www.last.fm/api/account/create" target="_blank" rel="noreferrer" style={{ color: "inherit", textDecoration: "underline" }}>
+            last.fm/api/account/create
+          </a>
+        </p>
+        <p style={{ margin: 0 }}>2. Paste the "API key" (not the "Shared secret") in the box above</p>
+        <p style={{ margin: 0 }}>3. Click Test & save</p>
+        <p style={{ color: "var(--spice-subtext)", fontSize: 13, margin: "4px 0 0" }}>
+          Prism uses Last.fm for song-level genre and mood tags. New to this?{" "}
+          <a href={LASTFM_KEY_GUIDE_URL} target="_blank" rel="noreferrer" data-prism="lastfm-key-guide" style={{ color: "inherit", textDecoration: "underline" }}>
+            Step-by-step guide
+          </a>
+        </p>
+      </div>
       <div className="prism-actions" style={{ display: "flex", gap: 8 }}>
         {/* Spotify's own buttons, so they match the rest of the app. */}
         <ButtonPrimary buttonSize="sm" onClick={onSave} disabled={busy}>
