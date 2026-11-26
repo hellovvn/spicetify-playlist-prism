@@ -125,6 +125,10 @@ const BASE_CSS = `
 // stacked boxes; the outer one (.Root__right-sidebar-peek: position relative,
 // 8px corners) gets the theme on a flipped ::before layer, the inner ones are
 // cleared. The extra attribute in the selector outweighs chromeTheme's rules.
+// Prism's own stats in that panel (#prism-panel-stats, panelHost.tsx) cover
+// Spotify's panel, so they get the SAME flipped background on their host
+// (developer's request 2026-11-26: consistent with the left panel); with No
+// theme they keep their twilight.
 const SIDE = `html[data-prism-chrome][${SIDE_ATTR}] .Root__right-sidebar`;
 function rightPanelCss(theme: Exclude<PlaylistThemeId, "none">): string {
   return `
@@ -137,6 +141,12 @@ ${SIDE} aside,
 ${SIDE} aside::before,
 ${SIDE} .main-nowPlayingView-container aside > div,
 ${SIDE} .main-nowPlayingView-container { background: transparent !important; }
+${SIDE} #prism-panel-stats { background: none !important; isolation: isolate; }
+${SIDE} #prism-panel-stats::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  border-radius: inherit; background: ${panelBackground(theme)}; transform: scaleX(-1);
+}
+${SIDE} #prism-panel-stats > .prism-cosmos { background: transparent; }
 `;
 }
 

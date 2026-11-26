@@ -97,7 +97,7 @@ it. The rules for changing or adding elements are in CLAUDE.md under "UI element
 
 | Element | Where | Notes |
 |---|---|---|
-| Twilight background | `.prism-cosmos` (PrismPage, side panel) | Gradient, drifting glows, rainbow light waves, sparkles |
+| Twilight background | `.prism-cosmos` (PrismPage, side panel) | Gradient, drifting glows, rainbow light waves, sparkles. Side panel with a playlist theme on: the left panel's still theme background instead (main theme, flipped left-right like Spotify's Now Playing panel); cards unchanged |
 | Header | `.prism-header` + `PrismIcon` | Glass bar, Prism star icon (rainbow 4-point star, white glint) with twinkling sparkles, title, 32px secondary buttons |
 | Start tiles | `FlipTile` + `HomeIcons` | The ONLY place with the rainbow-swirl hover. Click flips to details, which have a quiet "← Back" |
 | Start bar (approved 2026-11-23, mockup "B"; icons 2026-11-24) | `StartBar` (StartBar.tsx, `button.prism-home-bar`) + an icon from HomeIcons, under the start tiles | Wide glass card (tile glass, 16px corners, min 64px tall): 64x40 pastel see-through icon, 15px label, one 13px line (`.prism-home-bar-text`) that shows ONLY on hover/focus: fades in with a 6px slide from the left in 250ms, space kept so nothing moves. Standard hover + 2px lift, press 0.97, NO flip and NO rainbow swirl. The icon animates while hovered/focused (`is-animating`, parts with `.prism-bar-ic`) and finishes its loop on leave; still with reduced motion. Merge playlists = `MergeIcon` ("Q1 bubbles": pink and sky bubbles drift into one mint-green bubble with green notes); Add a song to your playlists = `AddSongIcon` ("S1 compass": the needle swings and settles on the mint playlist, which lights up with a sparkle) |
@@ -122,6 +122,7 @@ it. The rules for changing or adding elements are in CLAUDE.md under "UI element
 | Top-bar icon | `src/assets/prism.svg` + `headerIcon.ts` | Spotify's top bar; spins on hover with a star halo and rainbow ring |
 
 ## History
+- 2026-11-26: Side-panel stats follow the main playlist theme: the left panel's still background, flipped (was always twilight). No theme = twilight as before.
 - 2026-11-26: The scanning icon switched from the faceted diamond with a star halo to the Prism star in a filling rainbow progress ring (mockup "D, glow + progress ring" of four, developer's pick).
 - 2026-11-26: NEW "New version notice" on the start page (the standard Notice, mockup "A").
 - 2026-11-25: NEW Spotify toast look "night + rainbow line" (look "A"), same as the tooltips; error toasts pink instead of red.
