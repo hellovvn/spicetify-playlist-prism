@@ -34,7 +34,7 @@ it. The rules for changing or adding elements are in CLAUDE.md under "UI element
 |---|---|---|---|
 | Main button | Spotify `ButtonPrimary` inside the page | Solid lavender pill, dark text, 48px | Hover: lighter lavender + soft glow, NO growing. Press 0.97. One per screen |
 | Secondary button | Spotify `ButtonSecondary` | Glass pill, white text. 48px in an action row (`.prism-actions`), 32px elsewhere | Standard hover/press |
-| Glass button (outside Spotify's buttons) | `.prism-glass-button` | Same as the 32px secondary button | Same |
+| Glass button (outside Spotify's buttons) | `.prism-glass-button` | Same as the 32px secondary button | Same. Also works on an `<a>` that leaves for the browser (add inline-flex + no underline): Settings' "Support Prism" (Ko-fi) with a 15px outline cup icon |
 | Quiet button | `.prism-quiet-button` | Lavender text, no box | Hover: text turns white |
 | Show/hide list (approved 2026-11-24, mockup "A") | A quiet button "▾ Show …" / "▴ Hide …" (`aria-expanded`, `aria-controls`) right after the line it explains; the list opens IN PLACE below it as a `.prism-glass-panel` of `.prism-row`s, max ~190px then scrolls inside | Same as the quiet button; the list is a still glass box | Click toggles; content below moves down. Starts closed. Used for Merge's duplicates |
 | Icon button | `.prism-icon-button` | 28px glass circle, e.g. × | Standard hover/press |
@@ -124,6 +124,7 @@ it. The rules for changing or adding elements are in CLAUDE.md under "UI element
 - 2026-11-25: Side panel numbers card = layout "B" (tone fit as the Score ring beside a 2x2 grid); before, a centred 2x2 grid with the tone fit as a 5th cell spanning the row.
 - 2026-11-25: NEW Spotify tooltip look "night + rainbow line" (mockup "D"). Left panel's round icon buttons (Expand Your Library) hover in Quiet night purple instead of Spotify's grey.
 - 2026-11-25: NEW side-panel tabs (mockup "B"); side-panel stats now show on every playlist (estimate + background scan for playlists Prism didn't make).
+- 2026-11-25: Settings got an "About" section (option "A" of four): the Last.fm credit and link required by Last.fm's API terms, built from the existing section heading + body/small text (no new element). Under it, a "Support Prism" glass button linking to Ko-fi (option "A" of four; existing glass button, no new element).
 - 2026-11-25: Theme preview strip: the edge was ragged (the sky's moving layers slipped past the rounded corners). Now clipped with clip-path and the rim drawn on top (::after), so it's one even line. Same look otherwise.
 - 2026-11-25: The Ocean playlist theme was removed (developer's request); 9 themes + No theme remain.
 - 2026-11-25: Theme skies tweaked after testing in Spotify: Twilight sparkles back, Northern lights colour drift, Milky Way band detail + one-way shooting stars, Blossom petal depths, petal shapes and a petal canopy, Window rain city lights + a rain-on-glass simulation (src/ui/rainGlass.ts), Misty morning = fogged glass, Ocean = underwater (`src/ui/themeSkies.ts`).
