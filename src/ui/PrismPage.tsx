@@ -482,7 +482,7 @@ function HomeScreen({ onStart, onOrganize, onMerge, onAddTo }: { onStart: (seed:
           details and buttons on the back (FlipTile.tsx). */}
       <div style={styles.modes}>
         <FlipTile id="mode-prism" icon={<PrismTileIcon />} label="Grow a playlist" tip="Turn one favourite song into a whole playlist">
-          <h3 className="prism-screen-title">Make a Prism playlist</h3>
+          <h3 className="prism-screen-title">Grow a playlist</h3>
           <p style={styles.subtext}>Start with a favourite song and grow a playlist of songs that feel like it.</p>
 
           <div style={styles.option}>
@@ -531,7 +531,7 @@ function HomeScreen({ onStart, onOrganize, onMerge, onAddTo }: { onStart: (seed:
             )}
           </div>
 
-          <p style={styles.hint}>Tip: right-click any song in Spotify and choose "Start a Prism playlist".</p>
+          <p style={styles.hint}>Tip: right-click any song in Spotify and choose "Grow a playlist with Prism".</p>
         </FlipTile>
 
         <FlipTile id="mode-organize" icon={<OrganizeIcon />} label="Remix into moods" tip="Split playlists by genre and mood">

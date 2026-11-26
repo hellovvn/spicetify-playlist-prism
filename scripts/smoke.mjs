@@ -230,7 +230,7 @@ try {
   await sleep(300);
   check("Cancel goes back to the start screen", await cdp.evaluate(`!!document.querySelector('[data-prism-state="home"]')`));
 
-  console.log("\n[2] Right-click menu: when should 'Start a Prism playlist' appear?");
+  console.log("\n[2] Right-click menu: when should 'Grow a playlist with Prism' appear?");
   const menuCases = [
     ["one song", ["spotify:track:4PhsKqMdgMEUSstTDAmMpg"], true],
     ["two songs (multi-select)", ["spotify:track:4PhsKqMdgMEUSstTDAmMpg", "spotify:track:047fCsbO4NdmwCBn8pcUXl"], false],

@@ -1,5 +1,5 @@
 // Seed panel: the Prism flow shown on the Prism page after
-// "Start a Prism playlist" (it was a popup before step 12a).
+// "Grow a playlist with Prism" (it was a popup before step 12a).
 //
 // It shows a loading spinner at once, then loads the song's details, tags,
 // BPM/key and mood itself, and fades the content in.

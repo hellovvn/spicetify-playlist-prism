@@ -7,7 +7,7 @@
 
 ## Start
 
-Right-click any song and choose **Start a Prism playlist**. You can also start from the Prism page
+Right-click any song and choose **Grow a playlist with Prism**. You can also start from the Prism page
 with the song that's playing, or a pasted song link.
 
 ## Step by step
