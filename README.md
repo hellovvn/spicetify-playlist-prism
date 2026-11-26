@@ -17,7 +17,6 @@
 <p align="center">
   <a href="https://hellovvn.github.io/spicetify-prism/"><b>Read the guide</b></a> ·
   <a href="#install">Install</a> ·
-  <a href="#getting-a-lastfm-api-key">Last.fm key</a> ·
   <a href="#support">Support</a>
 </p>
 
@@ -27,16 +26,55 @@
 
 ## Features
 
-| Feature | What it does |
-| --- | --- |
-| **[Grow a playlist](https://hellovvn.github.io/spicetify-prism/grow.html)** | Start with one song you love and get a playlist of songs that feel like it. |
-| **[Remix into moods](https://hellovvn.github.io/spicetify-prism/remix.html)** | Shuffle your playlists into fresh ones sorted by genre and mood. |
-| **[Merge playlists](https://hellovvn.github.io/spicetify-prism/merge.html)** | Stack your playlists together and drop the doubles. |
-| **[Add with Prism](https://hellovvn.github.io/spicetify-prism/add-with-prism.html)** | Let Prism find the best home for a song. |
-| **[Playlist tone](https://hellovvn.github.io/spicetify-prism/tone.html)** | Give a playlist a vibe and see which songs fit it and which drift. |
-| **[Playlist stats](https://hellovvn.github.io/spicetify-prism/stats.html)** | See what any playlist is made of: genres, moods, tempo, artists, eras. |
-| **[Stats beside your music](https://hellovvn.github.io/spicetify-prism/side-panel.html)** | A playlist's stats in Spotify's side panel while you listen. |
-| **[Playlist themes](https://hellovvn.github.io/spicetify-prism/themes.html)** | Nine moving skies across Spotify, and a different one per playlist. |
+Click a card for the full guide to that feature.
+
+<a href="https://hellovvn.github.io/spicetify-prism/grow.html"><img src="docs/media/cards/grow.svg" alt="Grow a playlist: read the guide" width="100%"></a>
+
+<p align="center"><img src="docs/media/grow.webp" alt="Growing a playlist from one song: ranked matches with score rings and New finds" width="640"></p>
+
+Right-click a song, pick the tags that fit, and Prism ranks songs from your own playlists, plus a few marked new finds. [Read the guide →](https://hellovvn.github.io/spicetify-prism/grow.html)
+
+<a href="https://hellovvn.github.io/spicetify-prism/remix.html"><img src="docs/media/cards/remix.svg" alt="Remix into moods: read the guide" width="100%"></a>
+
+<p align="center"><img src="docs/media/remix.webp" alt="Remixing a playlist into groups by genre and mood" width="640"></p>
+
+Pick playlists and Prism sorts their songs into new ones by genre and mood, or by vibes you choose. [Read the guide →](https://hellovvn.github.io/spicetify-prism/remix.html)
+
+<a href="https://hellovvn.github.io/spicetify-prism/merge.html"><img src="docs/media/cards/merge.svg" alt="Merge playlists: read the guide" width="100%"></a>
+
+<p align="center"><img src="docs/media/merge.svg" alt="Two playlist bubbles drifting into one, with the doubles dropped" width="640"></p>
+
+Pick two or more playlists and get one new playlist without the duplicates. [Read the guide →](https://hellovvn.github.io/spicetify-prism/merge.html)
+
+<a href="https://hellovvn.github.io/spicetify-prism/add-with-prism.html"><img src="docs/media/cards/add-with-prism.svg" alt="Add with Prism: read the guide" width="100%"></a>
+
+<p align="center"><img src="docs/media/add-with-prism.webp" alt="Add with Prism showing the five best-fitting playlists for a song" width="640"></p>
+
+Right-click a song and see the five playlists of yours it fits best. [Read the guide →](https://hellovvn.github.io/spicetify-prism/add-with-prism.html)
+
+<a href="https://hellovvn.github.io/spicetify-prism/tone.html"><img src="docs/media/cards/tone.svg" alt="Playlist tone: read the guide" width="100%"></a>
+
+<p align="center"><img src="docs/media/tone.webp" alt="Score rings showing how well each song fits a playlist's tone" width="640"></p>
+
+A score ring on every song shows how well it fits the playlist's vibe. [Read the guide →](https://hellovvn.github.io/spicetify-prism/tone.html)
+
+<a href="https://hellovvn.github.io/spicetify-prism/stats.html"><img src="docs/media/cards/stats.svg" alt="Playlist stats: read the guide" width="100%"></a>
+
+<p align="center"><img src="docs/media/stats.webp" alt="Playlist stats page with stat cards, genre bars and fingerprint bubbles" width="640"></p>
+
+Genres, moods, tempo, artists, eras and key for any playlist. [Read the guide →](https://hellovvn.github.io/spicetify-prism/stats.html)
+
+<a href="https://hellovvn.github.io/spicetify-prism/side-panel.html"><img src="docs/media/cards/side-panel.svg" alt="Stats beside your music: read the guide" width="100%"></a>
+
+<p align="center"><img src="docs/media/side-panel.webp" alt="Prism stats in Spotify's side panel next to a playlist" width="640"></p>
+
+The open playlist's stats in Spotify's right-hand panel while you listen. [Read the guide →](https://hellovvn.github.io/spicetify-prism/side-panel.html)
+
+<a href="https://hellovvn.github.io/spicetify-prism/themes.html"><img src="docs/media/cards/themes.svg" alt="Playlist themes: read the guide" width="100%"></a>
+
+<p align="center"><img src="docs/media/themes.webp" alt="A playlist page switching between Prism themes" width="640"></p>
+
+Moving skies for Spotify, and a different one per playlist if you like. [Read the guide →](https://hellovvn.github.io/spicetify-prism/themes.html)
 
 Prism judges every song on its own Last.fm tags, lyrics mood, tempo and key
 ([how songs are matched](https://hellovvn.github.io/spicetify-prism/how-it-works.html)). It only
@@ -48,16 +86,22 @@ writes to Spotify when you click a button that says so, and never deletes playli
 ## Install
 
 You need the Spotify desktop app and [Spicetify](https://spicetify.app/docs/getting-started).
-No Last.fm account needed. Tested on Windows; macOS and Linux should work
+No Last.fm account or key needed ([use your own key](https://hellovvn.github.io/spicetify-prism/lastfm-key.html) if you like). Tested on Windows; macOS and Linux should work
 ([report](https://github.com/hellovvn/spicetify-prism/issues) anything that breaks).
 
-**Windows, one step:** paste this into PowerShell. Run it again any time to update.
+There are **two ways** to install Prism. Pick one:
+
+### Option 1: one command (Windows)
+
+Paste this into PowerShell. Run it again any time to update.
 
 ```powershell
 iwr -useb https://raw.githubusercontent.com/hellovvn/spicetify-prism/main/install.ps1 | iex
 ```
 
-**By hand (any system):** the Marketplace can't install custom apps itself, so:
+### Option 2: by hand (any system)
+
+The Marketplace can't install custom apps itself, so:
 
 1. Download `prism-<version>.zip` from the [latest release](https://github.com/hellovvn/spicetify-prism/releases/latest).
 2. Unzip it into Spicetify's `CustomApps` folder, so you end up with `CustomApps/prism`
@@ -69,15 +113,11 @@ iwr -useb https://raw.githubusercontent.com/hellovvn/spicetify-prism/main/instal
    spicetify apply
    ```
 
-Then click the Prism star in Spotify's top bar. Updating, Spotify updates and building from source:
-[full install guide](https://hellovvn.github.io/spicetify-prism/install.html).
+Need more help? The [full install guide](https://hellovvn.github.io/spicetify-prism/install.html) explains:
 
-### Getting a Last.fm API key
-
-Optional: Prism comes with a shared Last.fm key. To use your own free key, make one at
-[last.fm/api/account/create](https://www.last.fm/api/account/create), then paste the **API key**
-(not the Shared secret) into Prism's **Settings** and click **Test & save**.
-[Step by step, and what Prism's key messages mean](https://hellovvn.github.io/spicetify-prism/lastfm-key.html).
+- how to update Prism to a new version
+- what to do if Prism disappears after Spotify updates itself
+- how to build Prism from its code (for developers)
 
 ## Support
 
