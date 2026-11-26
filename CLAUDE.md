@@ -816,6 +816,14 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   pick, possibly page by page; respect "UI elements" rules (new looks go in
   docs/ui-elements.md). Easiest first chunk: Liked Songs + album + artist (same layout as
   playlists).
+- NEW VERSION NOTICE (2026-11-26, mockup "A" of four, developer's pick; built, not committed):
+  the start page shows "Prism X is out. You have Y." (the standard Notice, `src/ui/UpdateNotice.tsx`)
+  when GitHub's latest RELEASE (api.github.com/repos/hellovvn/spicetify-prism/releases/latest,
+  no sign-in; drafts/pre-releases ignored) is newer than package.json's "version". Checked at most
+  once a day (`prism:updateCheck`; a 404 = no release yet, also remembered). "What's new" opens the
+  release page; "Not now" saves `prism:updateDismissed` = that version (a later one shows again).
+  Pure parts `src/update/version.ts` (+ tests/version.test.ts), fetch in `src/update/check.ts`.
+  TO RELEASE: bump package.json "version", then publish a GitHub release tagged vX.Y.Z.
 - 11: Cleanup: remove the debug hook, README, release (after 12).
 
 ## Dev loop (Claude runs this, not the developer)
