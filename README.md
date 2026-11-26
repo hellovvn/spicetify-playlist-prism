@@ -24,7 +24,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/images/start.png" alt="Prism start page with the Grow a playlist and Remix into moods tiles" width="720">
+  <img src="docs/images/start.png" alt="Prism start page: Grow a playlist and Remix into moods tiles, and the Merge playlists and Add a song bars" width="720">
 </p>
 
 ---
