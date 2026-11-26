@@ -14,6 +14,7 @@ import { testApiKey } from "../lastfm/client";
 import { LASTFM_KEY_GUIDE_URL } from "../lastfm/keyErrors";
 import { ThemeStrip } from "./ThemeStrip";
 import { kofiUrl } from "../support";
+import { version as PRISM_VERSION } from "../../package.json";
 
 const supportUrl = kofiUrl();
 
@@ -329,6 +330,7 @@ export function SettingsPanel({ notice, onReport }: SettingsPanelProps) {
               {/* Credit required by Last.fm's API terms ("credit Last.fm and include links"). Text only:
                   their logo needs written approval. Developer's pick "A" (2026-11-25). */}
               <h3 className="prism-heading">About</h3>
+              <p style={sub} data-prism="prism-version">Prism {PRISM_VERSION}</p>
               <p style={sub} data-prism="lastfm-credit">
                 Genre and mood tags and similar songs come from{" "}
                 <a href="https://www.last.fm/" target="_blank" rel="noreferrer" style={link}>
