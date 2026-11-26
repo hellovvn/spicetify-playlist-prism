@@ -275,7 +275,7 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
     `organized.from` = source playlist names; stats page says "Organized from ...").
     The smoke test opens the confirm screen only and NEVER clicks Create.
   - Start page redesign: DONE, committed 2026-11-22 with 13d. Mockup
-    "D" flip tiles (`src/ui/FlipTile.tsx`). The front shows a centered whimsical SVG icon and a
+    "D" tiles (`src/ui/ModeTile.tsx`; they flipped like cards until 2026-11-26, see below). The front shows a centered whimsical SVG icon and a
     label (`src/ui/HomeIcons.tsx`, the developer's picks after many mockup rounds). Tile 1,
     "Grow a playlist": a see-through matte pink boombox. Its speakers pulse with two ripple
     rings (no centre dot) and it has a small pill in the middle. Notes fly out from behind it
@@ -287,12 +287,16 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
     whatever order they reached), and music notes drop into whichever tape is on top
     (1.6 s loop, so the notes land during each pause).
     Icon animations run only while the tile has the class `is-animating`. On mouse leave or
-    blur, FlipTile lets each animation finish its current loop (Web Animations API:
+    blur, ModeTile lets each animation finish its current loop (Web Animations API:
     updateTiming iterations = current + 1) before removing the class, so nothing freezes
     mid-move. Hovering again during that wind-down restarts the loops. On hover there's a swirling pastel conic glow, sparkles, the icon
-    animates, and a short line appears. Click flips the tile to the old card content plus
-    "← Back". The hidden face is visibility:hidden, so Tab skips it. Reduced motion means no
-    turn or swirl. Smoke: `flip-prism`/`flip-organize` buttons, `unflip-*` Back.
+    animates, and a short line appears. NO FLIP since 2026-11-26 (developer: flipping felt
+    crowded): a click opens the task's own screen, like the start bars. Grow -> view "grow"
+    (`src/ui/GrowStart.tsx`); Remix -> straight to the playlist picker. Grow and Add a song's
+    first screen are the shared `src/ui/SongPick.tsx` (mockup "A"): two OPTION ROWS (song playing
+    now, picked by default / paste a link) + the action row Back · "Next: pick playlists" /
+    "Find playlists", in the same spot as the playlist picker's on Merge and Remix. Reduced motion: no swirl.
+    Smoke: `tile-prism`/`tile-organize` buttons, `grow-back`, `grow-next`, `grow-option-link`.
 - 14 (to-do, asked 2026-11-22; not designed yet, so show mockups first):
   - 14a THEMES: the user can switch the page's background away from purple twilight. Options:
     sunset, twilight (current), dusk, and a few more (for example dawn, aurora, ocean). Pick in
@@ -476,7 +480,7 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   no tags or mood / none of your picks), "Add" (one playlist) or an "Add to…" glass menu, and
   "Add all" (one playlist: into it; several: closest group by mood + tempo via
   closestByMoodAndTempo). Pure helper `addSongs` in editGroups.ts (tested). The page title of
-  this flow is now "Remix into moods" (the flip tile's back face still says "Organize playlists").
+  this flow is now "Remix into moods".
   GROUP CARDS = look "A, door tiles" (developer's pick, 2026-11-23): wide glass tiles (grid
   minmax(280px), so two per row), 84px cover mosaic (TILE_COVER) left, text beside it; hover =
   the standard lavender hover + lift (pink only marks a PICKED door/builder group, see
@@ -501,7 +505,7 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
 - Smoke note: "Cancel stops the scan part-way" can fail as a race when nearly every song is
   cached (the scan finishes before the Cancel click lands); a re-run reports it as SKIPPED.
 - MERGE PLAYLISTS (2026-11-23, built on branch feature/merge-playlists, waiting for the
-  developer's test). Start page: a wide glass bar under the two flip tiles (mockup "B",
+  developer's test). Start page: a wide glass bar under the two mode tiles (mockup "B",
   developer's pick; `.prism-home-bar`). Flow (`src/ui/MergeFlow.tsx`): the shared SourcePicker
   (2+ playlists) -> confirm screen: one row per playlist with its song count, the total and how
   many duplicates are dropped, a name box (default "A + B", `defaultMergeName`), and the switch
@@ -681,7 +685,7 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
 - START BARS (2026-11-25, developer's picks after six mockup rounds; tested by the developer,
   merged in PR #22): the Merge and Add a song
   bars are `src/ui/StartBar.tsx`. Icons in HomeIcons.tsx animate on hover/focus and finish their
-  loop on leave (like FlipTile): Merge = "Q1 bubbles" (pink + sky bubbles drift into one mint
+  loop on leave (like ModeTile): Merge = "Q1 bubbles" (pink + sky bubbles drift into one mint
   bubble with green notes), Add a song = "S1 compass" (needle settles on the mint playlist of
   sky/mint/pink). Lines: "Stack your playlists together and drop the doubles" / "Let Prism find
   the best home for a song", shown ONLY on hover/focus. Rejected along the way: matte boxes,

@@ -175,46 +175,33 @@ try {
     if (!homeShown) await sleep(250);
   }
   check("clicking it opens the page's start screen", homeShown, await cdp.evaluate("Spicetify.Platform.History.location.pathname"));
-  // Start page tiles (flip cards): the details are on the back, hidden until clicked.
-  const faceShown = (sel) => cdp.evaluate(`getComputedStyle(document.querySelector('${sel}')).visibility === "visible"`);
+  // Start page tiles: each opens its task's own screen (no flip cards any more).
   check(
-    "start page shows two icon tiles with their details hidden",
-    (await faceShown('[data-prism="flip-prism"]')) && (await faceShown('[data-prism="flip-organize"]')) &&
-      !(await faceShown('[data-prism="mode-prism"] .prism-flip-back')) && !(await faceShown('[data-prism="mode-organize"] .prism-flip-back'))
+    "start page shows the two mode tiles",
+    await cdp.evaluate(`!!document.querySelector('[data-prism="tile-prism"]') && !!document.querySelector('[data-prism="tile-organize"]')`)
   );
-  // The front face hides after a 320 ms delayed transition, which can run late
-  // while Spotify is in the background: poll for up to 3 s instead of one wait.
-  const flippedTo = async (back) => {
-    for (let waited = 0; waited < 3000; waited += 150) {
-      const ok = back
-        ? (await faceShown('[data-prism="mode-prism"] .prism-flip-back')) && !(await faceShown('[data-prism="flip-prism"]'))
-        : (await faceShown('[data-prism="flip-prism"]')) && !(await faceShown('[data-prism="mode-prism"] .prism-flip-back'));
-      if (ok) return true;
-      await sleep(150);
-    }
-    return false;
-  };
-  await cdp.evaluate(`document.querySelector('[data-prism="flip-prism"]').click()`);
-  check(
-    "clicking the Prism tile flips it to its details (the other tile stays)",
-    (await flippedTo(true)) && (await faceShown('[data-prism="flip-organize"]'))
-  );
-  await cdp.evaluate(`document.querySelector('[data-prism="unflip-prism"]').click()`);
-  check("its Back link flips it back to the icon", await flippedTo(false));
-  await cdp.evaluate(`document.querySelector('[data-prism="flip-prism"]').click()`);
-  await sleep(450);
+  await cdp.evaluate(`document.querySelector('[data-prism="tile-prism"]').click()`);
+  check("clicking the Grow tile opens the Grow screen", await waitFor(`!!document.querySelector('[data-prism-state="grow-pick"]')`, 3000));
+  await cdp.evaluate(`document.querySelector('[data-prism="grow-back"]').click()`);
+  check("its Back button goes back to the start screen", await waitFor(`!!document.querySelector('[data-prism-state="home"]')`, 3000));
+  await cdp.evaluate(`document.querySelector('[data-prism="tile-prism"]').click()`);
+  await waitFor(`!!document.querySelector('[data-prism-state="grow-pick"]')`, 3000);
   info(`playing song shown: ${await cdp.evaluate(`document.querySelector('[data-prism="playing-song"]')?.textContent ?? "(nothing playing)"`)}`);
   const typeLink = (text) => cdp.evaluate(`(() => {
     const input = document.querySelector('[data-prism="link-input"]');
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(input, ${JSON.stringify(text)});
     input.dispatchEvent(new Event("input", { bubbles: true }));
   })()`);
-  const pressStart = () => cdp.evaluate(`[...document.querySelectorAll('[data-prism-state="home"] button')].find((b) => b.textContent === "Start").click()`);
+  const pressStart = () => cdp.evaluate(`document.querySelector('[data-prism="grow-next"]').click()`);
   await typeLink("https://open.spotify.com/album/4EByBr42E22IoEcQyGOsj9");
   await sleep(150);
+  check(
+    "typing a link picks the link option row",
+    await cdp.evaluate(`document.querySelector('[data-prism="grow-option-link"]').classList.contains("on")`)
+  );
   await pressStart();
   await sleep(200);
-  check("pasting a non-song link shows an error", await cdp.evaluate(`!!document.querySelector('[data-prism-state="home"] [role="alert"]')`));
+  check("pasting a non-song link shows an error", await cdp.evaluate(`!!document.querySelector('[data-prism-state="grow-pick"] [role="alert"]')`));
   await typeLink("https://open.spotify.com/track/4PhsKqMdgMEUSstTDAmMpg?si=x");
   await sleep(150);
   await pressStart();
@@ -792,10 +779,7 @@ try {
     "the start page shows both modes",
     await waitFor(`!!document.querySelector('[data-prism="mode-prism"]') && !!document.querySelector('[data-prism="mode-organize"]')`, 5000)
   );
-  await cdp.evaluate(`document.querySelector('[data-prism="flip-organize"]').click()`);
-  await sleep(450);
-  check("the Organize tile flips to its details", await faceShown('[data-prism="mode-organize"] .prism-flip-back'));
-  await cdp.evaluate(`document.querySelector('[data-prism="start-organize"]').click()`);
+  await cdp.evaluate(`document.querySelector('[data-prism="tile-organize"]').click()`);
   const ORG = `document.querySelector('[data-prism="organize"]')`;
   check("Remix opens on the shared playlist picker", await waitFor(`!!${ORG}?.querySelector('[data-prism="source-list"] label')`, 15000));
   check("the picker has no settings panel any more (they moved to More options)", await cdp.evaluate(`!${ORG}.querySelector('[data-prism="organize-settings"]')`));
