@@ -240,6 +240,9 @@ profile, and the lyrics themselves are never stored.
 You need: the Spotify desktop app and [Spicetify](https://spicetify.app/docs/getting-started).
 No Last.fm account is needed: Prism comes with a shared Last.fm key.
 
+Tested on Windows (Spicetify 2.46). macOS and Linux should work but haven't been tried yet:
+please [report](https://github.com/hellovvn/spicetify-prism/issues) anything that breaks.
+
 **Windows, one step:** paste this into PowerShell.
 
 ```powershell
@@ -354,4 +357,4 @@ Prism is free. If it makes your playlists nicer, you can buy me a coffee (also f
 
 ## License
 
-MIT
+[MIT](LICENSE)
