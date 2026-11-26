@@ -17,7 +17,7 @@
 
 import { getTrackInfo } from "../spotify/read";
 import { getTrackTopTags } from "../lastfm/client";
-import { getLastfmKey } from "../storage";
+import { getLastfmKey, getLastfmKeySource } from "../storage";
 import { cleanTags } from "../tags/cleanTags";
 import { titleVariants } from "../tags/titleVariants";
 import { getSongTags } from "../tags/getSongTags";
@@ -38,6 +38,7 @@ import { findPlaylistsForSong, loadTones } from "../flow";
 import { injectStyles } from "../ui/styles";
 import { addWithPrismState, startAddWithPrism } from "../ui/addWithPrism";
 import { startPlaylistThemeMenu } from "../ui/playlistThemeMenu";
+import { refreshSharedLastfmKey } from "../lastfm/sharedKey";
 
 async function main() {
   // This can run before Spotify's UI and the Spicetify APIs are ready.
@@ -48,6 +49,7 @@ async function main() {
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
 
+  void refreshSharedLastfmKey(); // Prism's shared Last.fm key (for users without their own), once per start
   injectHeaderIconStyles(); // hover spin + sparkle on the header diamond
   startLyricsTheme(); // twilight lyrics views + bars kept (Settings switch, on by default)
   injectStyles(); // Prism's styles, also needed by the side-panel stats outside the page
@@ -172,6 +174,8 @@ function exposeDebugHook() {
       return plain;
     },
     hasLastfmKey: () => getLastfmKey() !== null,
+    // Whose key is in use ("own" / "prism" / null); never the key itself.
+    lastfmKeySource: () => getLastfmKeySource(),
     // Lyrics MOOD profile for one song (the lyrics themselves never leave the extension).
     getLyricsMood,
     // Uses the saved key internally so the caller never sees it.

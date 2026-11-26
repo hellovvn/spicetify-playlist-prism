@@ -11,7 +11,6 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Spicetify-custom%20app-b9a6ff?style=flat-square" alt="Spicetify custom app">
   <img src="https://img.shields.io/badge/Spotify-desktop-ffb8d9?style=flat-square" alt="Spotify desktop">
-  <img src="https://img.shields.io/badge/needs-Last.fm%20API%20key-a8ecc9?style=flat-square" alt="Needs a Last.fm API key">
   <img src="https://img.shields.io/badge/license-MIT-a9cdff?style=flat-square" alt="MIT license">
 </p>
 
@@ -229,7 +228,8 @@ Prism never deletes playlists and never removes or reorders songs. Tones, themes
 are stored only on your computer. All write calls live in one file (`src/spotify/write.ts`), and a
 unit test fails if one shows up anywhere else.
 
-**Privacy:** your Last.fm API key is stored only in Spotify on your computer. Song titles and
+**Privacy:** if you add your own Last.fm API key, it is stored only in Spotify on your computer.
+Without one, Prism asks its small relay for Prism's shared Last.fm key once per Spotify start. Song titles and
 artists are sent to Last.fm to look up tags and similar songs. Lyrics are read to work out a mood
 profile, and the lyrics themselves are never stored.
 
@@ -239,8 +239,8 @@ profile, and the lyrics themselves are never stored.
 
 Prism isn't in the Spicetify Marketplace yet, so for now you build it from source.
 
-You need: the Spotify desktop app, [Spicetify](https://spicetify.app/docs/getting-started),
-[Node.js](https://nodejs.org) and a free [Last.fm API key](https://www.last.fm/api/account/create).
+You need: the Spotify desktop app, [Spicetify](https://spicetify.app/docs/getting-started)
+and [Node.js](https://nodejs.org). No Last.fm account is needed: Prism comes with a shared Last.fm key.
 
 ```powershell
 git clone https://github.com/hellovvn/spicetify-prism.git
@@ -251,14 +251,14 @@ spicetify config custom_apps prism
 spicetify apply
 ```
 
-Then open Spotify, click the Prism star in the top bar, open **Settings** and paste your Last.fm
-API key.
+Then open Spotify and click the Prism star in the top bar. That's it. If you'd rather use your own
+free [Last.fm API key](https://www.last.fm/api/account/create), paste it in Prism's **Settings**.
 
 ### Settings
 
 Open them from the Prism page, or from Spotify's profile menu > **Prism settings**.
 
-- **Last.fm API key** (required)
+- **Your own Last.fm API key** (optional; Prism's shared key is used without one)
 - **Playlist theme:** No theme or one of the nine skies
 - **Prism look for lyrics:** on or off
 - **Prism stats in the side panel:** on or off

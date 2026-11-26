@@ -6,7 +6,12 @@ GitHub issue as the `prism-reports` GitHub App. The App's private key lives only
 
 ```
 Prism --POST /report--> relay (checks, rate limits) --GitHub App--> issue on GITHUB_REPO
+Prism --GET /lastfm-key--> relay --> { ok: true, key } (Prism's own Last.fm API key)
 ```
+
+The Last.fm key is Prism's shared key for users who haven't added their own. It's a
+read-only app key (no shared secret, no sign-in), so handing it out is fine; keeping it
+here means it is never in the repo and can be swapped without a Prism release.
 
 - `src/report.ts`: checks the report and builds the issue (pure, tested in
   `tests/relayReport.test.ts`). `@mentions` are defused so a report never notifies anyone.
@@ -30,7 +35,10 @@ Cloudflare (run in this `relay` folder):
 3. Store the App's private key (the .pem GitHub downloaded) as a secret:
    `npx wrangler secret put GITHUB_PRIVATE_KEY < "C:\path\to\prism-reports.<date>.private-key.pem"`
    Then delete the .pem from Downloads (a new one can always be generated on GitHub).
-4. Deploy: `npx wrangler deploy`. It prints the relay's address
+4. Store Prism's Last.fm API key (an app registered at last.fm/api/account/create as
+   "Prism"; only the "API key", never the "shared secret"):
+   `npx wrangler secret put LASTFM_APP_KEY`
+5. Deploy: `npx wrangler deploy`. It prints the relay's address
    (`https://prism-reports.<account>.workers.dev`), which Prism will call.
 
 ## Changing things later
@@ -40,4 +48,6 @@ Cloudflare (run in this `relay` folder):
 - **Turn reports off:** `REPORTS_ENABLED = "off"`, deploy. Prism shows the relay's message.
 - **New key** (if the old one leaked): generate one on the App's page, repeat step 3,
   delete the old key on GitHub.
+- **New Last.fm key** (suspended or abused): register a new Last.fm app, repeat step 4.
+  Prism picks it up the next time Spotify starts (no Prism release needed).
 - **Logs:** `npx wrangler tail` shows errors live (never the report text).

@@ -21,7 +21,7 @@ import {
 } from "../report/report";
 import { recentErrors } from "../report/errorLog";
 import { sendReport } from "../report/send";
-import { getLastfmKey, loadPlaylistThemeSetting } from "../storage";
+import { getOwnLastfmKey, getSharedLastfmKey, loadPlaylistThemeSetting } from "../storage";
 import { parsePlaylistTheme, PLAYLIST_THEMES } from "../theme/playlistTheme";
 
 export interface ReportScreenProps {
@@ -35,7 +35,8 @@ export interface ReportScreenProps {
 /** The details sent with a report, worked out now (shown to the user first). */
 function collectDetails(screen: string): Record<string, string> {
   const ua = navigator.userAgent;
-  const key = getLastfmKey() ?? "";
+  // Hide both keys (the user's own and Prism's shared one) if they ever show up in an error.
+  const keys = [getOwnLastfmKey(), getSharedLastfmKey()].filter((k): k is string => !!k);
   const theme = parsePlaylistTheme(loadPlaylistThemeSetting());
   return detailsFor({
     prismVersion: PRISM_VERSION,
@@ -44,7 +45,7 @@ function collectDetails(screen: string): Record<string, string> {
     os: osFrom(ua),
     screen,
     playlistTheme: PLAYLIST_THEMES.find((t) => t.id === theme)?.label ?? theme,
-    recentErrors: recentErrors().map((e) => scrubText(e, [key])),
+    recentErrors: recentErrors().map((e) => scrubText(e, keys)),
   });
 }
 

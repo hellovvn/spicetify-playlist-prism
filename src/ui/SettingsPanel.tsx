@@ -6,7 +6,7 @@
 // React calls the function again and updates the screen to match.
 
 import React from "react"; // Spicetify Creator maps this to Spotify's own React
-import { getLastfmKey, setLastfmKey, clearLastfmKey, loadLyricsThemeSetting, saveLyricsThemeSetting, loadPanelStatsSetting, savePanelStatsSetting, loadPlaylistThemeSetting, savePlaylistThemeSetting } from "../storage";
+import { getOwnLastfmKey, setLastfmKey, clearLastfmKey, loadLyricsThemeSetting, saveLyricsThemeSetting, loadPanelStatsSetting, savePanelStatsSetting, loadPlaylistThemeSetting, savePlaylistThemeSetting } from "../storage";
 import { parsePlaylistTheme, PLAYLIST_THEMES, PLAYLIST_THEME_CHANGED_EVENT, type PlaylistThemeId } from "../theme/playlistTheme";
 import { isPanelStatsOn, PANEL_STATS_CHANGED_EVENT } from "./sidePanel";
 import { isLyricsThemeOn, LYRICS_THEME_CHANGED_EVENT } from "./lyricsTheme";
@@ -28,20 +28,20 @@ function CoffeeIcon() {
 }
 
 export interface SettingsPanelProps {
-  // Shown above the form, e.g. "Add your Last.fm key first".
+  // Shown above the form.
   notice?: string;
-  // Called after a key was tested and saved (e.g. to continue a Prism).
-  onSaved?: () => void;
   // Opens "Report a bug" / "Suggest an idea" (ReportScreen.tsx).
   onReport?: (kind: "bug" | "idea") => void;
 }
 
-export function SettingsPanel({ notice, onSaved, onReport }: SettingsPanelProps) {
+export function SettingsPanel({ notice, onReport }: SettingsPanelProps) {
   const { ButtonPrimary, ButtonSecondary } = Spicetify.ReactComponent;
 
   // useState(initial) returns [currentValue, functionToChangeIt].
   // Changing state makes React re-render this component.
-  const [key, setKey] = React.useState<string>(getLastfmKey() ?? "");
+  const [key, setKey] = React.useState<string>(getOwnLastfmKey() ?? "");
+  // Whether the user's own key is saved (else Prism's shared key is used).
+  const [hasOwnKey, setHasOwnKey] = React.useState<boolean>(getOwnLastfmKey() !== null);
   const [status, setStatus] = React.useState<string>("");
   const [busy, setBusy] = React.useState<boolean>(false);
   // The lyrics switch: saved straight away, and an event tells the always-on
@@ -86,15 +86,16 @@ export function SettingsPanel({ notice, onSaved, onReport }: SettingsPanelProps)
       return;
     }
     setLastfmKey(trimmed);
+    setHasOwnKey(true);
     setStatus("Key works and is saved.");
     Spicetify.showNotification("Prism: Last.fm key saved");
-    onSaved?.();
   }
 
   function onClear() {
     clearLastfmKey();
     setKey("");
-    setStatus("Key removed.");
+    setHasOwnKey(false);
+    setStatus("Key removed. Prism's shared key is used again.");
   }
 
   return (
@@ -106,19 +107,22 @@ export function SettingsPanel({ notice, onSaved, onReport }: SettingsPanelProps)
         </p>
       )}
       <p>
-        Prism uses Last.fm to get song-level genre and mood tags. Get a free API key at{" "}
+        Prism uses Last.fm to get song-level genre and mood tags. It works straight away with Prism's
+        shared Last.fm key, so you don't need to do anything.
+      </p>
+      <p style={{ color: "var(--spice-subtext)", fontSize: 13 }} data-prism="lastfm-key-source">
+        {hasOwnKey ? "Using your own Last.fm key." : "Using Prism's shared Last.fm key."} Want your own (for example
+        if the shared one is busy)? Get a free API key at{" "}
         <a href="https://www.last.fm/api/account/create" target="_blank" rel="noreferrer">
           last.fm/api/account/create
         </a>
-        , then paste the "API key" (not the "shared secret") below.
-      </p>
-      <p style={{ color: "var(--spice-subtext)", fontSize: 13 }}>
-        The key is stored only in Spotify on this computer. It is never added to the code or git.
+        , paste the "API key" (not the "shared secret") below and choose Test &amp; save. It is stored only in
+        Spotify on this computer.
       </p>
       <input
         type="password" // hides the key on screen, like a password field
         value={key}
-        placeholder="Last.fm API key"
+        placeholder="Your own Last.fm API key (optional)"
         // onChange runs on every keystroke; we copy the input's text into state.
         onChange={(event) => setKey(event.target.value)}
         className="prism-glass-input"

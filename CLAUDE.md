@@ -112,8 +112,17 @@ Since step 12a this is a Spicetify CUSTOM APP (src/settings.json has an "icon"),
   Support section. Payments go through a PayPal business account (developer's own setup). A plain link only: never load Ko-fi's widget/overlay script inside Spotify.
 
 ## Secrets
-- The Last.fm API key is entered by the user in a settings field and stored in
-  `Spicetify.LocalStorage` (key `prism:lastfmKey`). Never hardcode it or commit it.
+- Last.fm key (decided 2026-11-26, developer's pick): Prism works WITHOUT a key of the
+  user's own. Order (`chooseLastfmKey` in `src/lastfm/keyChoice.ts`, tested):
+  1. the user's OWN key from Settings (optional), `prism:lastfmKey`;
+  2. Prism's SHARED key: a read-only Last.fm app key registered as "Prism", handed out by the
+     relay (`GET /lastfm-key`, Worker secret `LASTFM_APP_KEY`) and copied into
+     `prism:sharedLastfmKey` (`src/lastfm/sharedKey.ts`: asked once per Spotify start by the
+     always-on script; the page waits for it only when there's no key at all yet).
+  Last.fm's limit is per IP, so one shared key is fine; Prism calls Last.fm directly (the relay
+  never forwards Last.fm calls). Swap a suspended key: new Last.fm app, `npx wrangler secret
+  put LASTFM_APP_KEY`, users get it at their next restart. Never hardcode or commit either key
+  (the developer's personal key included); reports scrub both.
 
 ## Code layout
 - `src/app.tsx` (page entry), `src/ui/PrismPage.tsx` (the page), `src/extensions/prism.tsx`
