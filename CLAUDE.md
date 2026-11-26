@@ -710,6 +710,11 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   LIMITS id in relay/wrangler.toml); redeploy with `npx wrangler deploy` in relay/. Real test
   2026-11-25: issue #33 by the bot, labels idea + from-prism, @mention defused (closed).
   Testing note: never send a real report without the developer's OK (it's a public issue).
+  USER COUNT (2026-11-26, developer's request): the relay counts distinct `/lastfm-key` callers per
+  UTC day (`relay/src/usage.ts`, tests/relayUsage.test.ts): IP hashed with day + secret STATS_TOKEN,
+  hash kept 2 days, only `users:<day>` stays. No STATS_TOKEN = no counting. Read with GET /usage +
+  `Authorization: Bearer <STATS_TOKEN>` (command in relay/README.md). Approximate (shared networks,
+  changing IPs, KV races). Mentioned in the README's Privacy line.
 - 15 (DONE 2026-11-26, smoke-tested, committed): internal ids renamed from "playlist-prism" /
   "Playlist Prism" to "prism" (see "Name"). The header icon's aria-label was already "Prism"
   (it follows displayName). Each machine needs the Spicetify swap once:

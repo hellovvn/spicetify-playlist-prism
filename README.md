@@ -229,7 +229,10 @@ are stored only on your computer. All write calls live in one file (`src/spotify
 unit test fails if one shows up anywhere else.
 
 **Privacy:** if you add your own Last.fm API key, it is stored only in Spotify on your computer.
-Without one, Prism asks its small relay for Prism's shared Last.fm key once per Spotify start. Song titles and
+Without one, Prism asks its small relay for Prism's shared Last.fm key once per Spotify start. The relay counts
+how many different people ask each day, so the developer knows roughly how many people use Prism: your
+IP address is never stored (only a scrambled version for 2 days, so you're counted once a day), and
+only the daily total is kept. Song titles and
 artists are sent to Last.fm to look up tags and similar songs. Lyrics are read to work out a mood
 profile, and the lyrics themselves are never stored.
 

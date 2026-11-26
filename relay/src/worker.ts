@@ -3,11 +3,14 @@
 // rate limits, and opens a GitHub issue as the "prism-reports" GitHub App.
 // GET /lastfm-key hands out Prism's own Last.fm API key (secret LASTFM_APP_KEY), so new
 // users need no key of their own and the key can be swapped without a Prism release.
+// It also counts distinct callers per day, anonymously (src/usage.ts); GET /usage reads the
+// counts with the STATS_TOKEN secret.
 // The App's private key lives ONLY here (Cloudflare secret GITHUB_PRIVATE_KEY), never in Prism.
 // Setup and how to switch repos: relay/README.md.
 
 import { buildIssue, parseReport } from "./report";
 import { importPrivateKey, makeAppJwt } from "./githubAuth";
+import { countUser, isUsageAuthorized, readUsage } from "./usage";
 
 // Minimal type for the KV binding, so the project needs no Cloudflare type package.
 interface KV {
@@ -27,7 +30,14 @@ interface Env {
   GITHUB_PRIVATE_KEY: string;
   /** Prism's own Last.fm API key (read-only methods only). Unset = /lastfm-key answers 503. */
   LASTFM_APP_KEY?: string;
+  /** Secret for GET /usage (Authorization: Bearer <token>). Unset = /usage answers 404. */
+  STATS_TOKEN?: string;
   LIMITS: KV;
+}
+
+/** The part of Cloudflare's ExecutionContext the relay uses. */
+interface Ctx {
+  waitUntil(promise: Promise<unknown>): void;
 }
 
 const MAX_BODY_BYTES = 20_000;
@@ -36,7 +46,7 @@ const ALL_SENDERS_PER_DAY = 50;
 const USER_AGENT = "prism-reports-relay";
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx?: Ctx): Promise<Response> {
     const cors = corsHeaders(request, env);
 
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
@@ -46,8 +56,27 @@ export default {
       if (request.method !== "GET") return reply(405, { ok: false, error: "Use GET." }, cors);
       const key = (env.LASTFM_APP_KEY ?? "").trim();
       if (!key) return reply(503, { ok: false, error: "No shared Last.fm key set up." }, cors);
+      // Anonymous daily count (src/usage.ts), finished after the reply so it never slows Prism.
+      // The pepper must stay secret (the Last.fm key is handed out), so it is STATS_TOKEN;
+      // without it nothing is counted.
+      const pepper = (env.STATS_TOKEN ?? "").trim();
+      if (pepper && ctx) {
+        const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";
+        ctx.waitUntil(
+          countUser(env.LIMITS, ip, new Date(), pepper).catch((e) =>
+            console.log("usage count failed:", e instanceof Error ? e.message : String(e)),
+          ),
+        );
+      }
       // Cached for an hour by the browser; Prism asks once per Spotify start anyway.
       return reply(200, { ok: true, key }, { ...cors, "Cache-Control": "public, max-age=3600" });
+    }
+    if (url.pathname === "/usage") {
+      if (!isUsageAuthorized(request.headers.get("Authorization"), env.STATS_TOKEN)) {
+        return reply(404, { ok: false, error: "Not found." }, cors);
+      }
+      const days = Math.min(Math.max(Number(url.searchParams.get("days")) || 30, 1), 90);
+      return reply(200, { ok: true, days: await readUsage(env.LIMITS, new Date(), days) }, cors);
     }
     if (url.pathname !== "/report") return reply(404, { ok: false, error: "Not found." }, cors);
     if (request.method !== "POST") return reply(405, { ok: false, error: "Use POST." }, cors);
