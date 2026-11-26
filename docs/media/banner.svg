@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 360" width="1280" height="360" role="img" aria-labelledby="t d">
+  <title id="t">Prism</title>
+  <desc id="d">Prism star over a twilight sky with soft rainbow light bands and twinkling sparkles.</desc>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#140f2b"/>
+      <stop offset=".55" stop-color="#2a1d52"/>
+      <stop offset="1" stop-color="#43306f"/>
+    </linearGradient>
+    <radialGradient id="haze" cx=".5" cy=".55" r=".55">
+      <stop offset="0" stop-color="#8f6bd8" stop-opacity=".45"/>
+      <stop offset="1" stop-color="#8f6bd8" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="band" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffb8d9" stop-opacity="0"/>
+      <stop offset=".2" stop-color="#ffb8d9"/>
+      <stop offset=".4" stop-color="#ffe2a8"/>
+      <stop offset=".6" stop-color="#a8ecc9"/>
+      <stop offset=".8" stop-color="#a9cdff"/>
+      <stop offset="1" stop-color="#d5c2ff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="starFill" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffb8d9"/>
+      <stop offset=".35" stop-color="#ffe2a8"/>
+      <stop offset=".6" stop-color="#a8ecc9"/>
+      <stop offset=".8" stop-color="#a9cdff"/>
+      <stop offset="1" stop-color="#d5c2ff"/>
+    </linearGradient>
+    <linearGradient id="starFlow" x1="0" y1="0" x2="2" y2="0" spreadMethod="repeat">
+      <stop offset="0" stop-color="#ffb8d9"/>
+      <stop offset=".2" stop-color="#ffe2a8"/>
+      <stop offset=".4" stop-color="#a8ecc9"/>
+      <stop offset=".6" stop-color="#a9cdff"/>
+      <stop offset=".8" stop-color="#d5c2ff"/>
+      <stop offset="1" stop-color="#ffb8d9"/>
+      <animateTransform attributeName="gradientTransform" type="translate" from="0 0" to="-1 0" dur="4s" repeatCount="indefinite"/>
+    </linearGradient>
+    <radialGradient id="glow">
+      <stop offset="0" stop-color="#ffb8d9" stop-opacity=".8"/>
+      <stop offset=".5" stop-color="#d5c2ff" stop-opacity=".25"/>
+      <stop offset="1" stop-color="#d5c2ff" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft" x="-10%" y="-50%" width="120%" height="200%"><feGaussianBlur stdDeviation="14"/></filter>
+    <style>
+      .band { animation: drift 14s ease-in-out infinite alternate; }
+      .band.b2 { animation-duration: 18s; animation-delay: -6s; }
+      .tw { animation: twinkle 3s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+      .glow { animation: breathe 5s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+      .flow { animation: fade 8s ease-in-out infinite; }
+      @keyframes drift { from { transform: translateX(-60px); } to { transform: translateX(60px); } }
+      @keyframes twinkle { 0%, 100% { opacity: .9; transform: scale(1); } 50% { opacity: .25; transform: scale(.6); } }
+      @keyframes breathe { 0%, 100% { opacity: .7; transform: scale(1); } 50% { opacity: 1; transform: scale(1.08); } }
+      @keyframes fade { 0%, 100% { opacity: 0; } 50% { opacity: .85; } }
+      @media (prefers-reduced-motion: reduce) { .band, .tw, .glow, .flow { animation: none; } }
+    </style>
+  </defs>
+
+  <rect width="1280" height="360" rx="24" fill="url(#sky)"/>
+  <rect width="1280" height="360" rx="24" fill="url(#haze)"/>
+
+  <g filter="url(#soft)" opacity=".55">
+    <path class="band" d="M-100 250 C 200 190, 420 300, 700 230 S 1150 170, 1380 230" stroke="url(#band)" stroke-width="22" fill="none"/>
+    <path class="band b2" d="M-100 290 C 260 250, 480 330, 760 280 S 1160 230, 1380 285" stroke="url(#band)" stroke-width="14" fill="none" opacity=".7"/>
+  </g>
+
+  <g fill="#ffffff">
+    <circle class="tw" cx="120" cy="70" r="2" style="animation-delay:-.4s"/>
+    <circle class="tw" cx="260" cy="130" r="1.4" style="animation-delay:-1.3s"/>
+    <circle class="tw" cx="390" cy="55" r="1.8" style="animation-delay:-2.1s"/>
+    <circle class="tw" cx="900" cy="60" r="1.6" style="animation-delay:-.9s"/>
+    <circle class="tw" cx="1030" cy="120" r="2.2" style="animation-delay:-1.8s"/>
+    <circle class="tw" cx="1170" cy="80" r="1.5" style="animation-delay:-2.6s"/>
+    <circle class="tw" cx="1210" cy="300" r="1.6" style="animation-delay:-.2s"/>
+    <circle class="tw" cx="80" cy="300" r="1.8" style="animation-delay:-1.1s"/>
+  </g>
+  <path class="tw" d="M190 205v14M183 212h14" stroke="#ffe2a8" stroke-width="2" stroke-linecap="round" style="animation-delay:-.7s"/>
+  <path class="tw" d="M1100 210v12M1094 216h12" stroke="#a9cdff" stroke-width="2" stroke-linecap="round" style="animation-delay:-2.2s"/>
+
+  <g transform="translate(290 90)">
+    <circle class="glow" cx="80" cy="80" r="90" fill="url(#glow)"/>
+    <g transform="scale(6.67)">
+      <path d="M12 2.5C12.8 8.6 15.4 11.2 21.5 12 15.4 12.8 12.8 15.4 12 21.5 11.2 15.4 8.6 12.8 2.5 12 8.6 11.2 11.2 8.6 12 2.5Z" fill="url(#starFill)"/>
+      <path class="flow" d="M12 2.5C12.8 8.6 15.4 11.2 21.5 12 15.4 12.8 12.8 15.4 12 21.5 11.2 15.4 8.6 12.8 2.5 12 8.6 11.2 11.2 8.6 12 2.5Z" fill="url(#starFlow)"/>
+      <path d="M12 5.8C12.5 9.4 14.2 11.2 17.6 12" stroke="#ffffff" stroke-opacity=".65" stroke-width=".5" fill="none" stroke-linecap="round"/>
+      <path class="tw" d="M19.5 3v2.6M18.2 4.3h2.6" stroke="#ffe2a8" stroke-width=".5" stroke-linecap="round"/>
+      <circle class="tw" cx="5" cy="18.5" r=".6" fill="#a9cdff" style="animation-delay:-1s"/>
+      <circle class="tw" cx="19" cy="19" r=".5" fill="#ffb8d9" style="animation-delay:-2s"/>
+    </g>
+  </g>
+
+  <text x="490" y="190" fill="#f6f1ff" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="84" font-weight="600" letter-spacing="2">Prism</text>
+  <text x="494" y="232" fill="#cfc4f7" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="24">Grow, remix and theme your Spotify playlists</text>
+</svg>
