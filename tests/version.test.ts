@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { CHECK_EVERY_MS, isNewer, needsCheck, noticeFor, parseSavedCheck, parseVersion, readRelease } from "../src/update/version";
+import {
+  CHECK_EVERY_MS,
+  INSTALL_GUIDE_URL,
+  isNewer,
+  needsCheck,
+  noticeFor,
+  parseSavedCheck,
+  parseVersion,
+  readRelease,
+  showsUpdateCommand,
+  UPDATE_COMMAND,
+} from "../src/update/version";
 
 describe("parseVersion / isNewer", () => {
   it("reads tags with or without v", () => {
@@ -53,5 +64,18 @@ describe("noticeFor", () => {
   it("Not now hides that version only", () => {
     expect(noticeFor(r, "0.1.0", "0.2.0")).toBeNull();
     expect(noticeFor({ ...r, version: "0.3.0" }, "0.1.0", "0.2.0")).not.toBeNull();
+  });
+});
+
+describe("how to update", () => {
+  it("re-runs the install script from main", () => {
+    expect(UPDATE_COMMAND).toContain("/hellovvn/spicetify-prism/main/install.ps1");
+    expect(INSTALL_GUIDE_URL).toBe("https://github.com/hellovvn/spicetify-prism#install");
+  });
+  it("shows the PowerShell line except on macOS and Linux", () => {
+    expect(showsUpdateCommand("Windows")).toBe(true);
+    expect(showsUpdateCommand(undefined)).toBe(true);
+    expect(showsUpdateCommand("macOS")).toBe(false);
+    expect(showsUpdateCommand("Linux")).toBe(false);
   });
 });

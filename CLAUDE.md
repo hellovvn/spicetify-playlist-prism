@@ -850,6 +850,10 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   once a day (`prism:updateCheck`; a 404 = no release yet, also remembered). "What's new" opens the
   release page; "Not now" saves `prism:updateDismissed` = that version (a later one shows again).
   Pure parts `src/update/version.ts` (+ tests/version.test.ts), fetch in `src/update/check.ts`.
+  "How to update" (2026-11-26, option "B" of four, developer's pick) opens the steps in place:
+  Windows = the install line (UPDATE_COMMAND in version.ts) in a Command box (.prism-command) with
+  Copy; macOS/Linux = only the link to the README's Install section. "Not now" is per version and
+  survives restarts.
   TO RELEASE: bump package.json "version", then publish a GitHub release tagged vX.Y.Z.
 - 11: Cleanup: remove the debug hook, README, release (after 12).
   RELEASE BUILD (2026-11-26): `src/buildFlags.ts` has DEV_TOOLS (always true in git). Dev builds

@@ -64,3 +64,14 @@ export function noticeFor(latest: LatestRelease | null, current: string, dismiss
   if (dismissed && !isNewer(latest.version, dismissed)) return null;
   return latest;
 }
+
+/** "How to update" in the notice (option "B", 2026-11-26). Windows users get the
+ *  install line (re-running it updates); macOS/Linux the README's install steps. */
+export const UPDATE_COMMAND =
+  "iwr -useb https://raw.githubusercontent.com/hellovvn/spicetify-prism/main/install.ps1 | iex";
+export const INSTALL_GUIDE_URL = "https://github.com/hellovvn/spicetify-prism#install";
+
+/** Show the PowerShell line? Only on Windows (unknown = show it, with the guide link). */
+export function showsUpdateCommand(os: string | undefined): boolean {
+  return os !== "macOS" && os !== "Linux";
+}
