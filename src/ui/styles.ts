@@ -427,6 +427,38 @@ const CSS = `
 .prism-seg.is-pills button.on { border-color: #b794ff; background: #b794ff; color: #1b0b33; }
 .prism-seg.is-pills button:hover:not(.on) { background: rgba(255, 255, 255, 0.12); }
 .prism-seg.is-pills button:focus-visible { outline-offset: 2px; }
+/* ----- Settings side rail (layout "B", 2026-11-26) -----
+   A glass column of section buttons left of the chosen section. Chosen = a
+   soft lavender fill with a 3px lavender bar on its left edge. Narrow page
+   (container under 540px): the rail turns into a wrapping row on top. */
+.prism-settings > * { box-sizing: border-box; }
+.prism-settings-wrap { container-type: inline-size; }
+.prism-settings { display: grid; grid-template-columns: 160px minmax(0, 1fr); gap: 16px; align-items: start; }
+.prism-rail-nav { display: flex; flex-direction: column; gap: 2px; padding: 6px; }
+.prism-rail-nav button {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  border: 1px solid transparent; border-radius: 10px; background: transparent;
+  color: #ffffff; font-size: 13px; font-weight: 600; text-align: left;
+  padding: 9px 12px; cursor: pointer;
+  transition: background var(--prism-ease), border-color var(--prism-ease), box-shadow var(--prism-ease);
+}
+.prism-rail-nav button svg { flex: none; opacity: 0.85; }
+.prism-rail-nav button:hover:not(.on) { background: rgba(255, 255, 255, 0.08); border-color: var(--prism-hover-rim); }
+.prism-rail-nav button:active { transform: scale(0.97); }
+.prism-rail-nav button.on { background: rgba(183, 148, 255, 0.24); box-shadow: inset 3px 0 0 #b794ff; color: #ffffff; }
+.prism-rail-nav button.on svg { color: #cdb8ff; opacity: 1; }
+.prism-rail-nav button:focus-visible { outline: 2px solid #cdb8ff; outline-offset: 2px; }
+.prism-settings-section { display: flex; flex-direction: column; gap: 12px; padding: 18px 20px; min-width: 0; animation: prism-fade 200ms ease-out; }
+.prism-settings-section .prism-heading { margin: 0; }
+@container (max-width: 540px) {
+  .prism-settings { grid-template-columns: minmax(0, 1fr); }
+  .prism-rail-nav { flex-direction: row; flex-wrap: wrap; }
+  .prism-rail-nav button { width: auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .prism-settings-section { animation: none; }
+  .prism-rail-nav button:active { transform: none; }
+}
 /* Theme preview strip (src/ui/ThemeStrip.tsx): the chosen theme's real sky. */
 /* The sky's moving parts are their own GPU layers, which slipped past the
    rounded corners (overflow + border-radius didn't clip them) and made the
