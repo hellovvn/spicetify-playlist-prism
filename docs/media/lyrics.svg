@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500">
-  <rect width="800" height="500" rx="16" fill="#1f1740"/>
-  <rect x="12" y="12" width="776" height="476" rx="10" fill="none" stroke="#6b58b0" stroke-width="2" stroke-dasharray="10 8"/>
-  <text x="50%" y="47%" text-anchor="middle" fill="#efe9ff" font-family="'Segoe UI', Arial, sans-serif" font-size="34">Prism look for lyrics</text>
-  <text x="50%" y="58%" text-anchor="middle" fill="#a99be0" font-family="'Segoe UI', Arial, sans-serif" font-size="20">GIF coming soon · docs/media/lyrics.gif</text>
-</svg>

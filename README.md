@@ -24,7 +24,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/images/start.png" alt="Prism start page: Grow a playlist and Remix into moods tiles, and the Merge playlists and Add a song bars" width="720">
+  <img src="docs/media/hero.webp" alt="A short tour of Prism: growing a playlist from one song, remixing a playlist into mood groups, and the playlist stats page" width="720">
 </p>
 
 ---
@@ -34,12 +34,12 @@
 <table>
   <tr>
     <td width="33%" valign="top">
-      <img src="docs/images/preview.png" alt="Growing a playlist from one song" width="100%"><br>
+      <img src="docs/media/grow.webp" alt="Growing a playlist from one song" width="100%"><br>
       <b><a href="#grow-a-playlist">Grow a playlist</a></b><br>
       Start with one song you love and get a playlist of songs that feel like it.
     </td>
     <td width="33%" valign="top">
-      <img src="docs/images/remix-groups.png" alt="Remixing playlists into groups by genre and mood" width="100%"><br>
+      <img src="docs/media/remix.webp" alt="Remixing playlists into groups by genre and mood" width="100%"><br>
       <b><a href="#remix-into-moods">Remix into moods</a></b><br>
       Shuffle your playlists into fresh ones sorted by genre and mood.
     </td>
@@ -51,34 +51,33 @@
   </tr>
   <tr>
     <td valign="top">
-      <img src="docs/media/add-with-prism.svg" alt="Add with Prism showing the five best-fitting playlists for a song" width="100%"><br>
+      <img src="docs/media/add-with-prism.webp" alt="Add with Prism showing the five best-fitting playlists for a song" width="100%"><br>
       <b><a href="#add-with-prism">Add with Prism</a></b><br>
       Let Prism find the best home for a song.
     </td>
     <td valign="top">
-      <img src="docs/media/tone.svg" alt="Score rings showing how well each song fits a playlist's tone" width="100%"><br>
+      <img src="docs/media/tone.gif" alt="Score rings showing how well each song fits a playlist's tone" width="100%"><br>
       <b><a href="#playlist-tone">Playlist tone</a></b><br>
       Give a playlist a vibe and see which songs fit it and which drift.
     </td>
     <td valign="top">
-      <img src="docs/media/themes.svg" alt="A playlist page with the Northern lights theme" width="100%"><br>
+      <img src="docs/media/themes.gif" alt="A playlist page with the Northern lights theme" width="100%"><br>
       <b><a href="#playlist-themes">Playlist themes</a></b><br>
       Nine moving skies across Spotify, and a different one per playlist.
     </td>
   </tr>
   <tr>
     <td valign="top">
-      <img src="docs/images/stats-page.png" alt="Playlist stats page with genre bars and fingerprint bubbles" width="100%"><br>
+      <img src="docs/media/stats.webp" alt="Playlist stats page with genre bars and fingerprint bubbles" width="100%"><br>
       <b><a href="#playlist-stats">Playlist stats</a></b><br>
       Genre mix, moods, tempo, eras and a bubble fingerprint.
     </td>
     <td valign="top">
-      <img src="docs/media/side-panel.svg" alt="Prism stats in Spotify's side panel" width="100%"><br>
+      <img src="docs/media/side-panel.gif" alt="Prism stats in Spotify's side panel" width="100%"><br>
       <b><a href="#playlist-stats">Side panel stats</a></b><br>
       A playlist's stats right next to it while you listen.
     </td>
     <td valign="top">
-      <img src="docs/media/lyrics.svg" alt="Spotify's lyrics view with Prism's twilight look" width="100%"><br>
       <b><a href="#prism-look-for-lyrics">Prism look for lyrics</a></b><br>
       Sing along under a twilight sky, with the controls always there.
     </td>
