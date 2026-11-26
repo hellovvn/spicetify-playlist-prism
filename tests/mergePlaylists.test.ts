@@ -45,7 +45,7 @@ describe("mergeSongs", () => {
 
 describe("defaultMergeName", () => {
   test("joins up to three names, shortens longer lists", () => {
-    expect(defaultMergeName(["Dark Romance", "Late night"])).toBe("Dark Romance + Late night");
+    expect(defaultMergeName(["Night Drive", "Late night"])).toBe("Night Drive + Late night");
     expect(defaultMergeName(["A", "B", "C"])).toBe("A + B + C");
     expect(defaultMergeName(["A", "B", "C", "D", "E"])).toBe("A + B + 3 more");
   });
@@ -84,7 +84,7 @@ describe("createMergedPlaylist", () => {
   }
   const songs = ["spotify:track:1", "spotify:track:2"];
   const sources = [
-    { uri: "spotify:playlist:A", name: "Dark Romance", canRename: true },
+    { uri: "spotify:playlist:A", name: "Night Drive", canRename: true },
     { uri: "spotify:playlist:B", name: "Followed one", canRename: false },
     { uri: "spotify:collection:tracks", name: "Liked Songs", canRename: false },
     { uri: "spotify:playlist:C", name: "[merged] Old", canRename: true },
@@ -101,11 +101,11 @@ describe("createMergedPlaylist", () => {
   test("switch on: only the user's own playlists get the tag, once, AFTER the songs were added", async () => {
     const api = fakeSpotify();
     const result = await createMergedPlaylist("Mix", songs, sources, true, api);
-    expect(vi.mocked(api.renamePlaylist!).mock.calls).toEqual([["spotify:playlist:A", "[merged] Dark Romance"]]);
+    expect(vi.mocked(api.renamePlaylist!).mock.calls).toEqual([["spotify:playlist:A", "[merged] Night Drive"]]);
     const addOrder = vi.mocked(api.addToPlaylist).mock.invocationCallOrder[0];
     const renameOrder = vi.mocked(api.renamePlaylist!).mock.invocationCallOrder[0];
     expect(renameOrder).toBeGreaterThan(addOrder);
-    expect(result.renamed).toEqual(["Dark Romance"]);
+    expect(result.renamed).toEqual(["Night Drive"]);
     expect(result.notRenamed.map((n) => n.name)).toEqual(["Followed one", "Liked Songs", "[merged] Old"]);
   });
 
@@ -113,7 +113,7 @@ describe("createMergedPlaylist", () => {
     const api = fakeSpotify(["spotify:playlist:A"]);
     const result = await createMergedPlaylist("Mix", songs, sources.slice(0, 1), true, api);
     expect(result.uri).toBe("spotify:playlist:NEW");
-    expect(result.notRenamed).toEqual([{ name: "Dark Romance", reason: "Spotify refused the rename" }]);
+    expect(result.notRenamed).toEqual([{ name: "Night Drive", reason: "Spotify refused the rename" }]);
   });
 
   test("if creating fails, nothing is renamed", async () => {

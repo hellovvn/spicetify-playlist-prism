@@ -237,10 +237,38 @@ profile, and the lyrics themselves are never stored.
 
 ## Install
 
-Prism isn't in the Spicetify Marketplace yet, so for now you build it from source.
+You need: the Spotify desktop app, [Spicetify](https://spicetify.app/docs/getting-started) and a
+free [Last.fm API key](https://www.last.fm/api/account/create).
 
-You need: the Spotify desktop app, [Spicetify](https://spicetify.app/docs/getting-started),
-[Node.js](https://nodejs.org) and a free [Last.fm API key](https://www.last.fm/api/account/create).
+Prism is a Spicetify **custom app**. You'll find it in the Spicetify Marketplace, but the
+Marketplace can't install custom apps itself, so it takes three steps:
+
+1. Download `prism-<version>.zip` from the [latest release](https://github.com/hellovvn/spicetify-prism/releases/latest).
+2. Unzip it into Spicetify's `CustomApps` folder, so you end up with `CustomApps/prism`.
+   - Windows: `%APPDATA%\spicetify\CustomApps`
+   - macOS / Linux: `~/.config/spicetify/CustomApps`
+
+   (Not sure? `spicetify -c` shows Spicetify's config file; `CustomApps` is next to it.)
+3. Turn it on:
+
+   ```powershell
+   spicetify config custom_apps prism
+   spicetify apply
+   ```
+
+Then open Spotify, click the Prism star in the top bar, open **Settings** and paste your Last.fm
+API key.
+
+**Updating:** download the new zip, replace the `prism` folder, and run `spicetify apply`. Your
+settings, tones and stats stay (they're saved in Spotify, not in the folder).
+
+**After a Spotify update** Spicetify may be switched off: run `spicetify restore backup apply`
+and Prism comes back.
+
+### From source
+
+Needs [Node.js](https://nodejs.org) too. This build includes the developer tools (a debug hook for
+the smoke test); `npm run release` makes the same clean zip as the releases.
 
 ```powershell
 git clone https://github.com/hellovvn/spicetify-prism.git
@@ -250,9 +278,6 @@ npm run build
 spicetify config custom_apps prism
 spicetify apply
 ```
-
-Then open Spotify, click the Prism star in the top bar, open **Settings** and paste your Last.fm
-API key.
 
 ### Settings
 

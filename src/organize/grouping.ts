@@ -386,7 +386,7 @@ function typicalTags(group: SongToGroup[], all: SongToGroup[]): string[] {
   // Long descriptive tags ("a vocal centric aesthetic") make poor names: only
   // tags of up to 3 words can name a group (they still count for grouping).
   // And a tag only ONE artist in the group has (an odd fan tag like
-  // "lestappencore") can't name it either, when the group has several artists.
+  // "starlightcore") can't name it either, when the group has several artists.
   const artistsWith = (tag: string) =>
     new Set(group.filter((s) => s.tags.some((t) => t.name.toLowerCase() === tag)).map((s) => (s.artists ?? [s.uri])[0])).size;
   const groupArtists = new Set(group.map((s) => (s.artists ?? [s.uri])[0])).size;

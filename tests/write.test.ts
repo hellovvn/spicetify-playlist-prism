@@ -100,7 +100,7 @@ describe("createPrismPlaylist", () => {
 describe("the guard: only playlists created in this session", () => {
   test.each([
     ["Liked Songs", "spotify:collection:tracks"],
-    ["an existing playlist", "spotify:playlist:2spgdS7k8dyD5sTx34unik"],
+    ["an existing playlist", "spotify:playlist:TestPlaylistId00000003"],
   ])("refuses to add to %s", async (_label, target) => {
     const api = fakeSpotify();
     await expect(addToNewPlaylistForTests(target, [song(1)], api)).rejects.toThrow(WriteGuardError);

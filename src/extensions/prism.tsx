@@ -18,6 +18,7 @@
 import { getTrackInfo } from "../spotify/read";
 import { getTrackTopTags } from "../lastfm/client";
 import { getLastfmKey } from "../storage";
+import { DEV_TOOLS } from "../buildFlags";
 import { cleanTags } from "../tags/cleanTags";
 import { titleVariants } from "../tags/titleVariants";
 import { getSongTags } from "../tags/getSongTags";
@@ -62,7 +63,7 @@ async function main() {
   startLibraryTheme(); // the same theme on the left panel: still background, moving open-playlist row
   startChromeTheme(); // and on Spotify's bars: "Quiet night" (deep purple, pastel instead of green)
   registerSettingsMenu();
-  exposeDebugHook();
+  if (DEV_TOOLS) exposeDebugHook(); // dev builds only (src/buildFlags.ts)
 
   console.log(`${LOG_PREFIX} loaded`);
 }
@@ -139,7 +140,7 @@ function isSingleTrack(uris: string[]): boolean {
 // (scripts/smoke.mjs) can drive and check things through the debug port.
 // Nothing here can change the user's Spotify, and the API key itself is never
 // exposed (only whether one is saved).
-// TODO before publishing (step 11): remove this or hide it behind a dev-only flag.
+// Only in dev builds: the public release (npm run release) leaves it out.
 function exposeDebugHook() {
   const hook = ((window as any).__prism ??= {});
   Object.assign(hook, {

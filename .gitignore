@@ -154,3 +154,5 @@ dist/
 *.pem
 # Cloudflare Wrangler local state
 relay/.wrangler/
+# Public build made by npm run release (scripts/release.mjs)
+release/

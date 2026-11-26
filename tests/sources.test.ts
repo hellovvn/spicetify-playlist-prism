@@ -13,17 +13,17 @@ import {
 // Shaped like Spotify's real RootlistAPI.getContents() items (checked in the
 // running app), trimmed to the fields we use.
 const rootItems = [
-  { type: "playlist", uri: "spotify:playlist:dark", name: "Dark Romance", totalLength: 25, owner: { displayName: "Vivian" } },
+  { type: "playlist", uri: "spotify:playlist:dark", name: "Night Drive", totalLength: 25, owner: { displayName: "Alex" } },
   {
     type: "folder",
     name: "Kpop",
     items: [
-      { type: "playlist", uri: "spotify:playlist:kpop", name: "Kpop", totalLength: 55, owner: { displayName: "Vivian" } },
-      { type: "playlist", uri: "spotify:playlist:2am", name: "mood: 2:17 AM", totalLength: 32, owner: { displayName: "Vivian" } },
+      { type: "playlist", uri: "spotify:playlist:kpop", name: "Kpop", totalLength: 55, owner: { displayName: "Alex" } },
+      { type: "playlist", uri: "spotify:playlist:2am", name: "mood: 3 AM", totalLength: 32, owner: { displayName: "Alex" } },
       { type: "folder", name: "Old", items: [{ type: "playlist", uri: "spotify:playlist:old", name: "2019", totalLength: 3, owner: { username: "someone" } }] },
     ],
   },
-  { type: "playlist", uri: "spotify:playlist:empty", name: "My Playlist #18", totalLength: 0, owner: { displayName: "Vivian" } },
+  { type: "playlist", uri: "spotify:playlist:empty", name: "My Playlist #18", totalLength: 0, owner: { displayName: "Alex" } },
   { type: "playlist", uri: "spotify:playlist:top", name: "Today’s Top Hits", totalLength: 50, owner: { displayName: "Spotify" } },
 ];
 
@@ -31,12 +31,12 @@ describe("flattenRootlist", () => {
   const flat = flattenRootlist(rootItems);
 
   test("lists every non-empty playlist, in Spotify's order", () => {
-    expect(flat.map((s) => s.name)).toEqual(["Dark Romance", "Kpop", "mood: 2:17 AM", "2019", "Today’s Top Hits"]);
+    expect(flat.map((s) => s.name)).toEqual(["Night Drive", "Kpop", "mood: 3 AM", "2019", "Today’s Top Hits"]);
   });
 
   test("remembers the folder, including folders inside folders", () => {
-    expect(flat.find((s) => s.name === "Dark Romance")?.folder).toBeNull();
-    expect(flat.find((s) => s.name === "mood: 2:17 AM")?.folder).toBe("Kpop");
+    expect(flat.find((s) => s.name === "Night Drive")?.folder).toBeNull();
+    expect(flat.find((s) => s.name === "mood: 3 AM")?.folder).toBe("Kpop");
     expect(flat.find((s) => s.name === "2019")?.folder).toBe("Kpop / Old");
   });
 
@@ -63,7 +63,7 @@ describe("filterSources", () => {
   });
 
   test("matches names, ignoring capitals", () => {
-    expect(filterSources(flat, "DARK").map((s) => s.name)).toEqual(["Dark Romance"]);
+    expect(filterSources(flat, "NIGHT").map((s) => s.name)).toEqual(["Night Drive"]);
   });
 
   test("matches folder names too", () => {
@@ -74,7 +74,7 @@ describe("filterSources", () => {
 describe("select all / clear", () => {
   const flat = flattenRootlist(rootItems);
   const all = flat.map((s) => s.uri);
-  const kpopFolder = filterSources(flat, "kpop"); // Kpop, mood: 2:17 AM, 2019
+  const kpopFolder = filterSources(flat, "kpop"); // Kpop, mood: 3 AM, 2019
 
   test("select all ticks every shown source", () => {
     expect(selectShown(flat, []).sort()).toEqual([...all].sort());

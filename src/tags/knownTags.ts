@@ -1,6 +1,6 @@
 // Which tags Prism keeps: ONLY known genres and mood words (decided
 // 2026-11-22). Last.fm tags are typed by its users, so besides genres they
-// contain personal labels ("my top songs"), fandom tags ("lestappencore")
+// contain personal labels ("my top songs"), fandom tags ("starlightcore")
 // and jokes. A blocklist can't keep up with those, so instead this is an
 // ALLOWLIST: a tag is kept only if it is
 //   - a genre on the MusicBrainz genre list (src/tags/musicbrainzGenres.ts),

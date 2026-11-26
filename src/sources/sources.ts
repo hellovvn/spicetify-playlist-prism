@@ -9,7 +9,7 @@ export interface SourceOption {
   name: string;
   trackCount: number;
   folder: string | null; // the folder it sits in, if any
-  owner: string; // display name, e.g. "Vivian" or "Spotify"
+  owner: string; // display name, e.g. "Alex" or "Spotify"
   // Spotify says the user may edit its details (their own playlists). Only
   // Merge uses it, to know which originals can get the "[merged] " tag.
   canRename?: boolean;

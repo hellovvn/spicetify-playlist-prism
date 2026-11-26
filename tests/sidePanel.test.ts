@@ -43,7 +43,7 @@ describe("small formatters", () => {
   test("panelSubtitle: made, organized, or neither", () => {
     expect(panelSubtitle({ ...SAMPLE_RECORD, seed: { uri: "s", name: "Grown Up", artists: ["Nic Dean"] } })).toBe('Grown from "Grown Up" · Nic Dean');
     // The source playlists aren't named (they may be deleted later).
-    expect(panelSubtitle({ ...SAMPLE_RECORD, seed: null, organized: { from: ["Dark Romance", "sc"] } })).toBe("Organized with Prism");
+    expect(panelSubtitle({ ...SAMPLE_RECORD, seed: null, organized: { from: ["Night Drive", "sc"] } })).toBe("Organized with Prism");
     expect(panelSubtitle({ ...SAMPLE_RECORD, seed: null, organized: undefined, songCount: 12 })).toBe("12 songs");
   });
   test("panelSubtitle: an estimate says how many songs it's worked out from", () => {

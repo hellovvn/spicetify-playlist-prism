@@ -19,7 +19,7 @@ describe("isKnownTag", () => {
     }
   });
   test("fandom tags, personal labels and jokes are not known", () => {
-    for (const tag of ["lestappencore", "vladaclaims", "my top songs", "saw live", "songs i like", "nachspiel"]) {
+    for (const tag of ["starlightcore", "vladaclaims", "my top songs", "saw live", "songs i like", "nachspiel"]) {
       expect(isKnownTag(tag)).toBe(false);
     }
   });
@@ -32,7 +32,7 @@ describe("in the tag cleanup", () => {
   test("cleanTags keeps only known genres and moods", () => {
     const tags = cleanTags([
       { name: "rnb", count: 100 },
-      { name: "lestappencore", count: 90 },
+      { name: "starlightcore", count: 90 },
       { name: "Dream-Pop", count: 60 },
       { name: "vladaclaims", count: 50 },
       { name: "chill", count: 40 },
@@ -40,7 +40,7 @@ describe("in the tag cleanup", () => {
     expect(tags.map((t) => t.name)).toEqual(["r&b", "dream pop", "chill"]);
   });
   test("isJunkTagName (used on cached and saved tags) agrees", () => {
-    expect(isJunkTagName("lestappencore")).toBe(true);
+    expect(isJunkTagName("starlightcore")).toBe(true);
     expect(isJunkTagName("R&B")).toBe(false);
     expect(isJunkTagName("ballads")).toBe(false); // plural of a known word
   });

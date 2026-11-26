@@ -46,6 +46,7 @@ import { SettingsPanel } from "./SettingsPanel";
 import { ReportScreen } from "./ReportScreen";
 import type { ReportKind } from "../report/report";
 import { ScanDemo } from "./ScanScreen";
+import { DEV_TOOLS } from "../buildFlags";
 import { injectStyles, SCREEN_HEIGHT } from "./styles";
 import { PrismIcon } from "./PrismIcon";
 
@@ -270,7 +271,7 @@ export function PrismPage() {
         }}
       />
     );
-  } else if (view.kind === "demo-scan") {
+  } else if (DEV_TOOLS && view.kind === "demo-scan") {
     body = <ScanDemo key={view.id} onRunningChange={setScanning} />;
   } else if (view.kind === "stats") {
     const playlist = view.playlist;
@@ -344,7 +345,7 @@ export function PrismPage() {
         onOpenPlaylist={(uri) => History.push(`/playlist/${uri.split(":")[2]}`)}
       />
     );
-  } else if (view.kind === "demo-stats") {
+  } else if (DEV_TOOLS && view.kind === "demo-stats") {
     body = <StatsScreen key={view.id} load={async () => SAMPLE_RECORD} />;
   } else {
     body = (

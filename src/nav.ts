@@ -12,6 +12,8 @@
 // in Spotify's history doesn't restart a Prism.
 // The pure parts are unit-tested in tests/nav.test.ts.
 
+import { DEV_TOOLS } from "./buildFlags";
+
 export const PAGE_PATH = "/prism";
 
 export type PageRequest =
@@ -52,7 +54,8 @@ export function parsePageRequest(search: string): { request: PageRequest; reques
     const playlist = params.get("playlist");
     return playlist && isPlaylistUri(playlist) ? { request: { go, playlist }, requestId } : null;
   }
-  if (go === "settings" || go === "home" || go === "demo-scan" || go === "demo-stats") return { request: { go }, requestId };
+  if (go === "settings" || go === "home") return { request: { go }, requestId };
+  if (DEV_TOOLS && (go === "demo-scan" || go === "demo-stats")) return { request: { go }, requestId };
   return null;
 }
 

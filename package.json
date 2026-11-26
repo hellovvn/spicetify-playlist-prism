@@ -5,6 +5,7 @@
   "scripts": {
     "build": "spicetify-creator",
     "build-local": "spicetify-creator --out=dist --minify",
+    "release": "node scripts/release.mjs",
     "watch": "spicetify-creator --watch",
     "test": "vitest run",
     "test:watch": "vitest",
