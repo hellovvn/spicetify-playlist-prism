@@ -433,7 +433,7 @@ const CSS = `
    (container under 540px): the rail turns into a wrapping row on top. */
 .prism-settings > * { box-sizing: border-box; }
 .prism-settings-wrap { container-type: inline-size; }
-.prism-settings { display: grid; grid-template-columns: 160px minmax(0, 1fr); gap: 16px; align-items: start; }
+.prism-settings { display: grid; grid-template-columns: 176px minmax(0, 1fr); gap: 16px; align-items: start; }
 .prism-rail-nav { display: flex; flex-direction: column; gap: 2px; padding: 6px; }
 .prism-rail-nav button {
   display: flex; align-items: center; gap: 10px; width: 100%;

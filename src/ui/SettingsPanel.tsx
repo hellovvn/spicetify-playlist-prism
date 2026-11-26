@@ -43,7 +43,7 @@ function RailIcon({ d }: { d: string[] }) {
 export type SettingsSection = "theme" | "look" | "lastfm" | "feedback" | "about";
 const SECTIONS: { id: SettingsSection; label: string; icon: string[] }[] = [
   { id: "theme", label: "Theme", icon: ["M12 21a9 9 0 1 1 9-9c0 2-1.5 3-3 3h-2a2 2 0 0 0-1 3.7A1.5 1.5 0 0 1 12 21z", "M7.5 10.5h.01M12 7.5h.01M16.5 10.5h.01"] },
-  { id: "look", label: "Look", icon: ["M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z", "M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"] },
+  { id: "look", label: "Lyrics and panel", icon: ["M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z", "M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"] },
   { id: "lastfm", label: "Last.fm", icon: ["M3 12V4h8l9 9-8 8z", "M7.5 8h.01"] },
   { id: "feedback", label: "Feedback", icon: ["M4 5h16v11H9l-5 4z"] },
   { id: "about", label: "About", icon: ["M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z", "M12 11v5M12 8h.01"] },
