@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 200" width="1280" height="200" role="img" aria-labelledby="t d">
+  <title id="t">Playlist themes</title>
+  <desc id="d">Nine moving skies across Spotify, and a different one per playlist.</desc>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#140f2b"/>
+      <stop offset=".55" stop-color="#2a1d52"/>
+      <stop offset="1" stop-color="#43306f"/>
+    </linearGradient>
+    <radialGradient id="haze" cx=".12" cy=".5" r=".5">
+      <stop offset="0" stop-color="#a9cdff" stop-opacity=".28"/>
+      <stop offset="1" stop-color="#a9cdff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="band" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffb8d9" stop-opacity="0"/>
+      <stop offset=".2" stop-color="#ffb8d9"/>
+      <stop offset=".4" stop-color="#ffe2a8"/>
+      <stop offset=".6" stop-color="#a8ecc9"/>
+      <stop offset=".8" stop-color="#a9cdff"/>
+      <stop offset="1" stop-color="#d5c2ff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="starFill" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffb8d9"/>
+      <stop offset=".35" stop-color="#ffe2a8"/>
+      <stop offset=".6" stop-color="#a8ecc9"/>
+      <stop offset=".8" stop-color="#a9cdff"/>
+      <stop offset="1" stop-color="#d5c2ff"/>
+    </linearGradient>
+    <linearGradient id="edge" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffb8d9"/>
+      <stop offset=".33" stop-color="#ffe2a8"/>
+      <stop offset=".66" stop-color="#a8ecc9"/>
+      <stop offset="1" stop-color="#a9cdff"/>
+    </linearGradient>
+    <filter id="soft" x="-10%" y="-80%" width="120%" height="260%"><feGaussianBlur stdDeviation="12"/></filter>
+    <style>
+      .band { animation: drift 14s ease-in-out infinite alternate; }
+      .tw { animation: twinkle 3s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+      .star { animation: breathe 5s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+      @keyframes drift { from { transform: translateX(-50px); } to { transform: translateX(50px); } }
+      @keyframes twinkle { 0%, 100% { opacity: .9; transform: scale(1); } 50% { opacity: .25; transform: scale(.6); } }
+      @keyframes breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+      @media (prefers-reduced-motion: reduce) { .band, .tw, .star { animation: none; } }
+    </style>
+  </defs>
+
+  <rect width="1280" height="200" rx="20" fill="url(#sky)"/>
+  <rect width="1280" height="200" rx="20" fill="url(#haze)"/>
+  <g filter="url(#soft)" opacity=".4">
+    <path class="band" d="M-100 160 C 220 120, 460 190, 760 150 S 1150 110, 1380 150" stroke="url(#band)" stroke-width="16" fill="none"/>
+  </g>
+  <g fill="#ffffff">
+    <circle class="tw" cx="980" cy="40" r="1.8" style="animation-delay:-.4s"/>
+    <circle class="tw" cx="1080" cy="70" r="1.4" style="animation-delay:-1.3s"/>
+    <circle class="tw" cx="1200" cy="36" r="2" style="animation-delay:-2.1s"/>
+    <circle class="tw" cx="1230" cy="168" r="1.5" style="animation-delay:-.9s"/>
+    <circle class="tw" cx="60" cy="170" r="1.6" style="animation-delay:-1.8s"/>
+  </g>
+
+  <rect x="28" y="28" width="1224" height="144" rx="16" fill="#ffffff" fill-opacity=".06" stroke="#ffffff" stroke-opacity=".16"/>
+  <rect x="28" y="168" width="1224" height="4" rx="2" fill="url(#edge)" opacity=".7"/>
+
+  <g transform="translate(64 52)">
+    <g class="star" transform="scale(4)">
+      <path d="M12 2.5C12.8 8.6 15.4 11.2 21.5 12 15.4 12.8 12.8 15.4 12 21.5 11.2 15.4 8.6 12.8 2.5 12 8.6 11.2 11.2 8.6 12 2.5Z" fill="url(#starFill)"/>
+      <path d="M12 5.8C12.5 9.4 14.2 11.2 17.6 12" stroke="#ffffff" stroke-opacity=".65" stroke-width=".5" fill="none" stroke-linecap="round"/>
+    </g>
+  </g>
+
+  <text x="186" y="94" fill="#f6f1ff" font-family="'Segoe UI', -apple-system, 'Helvetica Neue', Arial, sans-serif" font-size="40" font-weight="600">Playlist themes</text>
+  <text x="188" y="136" fill="#d8ccfa" font-family="'Segoe UI', -apple-system, 'Helvetica Neue', Arial, sans-serif" font-size="22">Nine moving skies across Spotify, and a different one per playlist.</text>
+</svg>

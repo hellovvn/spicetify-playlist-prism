@@ -3,8 +3,8 @@
 import { LastfmError } from "./client";
 import type { KeySource } from "./keyChoice";
 
-// The step-by-step guide in the README ("Getting a Last.fm API key").
-export const LASTFM_KEY_GUIDE_URL = "https://github.com/hellovvn/spicetify-prism#getting-a-lastfm-api-key";
+// The step-by-step guide on the guide site (lastfm-key.html; no longer in the README).
+export const LASTFM_KEY_GUIDE_URL = "https://hellovvn.github.io/spicetify-prism/lastfm-key.html";
 
 // Our own code for "no key at all": no own key, and Prism's shared key couldn't be
 // fetched yet (offline or relay down on the first start). Last.fm's codes are all positive.

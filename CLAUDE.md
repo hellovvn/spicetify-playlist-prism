@@ -129,8 +129,8 @@ Since step 12a this is a Spicetify CUSTOM APP (src/settings.json has an "icon"),
   tests/keyErrors.test.ts). No key at all (our code -1) = the shared key couldn't be fetched;
   invalid (10) / suspended (26) get a message by whose key it was (`keyProblemMessage(error,
   getLastfmKeySource())`): the user's own -> fix it in Settings; Prism's shared -> try later or
-  add your own. Nothing asks for a key before starting any more. Settings links to the README's
-  "Getting a Last.fm API key" guide (LASTFM_KEY_GUIDE_URL), now framed as optional.
+  add your own. Nothing asks for a key before starting any more. Settings links to the guide site's
+  lastfm-key.html (LASTFM_KEY_GUIDE_URL), framed as optional (the README no longer has it).
 
 ## Code layout
 - `src/app.tsx` (page entry), `src/ui/PrismPage.tsx` (the page), `src/extensions/prism.tsx`
@@ -883,8 +883,10 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   `site/style.css` (twilight glass; on phones the sidebar is one swipeable pill row). Clips come
   from docs/media. `.github/workflows/site.yml` builds it on PRs and deploys on main (Pages source
   must be "GitHub Actions"). The Marketplace shows README.md (manifest "readme"), NOT the site, so
-  the README keeps install steps. Settings' LASTFM_KEY_GUIDE_URL still points at the README's
-  "Getting a Last.fm API key" heading (kept for that). Feature changes: update the site page too.
+  the README keeps install steps. README FEATURE CARDS (2026-11-26, developer's pick): each feature in the README is a twilight SVG
+  card (docs/media/cards/<id>.svg, made by `node scripts/readme-cards.mjs`) linking to its guide page,
+  its clip, and ONE line + "Read the guide". No steps in the README; the Last.fm key guide lives only
+  on the site (LASTFM_KEY_GUIDE_URL = lastfm-key.html). Feature changes: update the site page too.
   INSTALL SCRIPT (2026-11-26): `install.ps1` (repo root, README's one-liner `iwr -useb
   https://raw.githubusercontent.com/hellovvn/spicetify-prism/main/install.ps1 | iex`) downloads the
   LATEST release's prism-*.zip, replaces only CustomApps\prism (folder found via `spicetify -c`),
