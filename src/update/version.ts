@@ -58,9 +58,20 @@ export function needsCheck(saved: SavedCheck | null, now: number): boolean {
 }
 
 /** The release to tell the user about, or null. "Not now" hides one version
- *  (prism:updateDismissed); a later version shows the notice again. */
+ *  until Spotify restarts (sessionStorage); a later version shows the notice again. */
 export function noticeFor(latest: LatestRelease | null, current: string, dismissed: string | null): LatestRelease | null {
   if (!latest || !isNewer(latest.version, current)) return null;
   if (dismissed && !isNewer(latest.version, dismissed)) return null;
   return latest;
+}
+
+/** "How to update" in the notice (option "B", 2026-11-26). Windows users get the
+ *  install line (re-running it updates); macOS/Linux the README's install steps. */
+export const UPDATE_COMMAND =
+  "iwr -useb https://raw.githubusercontent.com/hellovvn/spicetify-prism/main/install.ps1 | iex";
+export const INSTALL_GUIDE_URL = "https://github.com/hellovvn/spicetify-prism#install";
+
+/** Show the PowerShell line? Only on Windows (unknown = show it, with the guide link). */
+export function showsUpdateCommand(os: string | undefined): boolean {
+  return os !== "macOS" && os !== "Linux";
 }

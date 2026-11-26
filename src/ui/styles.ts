@@ -207,6 +207,30 @@ const CSS = `
   background: linear-gradient(180deg, #ffb3c7, #ffd1a6, #fff1a8, #b8f2c9, #a8d8ff, #cdb8ff);
 }
 
+/* COMMAND BOX (2026-11-26, update notice "B"): one line of code to paste
+   somewhere else, on dark glass, with a Copy button at the end. */
+.prism-command {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  padding: 4px 4px 4px 12px;
+  border-radius: 12px;
+  background: rgba(10, 6, 24, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+.prism-command code {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: Consolas, "Cascadia Mono", monospace;
+  font-size: 12px;
+  color: #e9dcff;
+  user-select: all;
+}
+
 /* ----- Glass buttons -----
    Spotify's outline buttons (Settings, Start page, Back, Cancel...) get a
    frosted-glass look inside our page: see-through white, a light rim, a
