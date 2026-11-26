@@ -936,11 +936,15 @@ const CSS = `
 @keyframes prism-bar-needle { 0% { transform: rotate(20deg); } 22% { transform: rotate(150deg); } 40% { transform: rotate(65deg); } 55% { transform: rotate(100deg); } 65%, 90% { transform: rotate(90deg); } 100% { transform: rotate(20deg); } }
 @keyframes prism-bar-best { 0%, 58%, 100% { fill-opacity: 0.5; } 68%, 90% { fill-opacity: 0.9; } }
 @keyframes prism-bar-sparkle { 0%, 58%, 100% { opacity: 0; transform: scale(0.4); } 68%, 88% { opacity: 1; transform: scale(1); } }
-  0%   { transform: translateY(6px) scale(0.6); opacity: 0; }
-  25%  { opacity: 1; }
-  50%  { transform: translateY(-8px) scale(1) rotate(-10deg); opacity: 1; }
-  80%  { opacity: 0; }
-  100% { transform: translateY(6px) scale(0.6); opacity: 0; }
+
+/* ----- No Spotify top bar colour on Prism's page -----
+   When a page is scrolled, Spotify fades in its sticky top bar, coloured from
+   the LAST playlist's cover (a red band after a red cover). On Prism's page it
+   stays clear (developer's pick), so the twilight sky shows through. The
+   buttons in the bar (back/forward) stay. */
+.Root__main-view:has(.prism-page) :is(.main-topBar-background, .main-topBar-overlay) {
+  background: transparent !important;
+  opacity: 0 !important;
 }
 
 /* ----- Full stats page: use the middle AND right-hand area -----
