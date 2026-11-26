@@ -252,7 +252,36 @@ spicetify apply
 ```
 
 Then open Spotify, click the Prism star in the top bar, open **Settings** and paste your Last.fm
-API key.
+API key ([how to get one](#getting-a-lastfm-api-key)).
+
+### Getting a Last.fm API key
+
+Prism reads genre and mood tags and similar songs from Last.fm, so **Grow**, **Remix** and
+**Add with Prism** need a free Last.fm API key. **Merge** and the themes work without one. It takes
+about a minute:
+
+1. Sign in to [Last.fm](https://www.last.fm/login) (or [make a free account](https://www.last.fm/join)).
+2. Open [last.fm/api/account/create](https://www.last.fm/api/account/create) and fill in the form:
+   - **Contact email:** your email
+   - **Application name:** anything, for example `Prism`
+   - **Application description**, **Callback URL** and **Application homepage:** can stay empty
+3. Click **Submit**. The next page shows an **API key** and a **Shared secret**.
+4. Copy the **API key** (the Shared secret isn't needed).
+5. In Spotify, open Prism's **Settings** (the Settings button on the Prism page, or Spotify's
+   profile menu > **Prism settings**), paste the key and click **Test & save**.
+
+Lost the key? Your keys are listed at [last.fm/api/accounts](https://www.last.fm/api/accounts).
+The key stays on your computer (in Spotify's local storage) and is never sent anywhere except
+Last.fm. Last.fm's API is free for non-commercial use ([terms](https://www.last.fm/api/tos)).
+
+**If Prism says something about your key:**
+
+| Message | What to do |
+| --- | --- |
+| "This needs a free Last.fm API key" | No key is saved yet: follow the steps above. |
+| "Last.fm doesn't accept your API key" | The key was mistyped, or the Shared secret was pasted instead: copy the API key again. |
+| "Last.fm has suspended your API key" | Make a new key (step 2) and save it in Settings. |
+| "Last.fm rate limit hit" | Too many requests at once: wait a minute and try again. |
 
 ### Settings
 

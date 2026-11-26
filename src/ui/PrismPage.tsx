@@ -71,9 +71,9 @@ type View =
   | { kind: "demo-scan"; id: string }
   | { kind: "demo-stats"; id: string };
 
-// Settings, when open. thenStart: seed to continue with after saving the key.
+// Settings, when open. thenStart (a seed) / thenView: what to continue with after saving the key.
 // report: "Report a bug" / "Suggest an idea" is open (inside Settings; Back returns to Settings).
-type SettingsState = { notice?: string; thenStart?: string; report?: ReportKind };
+type SettingsState = { notice?: string; thenStart?: string; thenView?: View; report?: ReportKind };
 
 // What a request does: switch the screen, or open settings on top of it.
 type PageAction = { view: View } | { settings: SettingsState };
@@ -92,7 +92,7 @@ function actionFor(request: PageRequest, id: string): PageAction {
     case "start":
       // No key yet: ask for it first, then carry on with this song.
       if (!getLastfmKey()) {
-        return { settings: { notice: "Add your Last.fm API key first, then your Prism starts.", thenStart: request.seed } };
+        return { settings: { notice: "Growing a playlist needs a free Last.fm API key. Add yours below, then your Prism starts.", thenStart: request.seed } };
       }
       return { view: { kind: "prism", seed: request.seed, id } };
     case "settings":
@@ -351,7 +351,11 @@ export function PrismPage() {
     body = (
       <HomeScreen
         onStart={start}
-        onOrganize={() => apply({ view: { kind: "organize", id: newId() } })}
+        onOrganize={() => {
+          // Remix scans with Last.fm: ask for the key first instead of failing after the picker.
+          const next: View = { kind: "organize", id: newId() };
+          apply(getLastfmKey() ? { view: next } : { settings: { notice: "Remix needs a free Last.fm API key. Add yours below, then Remix starts.", thenView: next } });
+        }}
         onMerge={() => apply({ view: { kind: "merge", id: newId() } })}
         onAddTo={() => apply({ view: { kind: "addto", id: newId() } })}
       />
@@ -450,6 +454,7 @@ export function PrismPage() {
             notice={settings.notice}
             onSaved={() => {
               if (settings.thenStart) start(settings.thenStart);
+              else if (settings.thenView) apply({ view: settings.thenView });
             }}
             onReport={(kind) => setSettings({ ...settings, report: kind })}
           />

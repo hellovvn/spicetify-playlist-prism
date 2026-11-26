@@ -90,7 +90,7 @@ export async function testApiKey(apiKey: string): Promise<string | null> {
     await getTrackTopTags("Cher", "Believe", apiKey);
     return null;
   } catch (error) {
-    if (error instanceof LastfmError && error.code === 10) return "Last.fm says this API key is invalid.";
+    if (error instanceof LastfmError && error.code === 10) return 'Last.fm says this API key is invalid. Check that you copied the "API key", not the "Shared secret".';
     if (error instanceof LastfmError && error.code === 26) return "This API key has been suspended by Last.fm.";
     return `Couldn't reach Last.fm: ${String(error)}`;
   }
