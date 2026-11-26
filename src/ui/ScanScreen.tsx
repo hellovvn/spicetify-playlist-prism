@@ -144,9 +144,12 @@ export function ScanScreen({ sources, runScan, describeError, onBack, onNext, on
   return (
     <div style={styles.screen} data-prism-state="scanning">
       <div style={styles.middle}>
-        {/* Big diamond with shimmering rainbow rays: shows the scan is working. */}
+        {/* The Prism star in a rainbow ring that fills up as the scan goes. */}
         <div style={styles.prism}>
-          <ScanningPrism size={168} />
+          <ScanningPrism
+            size={168}
+            progress={progress && progress.total > 0 ? progress.done / progress.total : null}
+          />
         </div>
         <div className="prism-screen-title" style={styles.titleSlot}>
           {progress ? `Scanning ${progress.total} songs` : "Reading your playlists..."}

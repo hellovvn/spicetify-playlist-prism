@@ -1,73 +1,84 @@
 // Prism's icons drawn in React for use ON the page: the page header's Prism
 // star (PrismIcon, the same star as the Spotify header icon,
-// src/assets/prism.svg) and the big animated faceted diamond shown while
-// scanning (ScanningPrism). Animations are in src/ui/styles.ts.
+// src/assets/prism.svg) and the big scanning icon (ScanningPrism: the star in
+// a filling rainbow ring). Animations are in src/ui/styles.ts.
 
 import React from "react";
 
-// The scanning diamond's lines (24x24 picture, centre 12,12).
-// A "faceted pyramid": a straight-edged card diamond whose peak sits a little
-// up and left of centre (11, 10.6), so its 4 faces catch the light
-// differently. Each face has its own see-through fill: lit top-left,
-// darkest bottom-left.
-function Gem() {
-  return (
-    <>
-      <path d="M12 2 11 10.6 4 12Z" fill="currentColor" fillOpacity={0.42} stroke="none" />
-      <path d="M12 2 20 12 11 10.6Z" fill="currentColor" fillOpacity={0.2} stroke="none" />
-      <path d="M4 12 11 10.6 12 22Z" fill="currentColor" fillOpacity={0.1} stroke="none" />
-      <path d="M20 12 12 22 11 10.6Z" fill="currentColor" fillOpacity={0.28} stroke="none" />
-      <path d="M12 2 20 12 12 22 4 12Z" strokeWidth={1.2} />
-      <path d="M12 2 11 10.6 12 22M4 12 11 10.6 20 12" strokeWidth={0.8} opacity={0.75} />
-    </>
-  );
-}
+// ----- The big scanning icon (mockup "D, glow + progress ring", developer's
+// pick 2026-11-26) -----
+// The Prism star (same shape and rainbow as the header icon) breathing over a
+// soft glow, inside a pastel rainbow ring that fills up as the scan goes
+// (`progress` 0..1). Before the song count is known (progress null) a short
+// arc circles round the ring instead. The star itself never turns.
+// 120x120 picture, centre 60,60. Animations in styles.ts (.prism-scan-*).
+const SCAN_FILL = "prism-scan-fill"; // gradient ids (one scan screen at a time)
+const SCAN_GLOW = "prism-scan-glow";
+const RING_R = 46;
+const RING_LENGTH = 2 * Math.PI * RING_R;
 
-// ----- The big animated diamond shown while scanning -----
-const RAY_COLOURS = ["#ffb3c7", "#ffd1a6", "#fff1a8", "#b8f2c9", "#a8d8ff", "#cdb8ff"];
-// The "star halo": 12 four-pointed stars in a ring round the diamond,
-// alternating big and small, coloured round the pastel rainbow.
-const HALO = 12;
-const star = (x: number, y: number, r: number) =>
-  `M${x} ${y - r}q0 ${r} ${r} ${r}-${r} 0-${r} ${r} 0-${r}-${r}-${r} ${r} 0 ${r}-${r}Z`;
-
-export function ScanningPrism({ size = 132 }: { size?: number }) {
-  const stars = Array.from({ length: HALO }, (_, i) => {
-    const a = (i / HALO) * 2 * Math.PI - Math.PI / 2; // start at the top
-    const big = i % 2 === 0;
-    const R = big ? 16 : 17.5, r = big ? 2 : 1.2;
-    return (
-      <path
-        key={i}
-        className="prism-scan-ray"
-        fill={RAY_COLOURS[i % RAY_COLOURS.length]}
-        stroke="none"
-        d={star(12 + Math.cos(a) * R, 12 + Math.sin(a) * R, r)}
-        // Negative delays: every star is already mid-pulse, staggered round the
-        // ring, so a shine travels round it ("travelling shimmer").
-        style={{ animationDelay: `${(-(i * 1.8) / HALO).toFixed(2)}s` }}
-      />
-    );
-  });
+export function ScanningPrism({ size = 132, progress = null }: { size?: number; progress?: number | null }) {
+  const known = progress !== null && Number.isFinite(progress);
+  const share = known ? Math.min(1, Math.max(0, progress as number)) : 0.2;
   return (
-    // viewBox -14..38: the 24x24 diamond in the middle, with room round it for the star halo.
     <svg
       width={size}
       height={size}
-      viewBox="-14 -14 52 52"
+      viewBox="0 0 120 120"
       fill="none"
-      stroke="currentColor"
-      strokeWidth={1.3}
-      strokeLinejoin="round"
-      strokeLinecap="round"
       aria-hidden="true"
       data-prism="scanning-prism"
-      style={{ color: "#f3e8ff", overflow: "visible" }}
+      style={{ overflow: "visible" }}
     >
-      {stars}
-      <g className="prism-scan-gem">
-        <Gem />
+      <defs>
+        <linearGradient id={SCAN_FILL} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#ffb8d9" />
+          <stop offset="0.35" stopColor="#ffe2a8" />
+          <stop offset="0.6" stopColor="#a8ecc9" />
+          <stop offset="0.8" stopColor="#a9cdff" />
+          <stop offset="1" stopColor="#d5c2ff" />
+        </linearGradient>
+        <radialGradient id={SCAN_GLOW}>
+          <stop offset="0" stopColor="#ffffff" stopOpacity={0.55} />
+          <stop offset="0.5" stopColor="#d5c2ff" stopOpacity={0.25} />
+          <stop offset="1" stopColor="#d5c2ff" stopOpacity={0} />
+        </radialGradient>
+      </defs>
+      <circle className="prism-scan-glow" cx={60} cy={60} r={34} fill={`url(#${SCAN_GLOW})`} />
+      {/* The ring: a faint track, then the rainbow part (starts at the top, clockwise). */}
+      <circle cx={60} cy={60} r={RING_R} stroke="#ffffff" strokeOpacity={0.14} strokeWidth={3} />
+      <g className={known ? undefined : "prism-scan-waiting"}>
+        <circle
+          className="prism-scan-ring"
+          data-prism="scan-ring"
+          cx={60}
+          cy={60}
+          r={RING_R}
+          stroke={`url(#${SCAN_FILL})`}
+          strokeWidth={3}
+          strokeLinecap="round"
+          transform="rotate(-90 60 60)"
+          strokeDasharray={RING_LENGTH.toFixed(1)}
+          strokeDashoffset={(RING_LENGTH * (1 - share)).toFixed(1)}
+          // A round cap still shows a dot at 0%: hide the arc until there's some.
+          strokeOpacity={share > 0 ? 1 : 0}
+        />
       </g>
+      {/* The header's 24x24 star, scaled to 52px in the middle, with its white glint. */}
+      <g className="prism-scan-star">
+        <g transform="translate(34 34) scale(2.1667)">
+          <path d={STAR} fill={`url(#${SCAN_FILL})`} />
+          <path
+            d="M12 5.8C12.5 9.4 14.2 11.2 17.6 12"
+            stroke="#ffffff"
+            strokeOpacity={0.65}
+            strokeWidth={0.7}
+            strokeLinecap="round"
+          />
+        </g>
+      </g>
+      <circle className="prism-scan-sparkle" cx={88} cy={30} r={1.6} fill="#ffe2a8" />
+      <circle className="prism-scan-sparkle" style={{ animationDelay: "-0.9s" }} cx={30} cy={90} r={1.4} fill="#a9cdff" />
     </svg>
   );
 }
