@@ -140,6 +140,16 @@ ${ON} [data-encore-id="popover"][data-trigger="ContextMenuSubmenu"] {
   backdrop-filter: blur(22px) saturate(140%);
   -webkit-backdrop-filter: blur(22px) saturate(140%);
 }
+/* Menus carry Spotify's .encore-dark-theme class, which sets the green accent
+   again on the menu itself, so the bars' swap never reaches them: ticked rows
+   (e.g. a song list's "Change visible columns") showed green text and boxes. */
+${ON} [data-encore-id="menu"],
+${ON} [data-encore-id="popover"] {
+  --text-bright-accent: ${PINK};
+  --essential-bright-accent: ${PINK};
+  --spice-button: ${PINK};
+  --spice-button-active: ${PINK};
+}
 /* A sub-menu with a search box ("Add to playlist") is a popover holding the
    search box and a menu: the popover is the one glass card, the menu inside
    it goes clear, and the search box is a glass text box. */
