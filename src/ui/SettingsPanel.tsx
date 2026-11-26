@@ -11,6 +11,7 @@ import { parsePlaylistTheme, PLAYLIST_THEMES, PLAYLIST_THEME_CHANGED_EVENT, type
 import { isPanelStatsOn, PANEL_STATS_CHANGED_EVENT } from "./sidePanel";
 import { isLyricsThemeOn, LYRICS_THEME_CHANGED_EVENT } from "./lyricsTheme";
 import { testApiKey } from "../lastfm/client";
+import { LASTFM_KEY_GUIDE_URL } from "../lastfm/keyErrors";
 import { ThemeStrip } from "./ThemeStrip";
 import { kofiUrl } from "../support";
 
@@ -107,10 +108,14 @@ export function SettingsPanel({ notice, onSaved, onReport }: SettingsPanelProps)
       )}
       <p>
         Prism uses Last.fm to get song-level genre and mood tags. Get a free API key at{" "}
-        <a href="https://www.last.fm/api/account/create" target="_blank" rel="noreferrer">
+        <a href="https://www.last.fm/api/account/create" target="_blank" rel="noreferrer" style={{ color: "inherit", textDecoration: "underline" }}>
           last.fm/api/account/create
         </a>
-        , then paste the "API key" (not the "shared secret") below.
+        , then paste the "API key" (not the "Shared secret") below. New to this?{" "}
+        <a href={LASTFM_KEY_GUIDE_URL} target="_blank" rel="noreferrer" data-prism="lastfm-key-guide" style={{ color: "inherit", textDecoration: "underline" }}>
+          Step-by-step guide
+        </a>
+        .
       </p>
       <p style={{ color: "var(--spice-subtext)", fontSize: 13 }}>
         The key is stored only in Spotify on this computer. It is never added to the code or git.

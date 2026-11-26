@@ -11,6 +11,10 @@
 import { addSongTo, findPlaylistsForSong, friendlyError, type SongFits } from "../flow";
 import { fitPercent } from "../addto/fitPlaylists";
 import { openPage } from "../nav";
+import { isKeyProblem } from "../lastfm/keyErrors";
+
+// Short enough for the menu; clicking it opens the Prism page, which shows the full message.
+const KEY_MENU_LINE = "Needs a Last.fm API key: see Prism page";
 import { LOG_PREFIX } from "../log";
 
 const SLOTS = 5;
@@ -42,7 +46,7 @@ function ensure(uri: string): void {
     (error) => {
       if (state !== mine) return;
       console.error(`${LOG_PREFIX} add with Prism failed`, error);
-      state = { uri, at: Date.now(), status: "error", message: friendlyError(error) };
+      state = { uri, at: Date.now(), status: "error", message: isKeyProblem(error) ? KEY_MENU_LINE : friendlyError(error) };
       redraw();
     }
   );

@@ -114,6 +114,11 @@ Since step 12a this is a Spicetify CUSTOM APP (src/settings.json has an "icon"),
 ## Secrets
 - The Last.fm API key is entered by the user in a settings field and stored in
   `Spicetify.LocalStorage` (key `prism:lastfmKey`). Never hardcode it or commit it.
+- KEY ERRORS (2026-11-26): `src/lastfm/keyErrors.ts` (pure, tests/keyErrors.test.ts) gives
+  missing (our code -1), invalid (10) and suspended (26) keys their own message pointing to
+  Prism settings; friendlyError uses it. Grow and Remix ask for the key BEFORE starting
+  (Settings notice, then carry on); Add with Prism says so when the song isn't cached. Settings
+  links to the README's "Getting a Last.fm API key" guide (LASTFM_KEY_GUIDE_URL).
 
 ## Code layout
 - `src/app.tsx` (page entry), `src/ui/PrismPage.tsx` (the page), `src/extensions/prism.tsx`
