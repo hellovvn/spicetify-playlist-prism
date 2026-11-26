@@ -7,6 +7,10 @@
 
 import React from "react";
 import { PrismPage } from "./ui/PrismPage";
+import { startErrorLog } from "./report/errorLog";
+
+// Remember Prism's last few warnings, so a bug report can include them (memory only).
+startErrorLog();
 
 export default function App() {
   return <PrismPage />;

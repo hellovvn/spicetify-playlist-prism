@@ -1,0 +1,23 @@
+# Prism's report relay. Setup: relay/README.md.
+name = "prism-reports"
+main = "src/worker.ts"
+compatibility_date = "2026-11-01"
+
+[vars]
+GITHUB_APP_ID = "5928498"
+GITHUB_INSTALLATION_ID = "185933361"
+# Where issues go. To switch to a private repo: install the App on it, change this, redeploy.
+GITHUB_REPO = "hellovvn/spicetify-prism"
+# Spotify's page origin (Prism runs inside it). Checked when Prism's form is wired up.
+ALLOWED_ORIGINS = "https://xpui.app.spotify.com"
+# Set to "off" and redeploy to stop accepting reports.
+REPORTS_ENABLED = "on"
+
+# Rate-limit counters. Fill in the id printed by:
+#   npx wrangler kv namespace create LIMITS
+[[kv_namespaces]]
+binding = "LIMITS"
+id = "44c4f93be8364d16adf311a061771293"
+
+# Secret (not in this file): GITHUB_PRIVATE_KEY, set with
+#   npx wrangler secret put GITHUB_PRIVATE_KEY < path\to\key.pem

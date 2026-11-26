@@ -43,6 +43,8 @@ import { ToneEditor } from "./ToneEditor";
 import { PAGE_PATH, parsePageRequest, parseTrackLink, type PageRequest } from "../nav";
 import { SeedPanel } from "./SeedPanel";
 import { SettingsPanel } from "./SettingsPanel";
+import { ReportScreen } from "./ReportScreen";
+import type { ReportKind } from "../report/report";
 import { ScanDemo } from "./ScanScreen";
 import { injectStyles, SCREEN_HEIGHT } from "./styles";
 import { PrismIcon } from "./PrismIcon";
@@ -69,7 +71,8 @@ type View =
   | { kind: "demo-stats"; id: string };
 
 // Settings, when open. thenStart: seed to continue with after saving the key.
-type SettingsState = { notice?: string; thenStart?: string };
+// report: "Report a bug" / "Suggest an idea" is open (inside Settings; Back returns to Settings).
+type SettingsState = { notice?: string; thenStart?: string; report?: ReportKind };
 
 // What a request does: switch the screen, or open settings on top of it.
 type PageAction = { view: View } | { settings: SettingsState };
@@ -381,7 +384,7 @@ export function PrismPage() {
         />
       ))}
      </div>
-     <div className="prism-page" style={styles.page} data-prism="page" data-prism-view={settings ? "settings" : view.kind}>
+     <div className="prism-page" style={styles.page} data-prism="page" data-prism-view={settings ? (settings.report ? "report" : "settings") : view.kind}>
       {/* No header on the full stats page (it has its own title and the
           "Show in the side panel" button); every other screen keeps it. */}
       {(view.kind !== "stats" || settings) && (
@@ -392,8 +395,13 @@ export function PrismPage() {
           </div>
           <div style={styles.headerButtons}>
             {settings ? (
-              // Back closes settings and shows the screen you were on.
-              <ButtonSecondary buttonSize="sm" onClick={() => setSettings(null)} data-prism="nav-back">
+              // Back closes settings and shows the screen you were on
+              // (from a report form: back to Settings).
+              <ButtonSecondary
+                buttonSize="sm"
+                onClick={() => setSettings(settings.report ? { ...settings, report: undefined } : null)}
+                data-prism="nav-back"
+              >
                 Back
               </ButtonSecondary>
             ) : (
@@ -428,12 +436,21 @@ export function PrismPage() {
             </div>
           </div>
         )}
-        {settings && (
+        {settings && settings.report && (
+          <ReportScreen
+            key={settings.report}
+            kind={settings.report}
+            screen={view.kind}
+            onClose={() => setSettings({ ...settings, report: undefined })}
+          />
+        )}
+        {settings && !settings.report && (
           <SettingsPanel
             notice={settings.notice}
             onSaved={() => {
               if (settings.thenStart) start(settings.thenStart);
             }}
+            onReport={(kind) => setSettings({ ...settings, report: kind })}
           />
         )}
         {/* Hidden (not removed) while settings are open, so it keeps its state. */}
