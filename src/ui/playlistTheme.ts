@@ -35,7 +35,7 @@ import { playlistUriFromPath } from "./toneView";
 import { RING_ANGLE_PROPERTY, RING_GLINT, RING_RAINBOW } from "./ringColours";
 import { isNewSkyTheme, NEW_SKY_CSS, newSkyHtml, wireSky } from "./themeSkies";
 
-const STYLE_ID = "playlist-prism-playlist-theme";
+const STYLE_ID = "prism-playlist-theme";
 const THEME_ATTR = "data-prism-theme"; // on .Root__main-view while a themed playlist shows
 const SKY_CLASS = "prism-pl-sky";
 const RAIL_CLASS = "prism-rail";
@@ -539,7 +539,7 @@ function skyHtml(theme: PlaylistThemeId, width: number, scale: number): { backgr
     ["#ffd59e", 65, 70, 260, 24],
   ];
   let html = clouds
-    .map(([c, x, y, size, d], i) => [c, x, y, Math.round((size / 680) * width), d] as const)
+    .map(([c, x, y, size, d]) => [c, x, y, Math.round((size / 680) * width), d] as const)
     .map(([c, x, y, size, d], i) => `<span class="prism-pl-cloud" style="left:${x}%;top:${y}%;width:${size}px;height:${Math.round(size * 0.7)}px;background:radial-gradient(ellipse at 40% 45%,${c}88,${c}33 45%,transparent 70%);--d:${d}s;--l:${-i * 4}s"></span>`)
     .join("");
   html += `<span style="left:30%;top:10%;width:${Math.round((280 / 680) * width)}px;height:${Math.round((120 / 680) * width)}px;background:radial-gradient(ellipse,rgba(255,255,255,.18),transparent 70%);filter:blur(14px);transform:rotate(-20deg)"></span>`;

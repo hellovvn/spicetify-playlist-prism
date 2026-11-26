@@ -16,7 +16,7 @@ import { getPlaylistName } from "../spotify/read";
 import { ToneEditor } from "./ToneEditor";
 import { playlistUriFromPath } from "./toneView";
 
-const HOST_ID = "playlist-prism-tone-popup";
+const HOST_ID = "prism-tone-popup";
 
 // From the right-click menu: the playlist may not be the page that's open
 // (e.g. right-clicked in the left panel). Then open the playlist first and

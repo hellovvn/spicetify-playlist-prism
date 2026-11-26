@@ -21,7 +21,7 @@
 // This runs from the always-on script (src/extensions/prism.tsx), because the
 // header icon is visible on every page, not only on the Prism page.
 
-const STYLE_ID = "playlist-prism-header-icon";
+const STYLE_ID = "prism-header-icon";
 const BUTTON = 'button[aria-label="Prism"]';
 const HOVER = [`${BUTTON}:hover`, `${BUTTON}:focus-visible`];
 // Both selectors for one rule, e.g. on(" .prism-glow") ->

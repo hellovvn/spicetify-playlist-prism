@@ -45,7 +45,7 @@ export function StatsScreen({ load, onOpenPlaylist, onMinimize, loadExtras, load
     load()
       .then((loaded) => !closed && setRecord(loaded))
       .catch((error) => {
-        console.error("[Playlist Prism] loading playlist stats failed", error);
+        console.error("[Prism] loading playlist stats failed", error);
         if (!closed) setFailed(true);
       });
     return () => {

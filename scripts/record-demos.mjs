@@ -61,7 +61,7 @@ async function clickAt(sel) {
   await send("Input.dispatchMouseEvent", { type: "mousePressed", x, y, button: "left", clickCount: 1 });
   await send("Input.dispatchMouseEvent", { type: "mouseReleased", x, y, button: "left", clickCount: 1 });
 }
-const goHome = () => go("/playlist-prism?go=home&r=" + Date.now());
+const goHome = () => go("/prism?go=home&r=" + Date.now());
 const pageCrop = (b, ratio = SHAPE) => ({ x: b.x, y: Math.max(0, b.y - 4), w: b.w, h: Math.min(VIEW.height - Math.max(0, b.y - 4), b.w * ratio) });
 const top = (r, ratio) => ({ x: r.x, y: r.y, w: r.w, h: Math.min(r.h, r.w * ratio) });
 async function scrollTop0() {
@@ -78,13 +78,13 @@ const setLocal = (key, value) => ev(`Spicetify.LocalStorage.set(${JSON.stringify
 const fire = (name) => ev(`window.dispatchEvent(new Event(${JSON.stringify(name)}))`);
 async function setTheme(id) {
   await setLocal("prism:playlistTheme", id);
-  await fire("playlist-prism:playlist-theme-changed");
+  await fire("prism:playlist-theme-changed");
 }
 async function setTone(uri, tone) {
   const tones = JSON.parse((await ev(`Spicetify.LocalStorage.get("prism:tones")`)) || "{}");
   if (tone) tones[uri] = { ...tone, updatedAt: Date.now() }; else delete tones[uri];
   await setLocal("prism:tones", JSON.stringify(tones));
-  await fire("playlist-prism:tones-changed");
+  await fire("prism:tones-changed");
 }
 
 // ----- recording -----
@@ -173,7 +173,7 @@ const scenarios = {
     await setTheme("aurora");
     await goHome();
     await sleep(800);
-    await ev(`window.__playlistPrism.openStats(${JSON.stringify(TTH)})`);
+    await ev(`window.__prism.openStats(${JSON.stringify(TTH)})`);
     await waitFor(`!!document.querySelector('[data-prism-view="stats"] .prism-bubble')`, 15000);
     await sleep(1200);
     const box = await rect('[data-prism="page"]');
@@ -221,7 +221,7 @@ const scenarios = {
   // Grow: seed chips, then the ranked preview (the source picker isn't recorded: it lists your playlists).
   async grow() {
     await setTheme("aurora");
-    await ev(`window.__playlistPrism.startPrism(${JSON.stringify(SEED)})`);
+    await ev(`window.__prism.startPrism(${JSON.stringify(SEED)})`);
     if (!(await waitFor(`!!document.querySelector('[data-prism-state="ready"]')`, 60000))) throw new Error("seed panel didn't load");
     await clickButton("Next");
     await waitFor(`!!document.querySelector('[data-uri=${JSON.stringify(TTH)}]')`, 15000);
@@ -277,7 +277,7 @@ const scenarios = {
     await sleep(800);
     await startRec();
     await sleep(500);
-    await ev(`window.__playlistPrism.openAddTo(${JSON.stringify(SEED)})`);
+    await ev(`window.__prism.openAddTo(${JSON.stringify(SEED)})`);
     await waitFor(`!!document.querySelector('[data-prism="addto-row"]')`, 60000);
     await sleep(2500);
     await hover('[data-prism="addto-row"] button');
@@ -324,8 +324,8 @@ try {
 } finally {
   // Put the user's own settings back.
   await ev(`${JSON.stringify(saved)}.forEach(([k, v]) => v == null ? Spicetify.LocalStorage.remove(k) : Spicetify.LocalStorage.set(k, v))`);
-  await fire("playlist-prism:tones-changed");
-  await fire("playlist-prism:playlist-theme-changed");
+  await fire("prism:tones-changed");
+  await fire("prism:playlist-theme-changed");
   await send("Emulation.clearDeviceMetricsOverride");
   ws.close();
 }

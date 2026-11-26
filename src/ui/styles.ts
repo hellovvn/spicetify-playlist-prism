@@ -1,4 +1,4 @@
-// Global CSS for the Playlist Prism page: fade-in, spinner.
+// Global CSS for the Prism page: fade-in, spinner.
 //
 // Why a <style> tag instead of inline styles? Animations need @keyframes
 // and selectors, which inline style={{...}} can't express.
@@ -8,7 +8,7 @@
 import { PRISM_STAR_CSS } from "./prismStar";
 import { RING_ANGLE_PROPERTY, RING_GLINT, RING_RAINBOW } from "./ringColours";
 
-const STYLE_ID = "playlist-prism-styles";
+const STYLE_ID = "prism-styles";
 
 // Height of the flow's later screens (sources, scan, preview), so the page
 // keeps ONE layout while you use it instead of jumping as content changes.

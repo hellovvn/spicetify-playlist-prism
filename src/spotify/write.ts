@@ -85,7 +85,7 @@ export async function createPrismPlaylist(
     await addToNewPlaylist(playlistUri, songs, api);
   } catch (error) {
     if (error instanceof WriteGuardError) throw error;
-    console.error("[Playlist Prism] adding songs failed", error);
+    console.error("[Prism] adding songs failed", error);
     // Honest about the half-done state: the new playlist exists but may be incomplete.
     throw new PrismWriteError(
       `The new playlist "${cleanName}" was created, but adding the songs failed. ` +
@@ -156,7 +156,7 @@ export async function createMergedPlaylist(
       await api.renamePlaylist(source.uri, next);
       result.renamed.push(source.name);
     } catch (error) {
-      console.error("[Playlist Prism] renaming a merged playlist failed", error);
+      console.error("[Prism] renaming a merged playlist failed", error);
       result.notRenamed.push({ name: source.name, reason: "Spotify refused the rename" });
     }
   }
@@ -183,7 +183,7 @@ export async function addSongToPlaylist(target: AddTarget, trackUri: string, api
   try {
     await api.addToPlaylist(target.uri, [trackUri]);
   } catch (error) {
-    console.error("[Playlist Prism] adding a song failed", error);
+    console.error("[Prism] adding a song failed", error);
     throw new PrismWriteError(`Spotify didn't add the song to "${target.name}". Nothing was changed.`);
   }
 }

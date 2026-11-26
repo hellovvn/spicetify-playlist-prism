@@ -18,7 +18,7 @@ import { loadPlaylistThemeOverrides, loadPlaylistThemeSetting } from "../storage
 import { effectiveTheme, parsePlaylistTheme, parseThemeOverrides, PLAYLIST_THEME_CHANGED_EVENT, type PlaylistThemeId } from "../theme/playlistTheme";
 import { isLikedSongsPage, LIKED_SONGS_COVER, panelBackground, rowBackground, rowSkyHtml } from "../theme/libraryTheme";
 
-const STYLE_ID = "playlist-prism-library-theme";
+const STYLE_ID = "prism-library-theme";
 const THEME_ATTR = "data-prism-lib-theme"; // on .Root__nav-bar while a theme is on
 const SIDE_ATTR = "data-prism-side-theme"; // on <html> while a theme is on (right panel)
 const SKY_CLASS = "prism-lib-sky";
@@ -71,8 +71,6 @@ const BASE_CSS = `
 /* The newer themes' row pieces (2026-11-25). */
 .prism-lib-band { left: -60%; top: -40%; width: 220%; height: 180%; background: linear-gradient(105deg, transparent 40%, rgba(255, 150, 200, 0.3) 44%, rgba(255, 240, 150, 0.26) 49%, rgba(150, 240, 190, 0.26) 52%, rgba(140, 200, 255, 0.3) 56%, transparent 60%); animation: prism-lib-drift var(--d) var(--l) ease-in-out infinite alternate; }
 .prism-lib-galaxy { left: -20%; top: 10%; width: 140%; height: 60%; transform: rotate(-12deg); background: radial-gradient(ellipse, rgba(200, 180, 255, 0.4), transparent 70%); filter: blur(6px); animation: prism-lib-twinkle 8s ease-in-out infinite; }
-.prism-lib-drop { top: -6px; border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.85), rgba(200, 210, 255, 0.2)); animation: prism-lib-slide var(--d) var(--l) ease-in infinite; }
-@keyframes prism-lib-slide { 0% { transform: translateY(0); opacity: 0; } 10% { opacity: 0.9; } 100% { transform: translateY(64px); opacity: 0.4; } }
 .prism-lib-petal { top: -8px; width: 8px; height: 5px; border-radius: 70% 0 70% 0; animation: prism-lib-fall var(--d) var(--l) linear infinite; }
 @keyframes prism-lib-fall { 0% { transform: translate(0, 0) rotate(0); opacity: 0; } 12% { opacity: 1; } 100% { transform: translate(14px, 70px) rotate(300deg); opacity: 0; } }
 .prism-lib-ripple { top: 50%; margin-top: -25px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.55); opacity: 0; animation: prism-lib-ripple var(--d) var(--l) cubic-bezier(0.15, 0.6, 0.35, 1) infinite; }

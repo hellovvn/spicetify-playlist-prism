@@ -25,7 +25,7 @@ import { moodColour, tagColour } from "./tagLabels";
 import { playlistUriFromPath, ringSvg, stripStatus } from "./toneView";
 import { PRISM_STAR_CSS, PRISM_STAR_HTML } from "./prismStar";
 
-const STYLE_ID = "playlist-prism-tone-rows";
+const STYLE_ID = "prism-tone-rows";
 const STRIP_ATTR = "data-prism-tone-strip";
 const MAX_CHIPS = 4; // genres/moods shown in the strip; the rest as "+N"
 const RING_CLASS = "prism-tone-ring";

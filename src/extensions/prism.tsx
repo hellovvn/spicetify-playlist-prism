@@ -1,11 +1,11 @@
-// Playlist Prism: the ALWAYS-ON part.
+// Prism: the ALWAYS-ON part.
 //
-// Since step 12a, Playlist Prism is a page (a Spicetify "custom app", see
+// Since step 12a, Prism is a page (a Spicetify "custom app", see
 // src/app.tsx). Spicetify loads the page's code only when the page opens, but
 // files in src/extensions/ run as soon as Spotify starts. This one adds:
 //   - "Start a Prism playlist" to a song's right-click menu
 //   - "Add with Prism" (song right-click): the 5 best playlists (src/ui/addWithPrism.ts)
-//   - "Playlist Prism settings" to the profile menu
+//   - "Prism settings" to the profile menu
 //   - the read-only debug hook for the smoke test
 //   - twilight colours for Spotify's lyrics views (src/ui/lyricsTheme.ts)
 //   - Prism stats in the right-hand panel for Prism playlists (src/ui/panelHost.tsx)
@@ -123,7 +123,7 @@ function isSinglePlaylist(uris: string[]): boolean {
   return uris.length === 1 && isPlaylistUri(uris[0]);
 }
 
-// Adds "Playlist Prism settings" to the profile menu (click your avatar, top right).
+// Adds "Prism settings" to the profile menu (click your avatar, top right).
 // Spicetify.Menu.Item is meant for on/off toggles, so isEnabled = false.
 function registerSettingsMenu() {
   new Spicetify.Menu.Item("Prism settings", false, () => openPage({ go: "settings" })).register();
@@ -141,7 +141,7 @@ function isSingleTrack(uris: string[]): boolean {
 // exposed (only whether one is saved).
 // TODO before publishing (step 11): remove this or hide it behind a dev-only flag.
 function exposeDebugHook() {
-  const hook = ((window as any).__playlistPrism ??= {});
+  const hook = ((window as any).__prism ??= {});
   Object.assign(hook, {
     isSingleTrack,
     getTrackInfo,

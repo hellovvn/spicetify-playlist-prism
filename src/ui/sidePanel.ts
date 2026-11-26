@@ -6,30 +6,16 @@
 // for playlists Prism made or organized, an estimate (with a background scan)
 // for the rest. Read-only: it never changes the playlist.
 
-import type { PrismPlaylistRecord, PrismPlaylistRecords } from "../stats/playlistStats";
+import type { PrismPlaylistRecord } from "../stats/playlistStats";
 
 // Event the Settings page sends after the "Prism stats in the side panel"
 // switch changes, so the panel updates straight away.
-export const PANEL_STATS_CHANGED_EVENT = "playlist-prism:panel-stats-changed";
+export const PANEL_STATS_CHANGED_EVENT = "prism:panel-stats-changed";
 
 // The saved text ("on" / "off" / nothing yet) -> on or off. Only an explicit
 // "off" turns it off, so it's on for everyone by default.
 export function isPanelStatsOn(saved: string | null): boolean {
   return saved !== "off";
-}
-
-// "/playlist/4cCN2s73MfFCG1Rti184H2" -> "spotify:playlist:4cCN2s73MfFCG1Rti184H2".
-// Anything else (home, search, an album, Prism's own page...) -> null.
-export function playlistUriFromPath(path: string): string | null {
-  const match = /^\/playlist\/([A-Za-z0-9]{22})\/?$/.exec(path);
-  return match ? `spotify:playlist:${match[1]}` : null;
-}
-
-// The saved record for the playlist open at `path`, or null. Estimates are
-// never saved as records, so this only finds playlists Prism made or organized.
-export function panelRecordFor(path: string, records: PrismPlaylistRecords): PrismPlaylistRecord | null {
-  const uri = playlistUriFromPath(path);
-  return uri ? records[uri] ?? null : null;
 }
 
 // The panel's two tabs (mockup "B"): "Prism stats" or Spotify's own "Now

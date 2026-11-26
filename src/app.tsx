@@ -1,6 +1,6 @@
-// Playlist Prism: the PAGE (a Spicetify "custom app", since step 12a).
+// Prism: the PAGE (a Spicetify "custom app", since step 12a).
 //
-// Spicetify shows this when you open /playlist-prism, e.g. by clicking the
+// Spicetify shows this when you open /prism, e.g. by clicking the
 // Prism icon in Spotify's header (Spicetify adds that icon for custom apps;
 // its picture is src/assets/prism.svg, set in src/settings.json).
 // The always-on part (right-click menu etc.) is in src/extensions/prism.tsx.

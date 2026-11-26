@@ -6,7 +6,7 @@ const ID = "4PhsKqMdgMEUSstTDAmMpg";
 describe("pageUrl / parsePageRequest", () => {
   test("start request survives the round trip", () => {
     const url = pageUrl({ go: "start", seed: `spotify:track:${ID}` }, "7");
-    expect(url.startsWith("/playlist-prism?")).toBe(true);
+    expect(url.startsWith("/prism?")).toBe(true);
     expect(parsePageRequest(url.split("?")[1])).toEqual({ request: { go: "start", seed: `spotify:track:${ID}` }, requestId: "7" });
   });
 

@@ -3,7 +3,7 @@
 // How it works: when `spicetify watch -e` is running, Spotify has a debug
 // port open on 127.0.0.1:9222 (only reachable from this computer). This
 // script connects to it with the Chrome DevTools Protocol (CDP), the same
-// connection DevTools uses, and runs checks against window.__playlistPrism
+// connection DevTools uses, and runs checks against window.__prism
 // (the read-only debug hook in src/app.tsx).
 //
 // READ-ONLY by design: it never creates, changes, or deletes anything in
@@ -133,21 +133,21 @@ try {
   // After a reload the hook can take a moment to appear, so wait up to 10 s.
   let hookFound = false;
   for (let i = 0; i < 20 && !hookFound; i++) {
-    hookFound = await cdp.evaluate("!!window.__playlistPrism");
+    hookFound = await cdp.evaluate("!!window.__prism");
     if (!hookFound) await sleep(500);
   }
-  check("debug hook window.__playlistPrism exists", hookFound);
+  check("debug hook window.__prism exists", hookFound);
   if (!hookFound) throw new Error("Extension not loaded; stopping.");
 
-  const hasKey = await cdp.evaluate("window.__playlistPrism.hasLastfmKey()");
+  const hasKey = await cdp.evaluate("window.__prism.hasLastfmKey()");
   check("a Last.fm key is saved", hasKey);
 
-  console.log("\n[1b] The Playlist Prism page (step 12a)");
+  console.log("\n[1b] The Prism page (step 12a)");
   // Spicetify adds a header button for every custom app, labelled with its name.
   const HEADER_ICON = `document.querySelector('button[aria-label="Prism"]')`;
   // Known starting point: the page's start screen, then away to Spotify's
   // Home, so clicking the icon must bring us BACK to the page.
-  await cdp.evaluate("window.__playlistPrism.goHome()");
+  await cdp.evaluate("window.__prism.goHome()");
   await sleep(500);
   await cdp.evaluate(`Spicetify.Platform.History.push("/")`);
   await sleep(1000);
@@ -163,9 +163,9 @@ try {
   const hidden = await cdp.evaluate(`document.visibilityState === "hidden"`);
   if (!iconFound && hidden) {
     info("SKIPPED header icon check: Spotify's window is hidden, so Spicetify hasn't drawn the header links");
-    await cdp.evaluate("window.__playlistPrism.goHome()");
+    await cdp.evaluate("window.__prism.goHome()");
   } else {
-    check("header has the Playlist Prism icon", iconFound);
+    check("header has the Prism icon", iconFound);
     if (!iconFound) throw new Error("No header icon; stopping.");
     await cdp.evaluate(`${HEADER_ICON}.click()`);
   }
@@ -240,19 +240,19 @@ try {
     ["nothing", [], false],
   ];
   for (const [label, uris, expected] of menuCases) {
-    const actual = await cdp.evaluate(`window.__playlistPrism.isSingleTrack(${JSON.stringify(uris)})`);
+    const actual = await cdp.evaluate(`window.__prism.isSingleTrack(${JSON.stringify(uris)})`);
     check(`${label}: ${expected ? "shown" : "hidden"}`, actual === expected, actual === expected ? "" : `got ${actual}`);
   }
 
   console.log("\n[3] Song lookup + live Last.fm tags + cleanup (fixture songs)");
   for (const song of fixtures.songs) {
-    const track = await cdp.evaluate(`window.__playlistPrism.getTrackInfo(${JSON.stringify(song.uri)})`);
+    const track = await cdp.evaluate(`window.__prism.getTrackInfo(${JSON.stringify(song.uri)})`);
     check(`Spotify lookup: ${song.title}`, track?.name === song.title, track?.name === song.title ? "" : `got "${track?.name}"`);
     if (!track) continue;
 
     if (hasKey) {
       // The full chain, exactly as the extension runs it.
-      const result = await cdp.evaluate(`window.__playlistPrism.getSongTags(${JSON.stringify(track)})`);
+      const result = await cdp.evaluate(`window.__prism.getSongTags(${JSON.stringify(track)})`);
       const tagText = result.tags
         .map((t) => `${t.name} ${t.weight.toFixed(2)}${t.source === "artist" ? "*" : ""}`)
         .join(", ");
@@ -272,7 +272,7 @@ try {
   console.log("\n[4] BPM/key from Spotify (fixture songs)");
   const audioFixtures = JSON.parse(await readFile(new URL("../tests/fixtures/audio-attributes.json", import.meta.url), "utf8"));
   const audioUris = audioFixtures.songs.map((s) => s.uri);
-  const audio = await cdp.evaluate(`window.__playlistPrism.getAudioAttributes(${JSON.stringify(audioUris)})`);
+  const audio = await cdp.evaluate(`window.__prism.getAudioAttributes(${JSON.stringify(audioUris)})`);
   for (const song of audioFixtures.songs) {
     const got = audio?.[song.uri] ?? null;
     if (song.raw === null) {
@@ -285,7 +285,7 @@ try {
   }
   // Every main-fixture song should have BPM/key (step 4c's coverage goal).
   const allUris = fixtures.songs.map((s) => s.uri);
-  const all = await cdp.evaluate(`window.__playlistPrism.getAudioAttributes(${JSON.stringify(allUris)})`);
+  const all = await cdp.evaluate(`window.__prism.getAudioAttributes(${JSON.stringify(allUris)})`);
   const covered = allUris.filter((u) => all?.[u]).length;
   check(`BPM/key coverage on fixture songs`, covered === allUris.length, `${covered}/${allUris.length}`);
 
@@ -308,12 +308,12 @@ try {
   const NEXT = `[...${PANEL}.querySelectorAll("button")].find((b) => b.textContent.includes("Next"))`;
   const statusKind = `${PANEL}.querySelector('[data-prism="status"]')?.dataset.prismKind ?? "none"`;
 
-  await cdp.evaluate(`window.__playlistPrism.startPrism("spotify:track:4PhsKqMdgMEUSstTDAmMpg")`); // Often
+  await cdp.evaluate(`window.__prism.startPrism("spotify:track:4PhsKqMdgMEUSstTDAmMpg")`); // Often
   // The page should open at once, showing the spinner while it loads.
   const loadingShown = await waitFor(`!!document.querySelector('[data-prism-state="loading"]')`, 1000);
   check("Prism page opens immediately with a loading spinner", loadingShown);
   const path = await cdp.evaluate("Spicetify.Platform.History.location.pathname");
-  check("it's the Playlist Prism page (not a popup)", path === "/playlist-prism" && !(await cdp.evaluate(`!!document.querySelector(".GenericModal")`)), path);
+  check("it's the Prism page (not a popup)", path === "/prism" && !(await cdp.evaluate(`!!document.querySelector(".GenericModal")`)), path);
   const opened = await waitFor(READY);
   check("seed panel finishes loading for Often", opened);
   if (opened) {
@@ -344,12 +344,12 @@ try {
     check("all tags off: blocked message shown", (await cdp.evaluate(statusKind)) === "all-off", await cdp.evaluate(statusKind));
     check("all tags off: Next is disabled", await cdp.evaluate(`${NEXT}.disabled`));
     await screenshot("seed-panel-blocked.png");
-    await cdp.evaluate("window.__playlistPrism.goHome()");
+    await cdp.evaluate("window.__prism.goHome()");
   }
 
   // A song with no song-level tags: artist row + "broader matches" warning, still allowed.
   await sleep(500);
-  await cdp.evaluate(`window.__playlistPrism.startPrism("spotify:track:19Lnk1Q2FJcB3Hia0wfgye")`); // RESCUER
+  await cdp.evaluate(`window.__prism.startPrism("spotify:track:19Lnk1Q2FJcB3Hia0wfgye")`); // RESCUER
   const rescuerReady = await waitFor(READY);
   check("RESCUER: shows the 'From the artist' chip row", rescuerReady && (await cdp.evaluate(`${PANEL}.textContent.includes("From the artist")`)));
   if (rescuerReady) {
@@ -357,7 +357,7 @@ try {
     check("RESCUER: Next still enabled (warning, not a block)", !(await cdp.evaluate(`${NEXT}.disabled`)));
     await screenshot("seed-panel-artist-only.png");
   }
-  await cdp.evaluate("window.__playlistPrism.goHome()");
+  await cdp.evaluate("window.__prism.goHome()");
   await sleep(500);
 
   console.log("\n[6] Source picker (screen 2) - UI clicks only, playlists are only read");
@@ -368,7 +368,7 @@ try {
   const SCAN = `[...${SOURCES}.querySelectorAll("button")].find((b) => b.textContent.includes("scan"))`;
   const tickedNames = `${rows}.filter((r) => r.querySelector("input").checked).map((r) => r.querySelector("span span").textContent)`;
 
-  await cdp.evaluate(`window.__playlistPrism.startPrism("spotify:track:4PhsKqMdgMEUSstTDAmMpg")`); // Often
+  await cdp.evaluate(`window.__prism.startPrism("spotify:track:4PhsKqMdgMEUSstTDAmMpg")`); // Often
   if (await waitFor(READY)) {
     await cdp.evaluate(`${PANEL}.querySelector('[role="checkbox"]').click()`); // switch "sexy" off
     await sleep(200);
@@ -451,7 +451,7 @@ try {
       check("no matches: 'Select all' stays visible but disabled", await cdp.evaluate(`${SELECT_ALL}.querySelector("input").disabled`));
     }
   }
-  await cdp.evaluate("window.__playlistPrism.goHome()");
+  await cdp.evaluate("window.__prism.goHome()");
   await sleep(500);
 
   console.log("\n[7] Scan (screen 3) - reads playlists + Last.fm only, nothing in Spotify changes");
@@ -461,7 +461,7 @@ try {
     `[...document.querySelectorAll('[data-prism="seed-panel"] button')].find((b) => b.textContent.includes(${JSON.stringify(label)})).click()`;
   const tick = (name) => `${rows}.find((r) => r.querySelector("span span").textContent === ${JSON.stringify(name)}).click()`;
 
-  await cdp.evaluate(`window.__playlistPrism.startPrism("spotify:track:4PhsKqMdgMEUSstTDAmMpg")`); // Often
+  await cdp.evaluate(`window.__prism.startPrism("spotify:track:4PhsKqMdgMEUSstTDAmMpg")`); // Often
   if (await waitFor(READY)) {
     await cdp.evaluate(clickButton("Next"));
     await waitFor(`!!${SOURCES} && ${rows}.length > 0`);
@@ -519,12 +519,12 @@ try {
       }
     }
   }
-  await cdp.evaluate("window.__playlistPrism.goHome()");
+  await cdp.evaluate("window.__prism.goHome()");
   await sleep(500);
 
   console.log("\n[8] Preview (screen 4): Often vs Liked Songs - nothing is created");
   const PREVIEW = `document.querySelector('[data-prism-state="preview"]')`;
-  await cdp.evaluate(`window.__playlistPrism.startPrism("spotify:track:4PhsKqMdgMEUSstTDAmMpg")`); // Often
+  await cdp.evaluate(`window.__prism.startPrism("spotify:track:4PhsKqMdgMEUSstTDAmMpg")`); // Often
   if (await waitFor(READY)) {
     await cdp.evaluate(clickButton("Next"));
     await waitFor(`!!${SOURCES} && ${rows}.length > 0`);
@@ -675,14 +675,14 @@ try {
       check("scan finished for the preview test", false);
     }
   }
-  await cdp.evaluate("window.__playlistPrism.goHome()");
+  await cdp.evaluate("window.__prism.goHome()");
   await sleep(500);
 
   console.log("\n[9] Scan screen layout: the bar must not move when the text changes (fake scan)");
-  await cdp.evaluate("window.__playlistPrism.previewScan()");
+  await cdp.evaluate("window.__prism.previewScan()");
   await waitFor(`!!document.querySelector('[data-prism="scan-preview"] [role="progressbar"]')`);
   const barTop = `Math.round(document.querySelector('[data-prism="scan-preview"] [role="progressbar"]').getBoundingClientRect().top)`;
-  const setProgress = (p) => cdp.evaluate(`window.__playlistPrism.setPreviewProgress(${JSON.stringify(p)})`);
+  const setProgress = (p) => cdp.evaluate(`window.__prism.setPreviewProgress(${JSON.stringify(p)})`);
   const positions = {};
   // Wait for the page's open animation (rises 8 px over 220 ms) to finish,
   // or the first reading is taken mid-slide.
@@ -705,21 +705,21 @@ try {
   await sleep(150);
   positions["after Cancel"] = await cdp.evaluate(barTop);
   check("progress bar stays in one place", new Set(Object.values(positions)).size === 1, JSON.stringify(positions));
-  await cdp.evaluate("window.__playlistPrism.goHome()");
+  await cdp.evaluate("window.__prism.goHome()");
   await sleep(500);
 
   console.log("\n[10] Settings on the page (screenshot)");
-  await cdp.evaluate("window.__playlistPrism.openSettings()");
+  await cdp.evaluate("window.__prism.openSettings()");
   await sleep(800); // let React draw it
   const visible = await cdp.evaluate(
     `[...document.querySelectorAll("h1, h2")].some((el) => el.textContent.includes("Prism settings"))`
   );
   check("settings open on the page with their title", visible);
   await screenshot("settings.png");
-  await cdp.evaluate("window.__playlistPrism.goHome()");
+  await cdp.evaluate("window.__prism.goHome()");
 
   console.log("\n[11] Playlist stats page (sample numbers, read-only)");
-  await cdp.evaluate("window.__playlistPrism.previewStats()");
+  await cdp.evaluate("window.__prism.previewStats()");
   const statsShown = await waitFor(`!!document.querySelector('[data-prism-state="stats"]')`, 5000);
   check("stats page opens", statsShown);
   if (statsShown) {
@@ -735,7 +735,7 @@ try {
     await screenshot("stats.png");
   }
   // A playlist that doesn't exist: a friendly message, not an error.
-  await cdp.evaluate(`window.__playlistPrism.openStats("spotify:playlist:0000000000000000000001")`);
+  await cdp.evaluate(`window.__prism.openStats("spotify:playlist:0000000000000000000001")`);
   check(
     "a playlist that can't be read shows a message",
     await waitFor(`!!document.querySelector('[data-prism-state="stats-missing"]')`, 10000)
@@ -747,7 +747,7 @@ try {
     return find(root.items);
   })()`);
   if (firstPlaylist) {
-    await cdp.evaluate(`window.__playlistPrism.openStats(${JSON.stringify(firstPlaylist)})`);
+    await cdp.evaluate(`window.__prism.openStats(${JSON.stringify(firstPlaylist)})`);
     check(
       "a real playlist's stats page loads (saved stats or an estimate)",
       await waitFor(`!!document.querySelector('[data-prism-state="stats"]')`, 30000)
@@ -757,10 +757,10 @@ try {
   check(
     "\"Prism stats\" is offered for a playlist, not a song",
     await cdp.evaluate(
-      `!window.__playlistPrism.isSinglePlaylist(["spotify:track:4PhsKqMdgMEUSstTDAmMpg"]) && window.__playlistPrism.isSinglePlaylist(["spotify:playlist:0000000000000000000001"])`
+      `!window.__prism.isSinglePlaylist(["spotify:track:4PhsKqMdgMEUSstTDAmMpg"]) && window.__prism.isSinglePlaylist(["spotify:playlist:0000000000000000000001"])`
     )
   );
-  await cdp.evaluate("window.__playlistPrism.goHome()");
+  await cdp.evaluate("window.__prism.goHome()");
 
   console.log("\n[12] Remix into moods: setup, scan, the two doors, Prism's groups (read-only, nothing is created)");
   await sleep(600);
@@ -1030,7 +1030,7 @@ try {
       check("Back returns to the group cards", (await cdp.evaluate(`${CARDS}.length`)) > 0);
     }
   }
-  await cdp.evaluate("window.__playlistPrism.goHome()");
+  await cdp.evaluate("window.__prism.goHome()");
 } catch (error) {
   check("smoke test ran to the end", false, error.message);
 } finally {

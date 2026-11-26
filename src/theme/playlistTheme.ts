@@ -30,7 +30,7 @@ export const PLAYLIST_THEMES: { id: PlaylistThemeId; label: string }[] = [
 ];
 
 // Settings sends this after a change, so open playlists update at once.
-export const PLAYLIST_THEME_CHANGED_EVENT = "playlist-prism:playlist-theme-changed";
+export const PLAYLIST_THEME_CHANGED_EVENT = "prism:playlist-theme-changed";
 
 // The saved text -> a theme. Nothing saved, or anything unknown, = no theme.
 export function parsePlaylistTheme(saved: string | null): PlaylistThemeId {

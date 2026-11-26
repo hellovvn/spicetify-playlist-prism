@@ -1,4 +1,4 @@
-// Remembers Prism's last few warnings/errors (only "[Playlist Prism]" console lines,
+// Remembers Prism's last few warnings/errors (only "[Prism]" console lines,
 // only in memory, only on the Prism page's bundle), so a bug report can include them.
 // Nothing is saved to disk. Lines are scrubbed when the report is built (scrubText).
 

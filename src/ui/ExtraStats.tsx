@@ -17,7 +17,7 @@ export function useExtras(uri: string, load: ((uri: string) => Promise<PlaylistE
     setExtras(null);
     load(uri)
       .then((loaded) => !closed && setExtras(loaded))
-      .catch((error) => console.warn("[Playlist Prism] couldn't load artist/era/key stats", error));
+      .catch((error) => console.warn("[Prism] couldn't load artist/era/key stats", error));
     return () => {
       closed = true;
     };
@@ -41,7 +41,7 @@ export function useToneFit(uri: string, load: ((uri: string) => Promise<ToneSumm
     setFit(null);
     load(uri)
       .then((loaded) => !closed && setFit(loaded))
-      .catch((error) => console.warn("[Playlist Prism] couldn't load the tone fit", error));
+      .catch((error) => console.warn("[Prism] couldn't load the tone fit", error));
     return () => {
       closed = true;
     };

@@ -127,7 +127,7 @@ describe("themedPageKind", () => {
     expect(themedPageKind("/episode/4v5XrpL3Iw2soqXZSDNscC/")).toBe("podcast");
   });
   test("other pages are left alone", () => {
-    for (const path of [undefined, "", "/searching", "/index.html", "/collection", "/playlist-prism", "/genre", "/genre/x/y", "/preferences/advanced", "/preferencesx", "/user", "/user/", "/user/someone/other", "/user/someone/top", "/show/x", "/show/3IM0lmZxpFAY7CwMuv9H4g/episodes"]) {
+    for (const path of [undefined, "", "/searching", "/index.html", "/collection", "/prism", "/genre", "/genre/x/y", "/preferences/advanced", "/preferencesx", "/user", "/user/", "/user/someone/other", "/user/someone/top", "/show/x", "/show/3IM0lmZxpFAY7CwMuv9H4g/episodes"]) {
       expect(themedPageKind(path)).toBeNull();
     }
   });
