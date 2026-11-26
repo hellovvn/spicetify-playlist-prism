@@ -48,7 +48,7 @@ const FLY = [
   { dx: 49, dy: 45, fill: "#9bf6ff", delay: 1100 },
 ];
 
-// "Make a Prism playlist": a chunky pink boombox. Speakers pulse with a ring
+// "Grow a playlist": a chunky pink boombox. Speakers pulse with a ring
 // rippling out, and notes fly out from behind it.
 export function PrismIcon() {
   // Mockup "B5": the body stays pink (the main colour); each speaker gets an

@@ -12,7 +12,7 @@ the user's library, clearly marked, user-controlled (Off/5/10/20), and only ever
 the NEW playlist.
 
 ## User flow
-1. Right-click a song, then choose **Start a Prism playlist** (option to add a second seed).
+1. Right-click a song, then choose **Grow a playlist with Prism** (option to add a second seed).
 2. Fetch and clean the seed songs' tags, then show them as toggleable chips.
 3. The user turns off any tags they don't want.
 4. The user picks source playlists and/or Liked Songs.
@@ -163,7 +163,7 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
 - 10: Lyrics mood (word list) as an extra score. Done (tested by the developer 2026-11-21).
 - 12 (redesign, decided 2026-11-21): Playlist Prism becomes ONE page (Spicetify custom app,
   `/playlist-prism`) instead of popups. Header (top bar) icon only, no sidebar entry. Inside the
-  page, each Prism being generated is a TAB. Right-click "Start a Prism playlist" opens the page
+  page, each Prism being generated is a TAB. Right-click "Grow a playlist with Prism" opens the page
   with a new tab for that song. Scans keep running while the user browses Spotify.
   - 12a: switch to a custom app; the 4 screens + settings live on the page (one Prism at a time,
     leaving the page ends it); start screen: playing song or pasted link. Page content is

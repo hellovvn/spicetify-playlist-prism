@@ -3,7 +3,7 @@
 // Since step 12a, Prism is a page (a Spicetify "custom app", see
 // src/app.tsx). Spicetify loads the page's code only when the page opens, but
 // files in src/extensions/ run as soon as Spotify starts. This one adds:
-//   - "Start a Prism playlist" to a song's right-click menu
+//   - "Grow a playlist with Prism" to a song's right-click menu
 //   - "Add with Prism" (song right-click): the 5 best playlists (src/ui/addWithPrism.ts)
 //   - "Prism settings" to the profile menu
 //   - the read-only debug hook for the smoke test
@@ -70,10 +70,10 @@ async function main() {
   console.log(`${LOG_PREFIX} loaded`);
 }
 
-// Adds "Start a Prism playlist" to the right-click menu, for songs only.
+// Adds "Grow a playlist with Prism" to the right-click menu, for songs only.
 function registerContextMenu() {
   const item = new Spicetify.ContextMenu.Item(
-    "Start a Prism playlist", // the menu label
+    "Grow a playlist with Prism", // the menu label
     (uris) => openPage({ go: "start", seed: uris[0] }), // open the page for this song
     isSingleTrack, // decides whether the item appears in this menu
     "playlist" // icon, from Spicetify's built-in icon list
