@@ -1,24 +1,17 @@
-// A start-page tile that flips over like a card (layout "D", picked by the
-// developer). The front is one big button: a centred icon and label, and a
-// short line that fades in on hover. Clicking it turns the tile round; the
-// back holds the full description and the real buttons, plus a "Back" link
-// that turns it again.
-//
-// How the flip works (CSS, in styles.ts): both faces sit on top of each other
-// inside .prism-flip-inner. The back face is pre-rotated 180°, and
-// "backface-visibility: hidden" hides whichever face points away from you.
-// Rotating the inner box 180° therefore swaps which face you see. The hidden
-// face also gets "visibility: hidden", so the keyboard (Tab) and screen
-// readers skip it.
+// A start-page tile (layout "D", picked by the developer): one big glass
+// button with a centred icon and label, and a short line that fades in on
+// hover. Clicking it opens that task's own screen (like the start bars
+// below it). Until 2026-11-26 the tiles flipped over like cards to show
+// their details; the developer found that crowded.
 
 import React from "react";
 
-export interface FlipTileProps {
+export interface ModeTileProps {
   id: string; // data-prism name, e.g. "mode-prism"
   icon: React.ReactNode;
   label: string;
   tip: string; // the very short line shown on hover
-  children: React.ReactNode; // the back of the tile
+  onClick: () => void; // opens the task's screen
 }
 
 // Where the hover sparkles sit (percent of the tile) and when they twinkle.
@@ -32,24 +25,8 @@ const SPARKLES = [
   { left: 70, top: 86, size: 9, delay: 300 },
 ];
 
-export function FlipTile({ id, icon, label, tip, children }: FlipTileProps) {
-  const [flipped, setFlipped] = React.useState(false);
+export function ModeTile({ id, icon, label, tip, onClick }: ModeTileProps) {
   const frontRef = React.useRef<HTMLButtonElement>(null);
-  const backRef = React.useRef<HTMLButtonElement>(null);
-  // A ref to remember that the user (not the first render) flipped the tile,
-  // so we only move keyboard focus after a real click.
-  const moved = React.useRef(false);
-
-  // After flipping, put keyboard focus on the face now showing.
-  React.useEffect(() => {
-    if (!moved.current) return;
-    (flipped ? backRef : frontRef).current?.focus({ preventScroll: true });
-  }, [flipped]);
-
-  const turn = (to: boolean) => {
-    moved.current = true;
-    setFlipped(to);
-  };
 
   // ----- Icon animations: start on hover/focus, finish their loop on leave -----
   // While "animating" is true the button gets the class "is-animating", which
@@ -157,13 +134,12 @@ export function FlipTile({ id, icon, label, tip, children }: FlipTileProps) {
   };
 
   return (
-    <div className={`prism-flip${flipped ? " is-flipped" : ""}`} data-prism={id}>
-      <div className="prism-flip-inner">
+    <div data-prism={id}>
         <button
           ref={frontRef}
           type="button"
-          className={`prism-flip-face prism-flip-front prism-mode-tile${animating ? " is-animating" : ""}`}
-          onClick={() => turn(true)}
+          className={`prism-mode-tile${animating ? " is-animating" : ""}`}
+          onClick={onClick}
           onMouseEnter={() => {
             pointerIn.current = true;
             startAnimating();
@@ -180,8 +156,8 @@ export function FlipTile({ id, icon, label, tip, children }: FlipTileProps) {
             focusIn.current = false;
             stopAnimating();
           }}
-          aria-label={`${label}: ${tip}. Show details`}
-          data-prism={`flip-${id.replace("mode-", "")}`}
+          aria-label={`${label}: ${tip}`}
+          data-prism={`tile-${id.replace("mode-", "")}`}
         >
           {SPARKLES.map((s, i) => (
             <span
@@ -198,13 +174,6 @@ export function FlipTile({ id, icon, label, tip, children }: FlipTileProps) {
           </span>
           <span className="prism-mode-tip">{tip}</span>
         </button>
-        <section className="prism-flip-face prism-flip-back prism-glass-panel" aria-label={label}>
-          <button ref={backRef} type="button" className="prism-quiet-button" onClick={() => turn(false)} data-prism={`unflip-${id.replace("mode-", "")}`}>
-            ← Back
-          </button>
-          {children}
-        </section>
-      </div>
     </div>
   );
 }

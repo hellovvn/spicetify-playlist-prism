@@ -2,7 +2,7 @@
 // label and one line. The icon's parts move while the bar is hovered or
 // focused (class "is-animating", CSS in styles.ts).
 //
-// Like FlipTile, leaving doesn't snap the icon back mid-move: every running
+// Like ModeTile, leaving doesn't snap the icon back mid-move: every running
 // icon animation is told to finish the loop it's in (Web Animations API,
 // iterations = current loop + 1), and only then is the class removed. Each
 // loop ends in the resting pose, so the icon ends exactly as it started.

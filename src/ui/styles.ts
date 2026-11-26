@@ -509,7 +509,40 @@ const CSS = `
 .prism-door.on, .prism-door.on:hover { border-color: var(--prism-picked); box-shadow: var(--prism-picked-glow); }
 .prism-door:focus-visible { outline: 2px solid #cdb8ff; outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { .prism-door, .prism-door:hover { transition: none; transform: none; } }
-/* Start page: the wide glass bar under the flip tiles (Merge playlists,
+/* Option row (SongPick.tsx, mockup "A" 2026-11-26): pick ONE of a few rows
+   that can hold their own content (a song, a text box). Glass row with a
+   round dot; the chosen row gets a lavender edge + tint and a filled dot. */
+.prism-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+  transition: border-color 150ms ease-out, box-shadow 150ms ease-out, background 150ms ease-out;
+}
+.prism-option:hover:not(.is-disabled) { border-color: var(--prism-hover-rim); box-shadow: var(--prism-hover-glow); }
+.prism-option.on, .prism-option.on:hover { border-color: rgba(216, 198, 255, 0.9); background: rgba(183, 148, 255, 0.18); }
+.prism-option.is-disabled { cursor: default; opacity: 0.5; }
+.prism-option-dot {
+  appearance: none;
+  -webkit-appearance: none;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin: 1px 0 0;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.08);
+  cursor: inherit;
+  transition: border-width 150ms ease-out, border-color 150ms ease-out;
+}
+.prism-option-dot:checked { border: 5px solid var(--prism-accent); background: #ffffff; box-shadow: 0 0 8px rgba(183, 148, 255, 0.6); }
+.prism-option-dot:focus-visible { outline: 2px solid #cdb8ff; outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .prism-option, .prism-option-dot { transition: none; } }
+/* Start page: the wide glass bar under the mode tiles (Merge playlists,
    mockup "B"). A clickable card: same glass as the tiles, standard hover + lift. */
 .prism-home-bar {
   display: flex; align-items: center; gap: 14px; width: 100%; min-height: 64px; box-sizing: border-box;
@@ -524,7 +557,7 @@ const CSS = `
 .prism-home-bar:active { transform: scale(0.97); }
 .prism-home-bar:focus-visible { outline: 2px solid #cdb8ff; outline-offset: 2px; }
 /* The bar's one line shows only on hover/focus (developer's wish, 2026-11-25):
-   it fades in with a small slide, like the flip tiles' hover line. Its space
+   it fades in with a small slide, like the mode tiles' hover line. Its space
    stays reserved, so nothing moves. */
 .prism-home-bar-text { opacity: 0; transform: translateX(-6px); transition: opacity 250ms, transform 250ms; }
 .prism-home-bar:hover .prism-home-bar-text, .prism-home-bar:focus-visible .prism-home-bar-text { opacity: 1; transform: none; }
@@ -817,42 +850,14 @@ const CSS = `
   animation: prism-scan-twinkle 1.8s ease-in-out infinite;
 }
 
-/* ----- Start page: flip tiles (FlipTile.tsx, icons in HomeIcons.tsx) -----
-   perspective: how "deep" the 3D turn looks (smaller = more dramatic).
-   preserve-3d: the two faces turn together as one card.
-   The hidden face also gets visibility: hidden (after the turn is half done)
-   so Tab and screen readers skip it. */
-.prism-flip { perspective: 1100px; height: 370px; }
-.prism-flip-inner {
+/* ----- Start page: mode tiles (ModeTile.tsx, icons in HomeIcons.tsx) -----
+   A glass button with the icon and label in the very centre. Clicking it
+   opens the task's own screen (the tiles used to flip like cards). */
+.prism-mode-tile {
   position: relative;
   width: 100%;
-  height: 100%;
-  transform-style: preserve-3d;
-  transition: transform 650ms cubic-bezier(0.2, 0.75, 0.25, 1);
-}
-.prism-flip.is-flipped .prism-flip-inner { transform: rotateY(180deg); }
-.prism-flip-face {
-  position: absolute;
-  inset: 0;
+  height: 370px;
   box-sizing: border-box;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-}
-.prism-flip-front { visibility: visible; transition: visibility 0s 0s; }
-.prism-flip.is-flipped .prism-flip-front { visibility: hidden; transition: visibility 0s 320ms; }
-.prism-flip-back {
-  transform: rotateY(180deg);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 12px 18px 14px;
-  overflow-y: auto;
-  visibility: hidden;
-  transition: visibility 0s 320ms;
-}
-.prism-flip.is-flipped .prism-flip-back { visibility: visible; transition: visibility 0s 0s; }
-/* The front: a glass button with the icon and label in the very centre. */
-.prism-mode-tile {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -937,7 +942,7 @@ const CSS = `
 
 /* The icons' little moving parts: paused until the tile is hovered. */
 /* The icons' little moving parts run only while the tile has the class
-   "is-animating". FlipTile.tsx adds it on hover/focus and, when the pointer
+   "is-animating". ModeTile.tsx adds it on hover/focus and, when the pointer
    leaves, lets every animation finish its current loop before removing it,
    so nothing freezes halfway. Each part's plain style below is its resting
    pose, which matches the start and end of its loop. */
@@ -951,7 +956,7 @@ const CSS = `
 .prism-ic-ripple { opacity: 0; }
 .prism-mode-tile.is-animating .prism-ic-ripple { animation: prism-ic-ripple 0.6s ease-out infinite; }
 /* Tape shuffle (3.2 s loop): hold, move, hold swapped (40-75%), move back.
-   Unlike the other parts, the shuffle is always there but PAUSED: FlipTile
+   Unlike the other parts, the shuffle is always there but PAUSED: ModeTile
    plays it on hover and, on leave, pauses it at the next still moment, so the
    tapes stay in whatever order they reached (no need to go back to pink on top).
    a = left tape -> right spot, b = right tape -> top, c = top tape -> left. */
@@ -1156,7 +1161,7 @@ ${RING_ANGLE_PROPERTY}
   .prism-drop-bit { display: none; }
   .prism-cosmos.is-wide-stats, .prism-ghost, [data-prism="panel-stats"], .prism-artwork, .prism-head-sparkle { animation: none; }
   /* Start page tiles: swap faces without the turn, and keep the hover glow still. */
-  .prism-flip-inner, .prism-mode-icon { transition: none; }
+  .prism-mode-icon { transition: none; }
   .prism-mode-tile::before, .prism-ic-anim, .prism-bar-ic { animation: none !important; }
   .prism-spinner { animation-duration: 2400ms; }
 }

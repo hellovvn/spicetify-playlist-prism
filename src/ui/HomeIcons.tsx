@@ -1,4 +1,4 @@
-// The two playful icons on the start page's flip tiles. Developer's picks:
+// The two playful icons on the start page's mode tiles. Developer's picks:
 // a chunky boombox with rainbow equalizer bars, and a stack of cute tapes,
 // in the "F1 matte frosted" finish: soft see-through pastels with a faint
 // white edge and no shine.
