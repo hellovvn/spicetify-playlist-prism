@@ -71,18 +71,18 @@ the NEW playlist.
 npm install            # first time
 npm run watch          # rebuild on save (keep running while developing)
 spicetify watch -a     # in a 2nd terminal: reload Spotify when the custom app changes
-npm run build          # one-off build, writes to %APPDATA%\spicetify\CustomApps\playlist-prism
+npm run build          # one-off build, writes to %APPDATA%\spicetify\CustomApps\prism
 spicetify apply        # apply after first build or config changes
 npm test               # unit tests (Vitest, tests/*.test.ts, no Spotify needed)
 npm run smoke          # in-Spotify smoke test via debug port 9222 (needs spicetify watch -e)
 ```
 Since step 12a this is a Spicetify CUSTOM APP (src/settings.json has an "icon"), not an extension:
-- `src/app.tsx` = the page at `/playlist-prism`. Spicetify adds its header icon automatically
-  (`button[aria-label="Playlist Prism"]`, picture from `src/assets/prism.svg`), no sidebar entry.
+- `src/app.tsx` = the page at `/prism`. Spicetify adds its header icon automatically
+  (`button[aria-label="Prism"]`, picture from `src/assets/prism.svg`), no sidebar entry.
 - `src/extensions/*.tsx` = always-on scripts (right-click item, profile menu, debug hook). They are
   a SEPARATE bundle from the page (no shared variables) and run as plain scripts: call main()
   yourself. They talk to the page only by navigating to it (`src/nav.ts`, `?go=...&r=...`).
-- First-time registration: `spicetify config custom_apps playlist-prism`, then `spicetify apply`.
+- First-time registration: `spicetify config custom_apps prism`, then `spicetify apply`.
   (Done 2026-11-21; the old `extensions playlist-prism.js` entry was removed.)
 
 ## Spicetify.Platform APIs (confirmed present 2026-11-20, Spotify via Spicetify 2.46.4)
@@ -126,9 +126,11 @@ Since step 12a this is a Spicetify CUSTOM APP (src/settings.json has an "icon"),
 
 ## Name
 The app is called "Prism" everywhere users see it (src/settings.json displayName, page
-title, Settings title, profile-menu item, messages). For now, internal ids stay
-"playlist-prism" (custom app nameId, storage keys "prism:*", data-prism attributes, the
-`[Playlist Prism]` console prefix), so saved settings and playlists keep working.
+title, Settings title, profile-menu item, messages). Since step 15 (2026-11-26) the
+internal ids are "prism" too: custom app nameId `prism` (page `/prism`, folder
+CustomApps\prism), `window.__prism` debug hook, `[Prism]` console prefix, "prism:*" window
+events, "prism-*" element/style ids. Storage keys were already "prism:*", so saved
+settings and playlists keep working.
 The start page has no "What would you like to do?" heading any more (Prism will start
 changing playlist contents in the future, so its "never changed" line no longer holds).
 
@@ -178,7 +180,7 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   - Sidebar: Prism playlists USED to get a purple hover with rainbow rays (`src/ui/prismRows.ts`).
     REMOVED 2026-11-24 at the developer's request: with a playlist theme on, every row gets the
     "rainbow edge" hover instead (see LIBRARY PANEL THEME). Spotify paints its row hover on the
-    row's ::after layer. "playlist-prism:records-changed" (RECORDS_CHANGED_EVENT, now in
+    row's ::after layer. "prism:records-changed" (RECORDS_CHANGED_EVENT, now in
     playlistStats.ts) still tells the side panel about new records.
   - Fingerprint bubbles: restyled 2026-11-22 (mockup "C3", developer's pick after rejecting
     other styles and colourless soap bubbles). Each bubble keeps its GENRE TAG COLOUR: see-through
@@ -679,7 +681,7 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   (SettingsState.report), so the screen underneath is kept. Pure parts `src/report/report.ts`
   (+ tests/report.test.ts): the same relay parseReport check runs in Prism; details = versions,
   OS, screen, playlist theme, last 5 Prism warnings (`src/report/errorLog.ts` wraps
-  console.warn/error for "[Playlist Prism]" lines, memory only) scrubbed by scrubText (Last.fm
+  console.warn/error for "[Prism]" lines, memory only) scrubbed by scrubText (Last.fm
   key, api_key=, Spotify ids, quoted names, text after " for "). User sees the details and can
   untick them. RELAY LIVE at https://prism-reports.hellovvn-spicetify-prism.workers.dev
   (REPORT_RELAY_URL in `src/report/send.ts`; empty = Send says "Reporting isn't set up yet").
@@ -687,11 +689,11 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   LIMITS id in relay/wrangler.toml); redeploy with `npx wrangler deploy` in relay/. Real test
   2026-11-25: issue #33 by the bot, labels idea + from-prism, @mention defused (closed).
   Testing note: never send a real report without the developer's OK (it's a public issue).
-- 15 (to-do): rename the internal ids from "playlist-prism" / "Playlist Prism" to just "prism"
-  (custom app nameId and folder, `window.__playlistPrism` hook, `[Playlist Prism]` console
-  prefix, "playlist-prism:*" window events, the header icon's aria-label). Storage keys are
-  already "prism:*". The nameId change needs a `spicetify config custom_apps` swap + apply,
-  and the smoke test's selectors must follow.
+- 15 (DONE 2026-11-26, smoke-tested, committed): internal ids renamed from "playlist-prism" /
+  "Playlist Prism" to "prism" (see "Name"). The header icon's aria-label was already "Prism"
+  (it follows displayName). Each machine needs the Spicetify swap once:
+  `spicetify config custom_apps playlist-prism-` then `spicetify config custom_apps prism`,
+  build, `spicetify apply`; the old CustomApps\playlist-prism folder can then be deleted.
 - 16 (to-do, asked 2026-11-24; NEXT step for theming): give the rest of Spotify's PAGES the
   Prism look, so nothing shows Spotify's plain #121212 / green while a playlist theme is on.
   Already themed: Prism's page, /playlist/ pages (`src/ui/playlistTheme.ts`), lyrics views
@@ -838,7 +840,7 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   under a `.claude` folder that its copy step (glob "*") skips: prism.js silently stays OLD.
   Build with a temp folder inside the worktree instead (bash):
   `TMP="$PWD/build-tmp" TEMP="$PWD/build-tmp" npm run build` (build-tmp is git-excluded), then
-  `spicetify refresh -a` and reload. Check: grep a new CSS class in CustomApps\playlist-prism\prism.js.
+  `spicetify refresh -a` and reload. Check: grep a new CSS class in CustomApps\prism\prism.js.
 - Type check: `npx -y -p typescript@5.6.3 tsc --noEmit -p .` (TypeScript isn't a local dependency;
   plain `npx tsc` fetches an unrelated package).
 - TESTING SCOPE (developer's rule, 2026-11-24): while developing, test only the AFFECTED AREA:
@@ -846,7 +848,7 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   or a quick in-Spotify check for the screens touched. The FULL run (`npm test` + `npm run smoke`)
   happens only when the developer confirms a commit, before committing. Report results either way,
   and say which parts were not tested.
-  Smoke test is READ-ONLY (uses `window.__playlistPrism` debug hook in src/extensions/prism.tsx); it never
+  Smoke test is READ-ONLY (uses `window.__prism` debug hook in src/extensions/prism.tsx); it never
   prints the API key. Screenshots go to `smoke-output/` (gitignored; they show the user's library).
 - Test fixtures in `tests/fixtures/` are real recorded Last.fm data: don't "fix" them.
 - SMOKE TEST PLAYLIST (developer's rule, 2026-11-24): playlist names change all the time during
@@ -862,7 +864,7 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
 - CLOSE THE WATCHER WHEN DONE (developer's rule, 2026-11-24): once the change is committed and
   pushed (merged into main), stop `spicetify watch -a` / `spicetify watch -e` (and any
   `npm run watch`) that this chat started, so no stray watcher blocks the next chat's build.
-- `window.__playlistPrism` debug hook must be removed or dev-only before any public release.
+- `window.__prism` debug hook must be removed or dev-only before any public release.
 
 ## UI elements (developer's rule, 2026-11-23)
 `docs/ui-elements.md` is the catalogue of every UI element: how to make it, how it looks, how it

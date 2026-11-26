@@ -1,7 +1,7 @@
 // The Prism flow's "work" (no UI): load the seed, scan the sources, create
 // the playlist. The page (src/ui/PrismPage.tsx) calls these.
 //
-// Moved here from the old entry file in step 12a, when Playlist Prism became
+// Moved here from the old entry file in step 12a, when Prism became
 // its own page. READ-ONLY except createFromPreview, which writes ONLY through
 // src/spotify/write.ts.
 

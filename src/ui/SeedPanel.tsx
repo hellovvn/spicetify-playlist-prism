@@ -1,4 +1,4 @@
-// Seed panel: the Prism flow shown on the Playlist Prism page after
+// Seed panel: the Prism flow shown on the Prism page after
 // "Start a Prism playlist" (it was a popup before step 12a).
 //
 // It shows a loading spinner at once, then loads the song's details, tags,
@@ -86,7 +86,7 @@ export function SeedPanel({ load, loadSources, runScan, describeError, onCancel,
     load()
       .then((loaded) => !closed && setData(loaded))
       .catch((err) => {
-        console.error("[Playlist Prism] loading the seed failed", err);
+        console.error("[Prism] loading the seed failed", err);
         if (!closed) setError(describeError(err));
       });
     return () => {

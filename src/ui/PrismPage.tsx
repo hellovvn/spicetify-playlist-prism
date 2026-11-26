@@ -1,4 +1,4 @@
-// The Playlist Prism PAGE (step 12a): everything Prism shows lives here.
+// The Prism PAGE (step 12a): everything Prism shows lives here.
 //
 // It shows one of:
 //   home       start screen: use the playing song, or paste a song link
@@ -231,7 +231,7 @@ export function PrismPage() {
     morph.onfinish = () => {
       const started = performance.now();
       const fadeWhenReady = () => {
-        const drawn = !!document.querySelector('#playlist-prism-panel-stats [data-prism="panel-stats"]');
+        const drawn = !!document.querySelector('#prism-panel-stats [data-prism="panel-stats"]');
         if (!drawn && performance.now() - started < 700) return requestAnimationFrame(fadeWhenReady);
         frame.animate([{ opacity: 0.4 }, { opacity: 0 }], { duration: 220, easing: "ease-out", fill: "forwards" }).onfinish = remove;
       };
@@ -620,7 +620,7 @@ const styles: Record<string, React.CSSProperties> = {
   centerer: { minHeight: "100%", display: "flex", justifyContent: "center", alignItems: "center", boxSizing: "border-box" },
   page: { width: "100%", maxWidth: 760, boxSizing: "border-box", padding: "32px", display: "flex", flexDirection: "column", gap: 24, color: "var(--spice-text)" },
   // flexWrap: in a narrow window the buttons move under the title instead of
-  // squashing it; whiteSpace nowrap keeps "Playlist Prism" and button labels on one line.
+  // squashing it; whiteSpace nowrap keeps "Prism" and button labels on one line.
   header: { display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 16 },
   // SCREEN_HEIGHT = the height of the tallest screens (picker, scan, preview).
   // SCREEN_HEIGHT + room for Organize's title (46px) and the start page's two

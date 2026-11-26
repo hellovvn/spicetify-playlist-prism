@@ -48,7 +48,7 @@ export interface PlaylistTone {
 export type PlaylistTones = Record<string, PlaylistTone>;
 
 // Sent (same window, both bundles) whenever a tone is saved or removed.
-export const TONES_CHANGED_EVENT = "playlist-prism:tones-changed";
+export const TONES_CHANGED_EVENT = "prism:tones-changed";
 
 export const TONE_WEIGHTS = { genres: 0.6, mood: 0.15, tempo: 0.15 };
 // Below this, a song "drifts" from the tone (its row fades in the view).

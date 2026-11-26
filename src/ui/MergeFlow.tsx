@@ -109,7 +109,7 @@ function MergeReview(props: {
     Promise.all(sources.map((s) => loadTracks(s.uri)))
       .then((all) => !closed && setLists(all))
       .catch((err) => {
-        console.error("[Playlist Prism] reading playlists to merge failed", err);
+        console.error("[Prism] reading playlists to merge failed", err);
         if (!closed) setError(describeError(err));
       });
     return () => {

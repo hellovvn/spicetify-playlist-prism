@@ -1,5 +1,5 @@
 // Settings: lets the user paste, test, and save their Last.fm API key.
-// Shown on the Playlist Prism page (it was a popup before step 12a).
+// Shown on the Prism page (it was a popup before step 12a).
 //
 // This is our first React component. A component is a function that returns
 // what to show (JSX, the HTML-like syntax below). When its "state" changes,
@@ -106,7 +106,7 @@ export function SettingsPanel({ notice, onSaved, onReport }: SettingsPanelProps)
         </p>
       )}
       <p>
-        Playlist Prism uses Last.fm to get song-level genre and mood tags. Get a free API key at{" "}
+        Prism uses Last.fm to get song-level genre and mood tags. Get a free API key at{" "}
         <a href="https://www.last.fm/api/account/create" target="_blank" rel="noreferrer">
           last.fm/api/account/create
         </a>

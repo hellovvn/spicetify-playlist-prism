@@ -247,7 +247,7 @@ export function estimateRecord(input: {
 
 // Event the page sends after saving a new playlist record (src/flow.ts), so
 // the side panel (src/ui/panelHost.tsx) can show the new playlist's stats.
-export const RECORDS_CHANGED_EVENT = "playlist-prism:records-changed";
+export const RECORDS_CHANGED_EVENT = "prism:records-changed";
 
 export type PrismPlaylistRecords = Record<string, PrismPlaylistRecord>;
 

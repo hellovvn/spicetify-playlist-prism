@@ -247,7 +247,7 @@ git clone https://github.com/hellovvn/spicetify-prism.git
 cd spicetify-prism
 npm install
 npm run build
-spicetify config custom_apps playlist-prism
+spicetify config custom_apps prism
 spicetify apply
 ```
 

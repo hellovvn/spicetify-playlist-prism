@@ -108,7 +108,7 @@ export function PreviewScreen({ seed, kept, songs, onBack, onCreate, describeErr
         setPicked((now) => [...now, ...fresh.filter((uri) => !now.includes(uri))]);
       })
       .catch((error) => {
-        console.error("[Playlist Prism] looking for new finds failed", error);
+        console.error("[Prism] looking for new finds failed", error);
         if (!stopped.current) setNewState("error");
       });
   }, [findNew, newCount, newState]);
@@ -395,7 +395,7 @@ export function PreviewScreen({ seed, kept, songs, onBack, onCreate, describeErr
             try {
               await onCreate(name, pickedSongs); // on success the page moves on
             } catch (error) {
-              console.error("[Playlist Prism] creating the playlist failed", error);
+              console.error("[Prism] creating the playlist failed", error);
               setCreateError(describeError(error));
               setCreating(false);
             }

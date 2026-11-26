@@ -38,7 +38,7 @@ export function saveTagCacheText(json: string): void {
     Spicetify.LocalStorage.set(TAG_CACHE_KEY, json);
   } catch (error) {
     // Storage full or blocked: the scan still works, it just won't be cached.
-    console.warn("[Playlist Prism] couldn't save the tag cache", error);
+    console.warn("[Prism] couldn't save the tag cache", error);
   }
 }
 
@@ -55,7 +55,7 @@ export function saveMoodCacheText(json: string): void {
   try {
     Spicetify.LocalStorage.set(MOOD_CACHE_KEY, json);
   } catch (error) {
-    console.warn("[Playlist Prism] couldn't save the mood cache", error);
+    console.warn("[Prism] couldn't save the mood cache", error);
   }
 }
 
@@ -73,7 +73,7 @@ export function savePlaylistRecordsText(json: string): void {
   try {
     Spicetify.LocalStorage.set(PLAYLISTS_KEY, json);
   } catch (error) {
-    console.warn("[Playlist Prism] couldn't save the playlist record", error);
+    console.warn("[Prism] couldn't save the playlist record", error);
   }
 }
 
@@ -165,6 +165,6 @@ export function saveTonesText(json: string): void {
   try {
     Spicetify.LocalStorage.set(TONES_KEY, json);
   } catch (error) {
-    console.warn("[Playlist Prism] couldn't save the playlist tones", error);
+    console.warn("[Prism] couldn't save the playlist tones", error);
   }
 }

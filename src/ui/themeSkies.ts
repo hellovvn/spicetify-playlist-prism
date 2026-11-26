@@ -241,7 +241,7 @@ export function wireSky(sky: HTMLElement): void {
       el.style.setProperty("--a", a);
     })
   );
-  sky.querySelectorAll<HTMLElement>(".prism-pl-drop, .prism-pl-petal").forEach((el) =>
+  sky.querySelectorAll<HTMLElement>(".prism-pl-petal").forEach((el) =>
     el.addEventListener("animationiteration", () => {
       el.style.left = `${f1(rand(0, 98))}%`;
     })
@@ -325,15 +325,6 @@ export const NEW_SKY_CSS = `
 /* Mist bands drifting (Misty morning). */
 .prism-pl-mist { will-change: transform; animation: prism-pl-mist var(--d) var(--l) ease-in-out infinite alternate; }
 @keyframes prism-pl-mist { from { transform: translateX(-15%); } to { transform: translateX(15%); } }
-/* Raindrops sliding down the glass (Window rain). */
-.prism-pl-drop {
-  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
-  background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.85), rgba(200, 210, 255, 0.2));
-  box-shadow: 0 0 3px rgba(255, 255, 255, 0.4);
-  will-change: transform;
-  animation: prism-pl-slide var(--d) var(--l) ease-in infinite;
-}
-@keyframes prism-pl-slide { 0% { transform: translateY(0); opacity: 0; } 8% { opacity: 0.9; } 100% { transform: translateY(105vh); opacity: 0.5; } }
 /* Blossoms swaying in the canopy, petals falling from it (Blossom canopy). */
 .prism-pl-sway { animation: prism-pl-sway var(--d) var(--l) ease-in-out infinite; }
 @keyframes prism-pl-sway { 0%, 100% { transform: rotate(-4deg) translateX(-3px); } 50% { transform: rotate(4deg) translateX(3px); } }

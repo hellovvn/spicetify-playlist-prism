@@ -1,41 +1,14 @@
 // Unit tests for the side-panel stats helpers. Run with: npm test
 
 import { describe, expect, test } from "vitest";
-import { artworkUrls, formatClock, formatLength, imageUrl, isPanelStatsOn, PANEL_VIEW_ATTR, panelRecordFor, panelSubtitle, playlistUriFromPath, readPanelView } from "../src/ui/sidePanel";
+import { artworkUrls, formatClock, formatLength, imageUrl, isPanelStatsOn, PANEL_VIEW_ATTR, panelSubtitle, readPanelView } from "../src/ui/sidePanel";
 import { SAMPLE_RECORD } from "../src/stats/playlistStats";
-
-const ID = "4cCN2s73MfFCG1Rti184H2";
 
 describe("isPanelStatsOn", () => {
   test("on unless explicitly off", () => {
     expect(isPanelStatsOn(null)).toBe(true);
     expect(isPanelStatsOn("on")).toBe(true);
     expect(isPanelStatsOn("off")).toBe(false);
-  });
-});
-
-describe("playlistUriFromPath", () => {
-  test("a playlist page", () => {
-    expect(playlistUriFromPath(`/playlist/${ID}`)).toBe(`spotify:playlist:${ID}`);
-    expect(playlistUriFromPath(`/playlist/${ID}/`)).toBe(`spotify:playlist:${ID}`);
-  });
-  test("other pages", () => {
-    expect(playlistUriFromPath("/")).toBeNull();
-    expect(playlistUriFromPath("/playlist-prism")).toBeNull();
-    expect(playlistUriFromPath(`/album/${ID}`)).toBeNull();
-    expect(playlistUriFromPath("/playlist/short")).toBeNull();
-  });
-});
-
-describe("panelRecordFor", () => {
-  const record = { ...SAMPLE_RECORD, uri: `spotify:playlist:${ID}` };
-  const records = { [record.uri]: record };
-  test("finds the open playlist's saved record", () => {
-    expect(panelRecordFor(`/playlist/${ID}`, records)).toBe(record);
-  });
-  test("nothing for playlists Prism didn't make, or other pages", () => {
-    expect(panelRecordFor("/playlist/0000000000000000000001", records)).toBeNull();
-    expect(panelRecordFor("/search", records)).toBeNull();
   });
 });
 

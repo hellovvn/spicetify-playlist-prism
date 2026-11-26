@@ -52,7 +52,7 @@ export function ScanScreen({ sources, runScan, describeError, onBack, onNext, on
     runScan(sources, (p) => !closed && setProgress(p), () => stopRef.current)
       .then((result) => !closed && setOutcome(result))
       .catch((err) => {
-        console.error("[Playlist Prism] scan failed", err);
+        console.error("[Prism] scan failed", err);
         if (!closed) setError(describeError(err));
       });
     // Cleanup: runs when this screen goes away (Back, or the popup closes).
@@ -203,7 +203,7 @@ export function ScanDemo({ onRunningChange }: { onRunningChange?: (running: bool
     []
   );
   React.useEffect(() => {
-    const hook = ((window as any).__playlistPrism ??= {});
+    const hook = ((window as any).__prism ??= {});
     hook.setPreviewProgress = (progress: ScanProgress) => pushRef.current(progress);
     return () => {
       delete hook.setPreviewProgress;

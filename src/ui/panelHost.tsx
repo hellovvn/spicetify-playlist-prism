@@ -26,11 +26,12 @@ import { openPage } from "../nav";
 import { loadPanelEstimate, loadPlaylistExtras, loadToneFit, type PanelStatsState } from "../flow";
 import { PanelStats, type NowPlaying } from "./PanelStats";
 import { PanelTabs } from "./PanelTabs";
-import { imageUrl, isPanelStatsOn, PANEL_STATS_CHANGED_EVENT, PANEL_VIEW_ATTR, playlistUriFromPath, readPanelView, type PanelView } from "./sidePanel";
+import { imageUrl, isPanelStatsOn, PANEL_STATS_CHANGED_EVENT, PANEL_VIEW_ATTR, readPanelView, type PanelView } from "./sidePanel";
+import { playlistUriFromPath } from "./toneView";
 
-const HOST_ID = "playlist-prism-panel-stats";
-const TABS_STRIP_ID = "playlist-prism-panel-tabs";
-const STRIP_STYLE_ID = "playlist-prism-panel-tabs-style";
+const HOST_ID = "prism-panel-stats";
+const TABS_STRIP_ID = "prism-panel-tabs";
+const STRIP_STYLE_ID = "prism-panel-tabs-style";
 const STRIP_HEIGHT = 48; // px
 // While the strip is up, Spotify's Now Playing view moves down by the strip's
 // height. Done on the view's outer box, because Spotify has two layouts (the
@@ -119,7 +120,7 @@ export function startPanelStats(): void {
       () => started.stopped
     ).catch((error) => {
       if (started.stopped) return;
-      console.warn("[Playlist Prism] side panel: couldn't work out the stats", error);
+      console.warn("[Prism] side panel: couldn't work out the stats", error);
       started.failed = true;
       update();
     });

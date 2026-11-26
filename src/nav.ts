@@ -1,18 +1,18 @@
-// How the rest of Spotify talks to the Playlist Prism page.
+// How the rest of Spotify talks to the Prism page.
 //
-// The page lives at /playlist-prism (a Spicetify "custom app"). The right-click
+// The page lives at /prism (a Spicetify "custom app"). The right-click
 // menu, the profile menu and the smoke test are in a DIFFERENT script (they
 // run all the time, the page only when it's open), so they can't call the
 // page's code directly. Instead they NAVIGATE to the page with a request in
 // the address, like a link with a search query:
 //
-//   /playlist-prism?go=start&seed=spotify:track:abc&r=17
+//   /prism?go=start&seed=spotify:track:abc&r=17
 //
 // `r` is a request number: the page handles each request once, so going Back
 // in Spotify's history doesn't restart a Prism.
 // The pure parts are unit-tested in tests/nav.test.ts.
 
-export const PAGE_PATH = "/playlist-prism";
+export const PAGE_PATH = "/prism";
 
 export type PageRequest =
   | { go: "start"; seed: string } // start a Prism for this song

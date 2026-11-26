@@ -27,7 +27,7 @@ import { loadLyricsThemeSetting, loadPlaylistThemeOverrides, loadPlaylistThemeSe
 import { effectiveTheme, LYRICS_LINE_COLOURS, parsePlaylistTheme, parseThemeOverrides, PLAYLIST_THEME_CHANGED_EVENT, type PlaylistThemeId } from "../theme/playlistTheme";
 import { buildSky } from "./playlistTheme";
 
-const STYLE_ID = "playlist-prism-lyrics-theme";
+const STYLE_ID = "prism-lyrics-theme";
 
 export const LYRICS_THEME_CSS = `
 /* Expanded lyrics view: Prism's twilight sky instead of the cover colour.
@@ -163,7 +163,7 @@ ${Object.entries(LYRICS_LINE_COLOURS).map(([theme, c]) => `html[data-prism-lyric
 
 // Event the Settings page sends after the switch changes, so the lyrics
 // update straight away (no reload needed).
-export const LYRICS_THEME_CHANGED_EVENT = "playlist-prism:lyrics-theme-changed";
+export const LYRICS_THEME_CHANGED_EVENT = "prism:lyrics-theme-changed";
 
 // The saved text ("on" / "off" / nothing yet) -> on or off. PURE (tested in
 // tests/lyricsTheme.test.ts). Only an explicit "off" turns it off, so new

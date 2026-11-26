@@ -19,7 +19,7 @@
 import { loadPlaylistThemeSetting } from "../storage";
 import { parsePlaylistTheme, PLAYLIST_THEME_CHANGED_EVENT } from "../theme/playlistTheme";
 
-const STYLE_ID = "playlist-prism-chrome-theme";
+const STYLE_ID = "prism-chrome-theme";
 const ATTR = "data-prism-chrome"; // on <html> while a theme is on
 
 const NIGHT = "#0b0817"; // bars and the gaps between panels

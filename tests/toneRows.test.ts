@@ -6,8 +6,11 @@ import { playlistUriFromPath, ringSvg, stripStatus } from "../src/ui/toneView";
 describe("playlistUriFromPath", () => {
   test("a playlist page", () => {
     expect(playlistUriFromPath("/playlist/4Gt7ro1pcxWSRED2XPOCLI")).toBe("spotify:playlist:4Gt7ro1pcxWSRED2XPOCLI");
+    expect(playlistUriFromPath("/playlist/4Gt7ro1pcxWSRED2XPOCLI/")).toBe("spotify:playlist:4Gt7ro1pcxWSRED2XPOCLI");
   });
   test("anything else", () => {
+    expect(playlistUriFromPath("/")).toBeNull();
+    expect(playlistUriFromPath("/prism")).toBeNull();
     expect(playlistUriFromPath("/album/4Gt7ro1pcxWSRED2XPOCLI")).toBeNull();
     expect(playlistUriFromPath("/playlist/short")).toBeNull();
     expect(playlistUriFromPath(undefined)).toBeNull();

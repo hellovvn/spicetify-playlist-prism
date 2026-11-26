@@ -86,7 +86,7 @@ export async function scanSongs(
   try {
     audioMap = await deps.getAudio(tracks.map((t) => t.uri));
   } catch (error) {
-    console.warn("[Playlist Prism] BPM/key lookup failed; scanning without it", error);
+    console.warn("[Prism] BPM/key lookup failed; scanning without it", error);
   }
 
   // 2. Tags, song by song (slow: Last.fm, rate-limited).
@@ -150,7 +150,7 @@ export async function scanSongs(
               await deps.clock.sleep(retryDelayMs * 2 ** attempt); // 10 s, 20 s, 40 s ("exponential backoff")
               continue;
             }
-            console.warn(`[Playlist Prism] tags failed for ${track.name}`, error);
+            console.warn(`[Prism] tags failed for ${track.name}`, error);
             break; // give up on this song only; tags stays null
           }
         }
@@ -177,7 +177,7 @@ export async function scanSongs(
   if (fatal !== null) throw fatal;
 
   const songs = results.filter((song): song is ScannedSong => song !== undefined);
-  if (moodFailed > 0) console.log(`[Playlist Prism] lyrics mood skipped for ${moodFailed} songs (Spotify limit); next scan retries them`);
+  if (moodFailed > 0) console.log(`[Prism] lyrics mood skipped for ${moodFailed} songs (Spotify limit); next scan retries them`);
   return { songs, cancelled: songs.length < tracks.length, moodFailed };
 }
 

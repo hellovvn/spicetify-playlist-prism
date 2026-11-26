@@ -42,7 +42,7 @@ export function SourcePicker({ loadSources, describeError, selected, setSelected
     loadSources()
       .then((list) => !closed && setSources(list))
       .catch((err) => {
-        console.error("[Playlist Prism] loading playlists failed", err);
+        console.error("[Prism] loading playlists failed", err);
         if (!closed) setError(describeError(err));
       });
     return () => {
