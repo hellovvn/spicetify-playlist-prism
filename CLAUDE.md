@@ -464,6 +464,14 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   `src/ui/panelHost.tsx` from the always-on script (createRoot into a div placed inside
   .Root__right-sidebar, re-checked every 1.5 s). Settings switch "Prism stats in the side panel"
   (`prism:panelStats`, on by default). Right-click > Prism stats still opens the full page.
+  MINIMIZE (2026-11-26): Spotify's collapsed right panel is a 32px strip (`.Root__right-sidebar-collapsed`
+  on the peek box) whose "Show Now Playing view" button sits under where the host was. While collapsed the
+  host moves INSIDE `.Root__right-sidebar-peekContent` (full panel width, pointer-events none, under
+  Spotify's z-6 overlay), so the sliver Spotify slides out on hover shows the stats' edge, not Now
+  Playing; on "Now playing" the strip steps aside and Spotify's own peek shows (a MutationObserver on the peek's class reacts at once, so expanding
+  shows the stats with no Now Playing flash). BOTH tabs have a minimize button in the same spot
+  (`.prism-icon-button` left of the pill, `data-prism="panel-minimize"`) that clicks Spotify's
+  `.main-nowPlayingView-headerCloseButton`; on "Now playing" Spotify's own one is hidden (STRIP_CSS).
 - REMIX "TWO DOORS" FLOW (2026-11-23, mockup A, developer's pick; replaces the count-1 shortcut
   and "Start from scratch"/"Use suggestions" switching). Screens: picker (NO settings panel) ->
   scan -> choose (`ChooseMode` in OrganizeFlow.tsx: "Sort them for me" = mode "auto", "I'll pick

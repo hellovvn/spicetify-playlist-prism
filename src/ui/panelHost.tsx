@@ -42,7 +42,8 @@ const STRIP_CSS = `
 .Root__right-sidebar[data-prism-tabs-strip] .main-nowPlayingView-container {
   margin-top: ${STRIP_HEIGHT}px;
   height: calc(100% - ${STRIP_HEIGHT}px) !important;
-}`;
+}
+.Root__right-sidebar[data-prism-tabs-strip] .main-nowPlayingView-headerCloseButtonWrapper { display: none !important; }`;
 export const PANEL_WIDTH_VAR = "--prism-side-panel-width";
 
 function nowPlaying(): NowPlaying | null {
@@ -70,7 +71,7 @@ export function startPanelStats(): void {
   // A solid twilight background from the first frame: the panel's content
   // fades and slides in on top of it, so Spotify's own panel never shows
   // through during that animation.
-  host.style.cssText = "position:absolute;inset:0;z-index:3;border-radius:8px;background:linear-gradient(170deg,#21143d,#33195a 55%,#4d2270);";
+  const HOST_LOOK = "z-index:3;border-radius:8px;background:linear-gradient(170deg,#21143d,#33195a 55%,#4d2270);";
   const root = (Spicetify.ReactDOM as any).createRoot(host);
 
   // The tabs strip over Spotify's own panel ("Now playing" picked).
@@ -84,7 +85,24 @@ export function startPanelStats(): void {
     document.documentElement.setAttribute(PANEL_VIEW_ATTR, next);
     update();
   };
-  const tabs = (current: PanelView) => <PanelTabs view={current} onPick={pick} />;
+  // Collapse the right panel with Spotify's own "Hide Now Playing view"
+  // button (it's under Prism's panel, so it can't be clicked by hand). Found by
+  // class, not by its label (the label is translated).
+  const minimize = () => {
+    const button = document.querySelector<HTMLButtonElement>(".Root__right-sidebar .main-nowPlayingView-headerCloseButton");
+    if (!button) {
+      console.warn("[Prism] side panel: couldn't find Spotify's hide button");
+      return;
+    }
+    button.click();
+    // Spotify marks the panel collapsed a moment later: take Prism's panel
+    // off as soon as it does, so the expand button is free straight away.
+    [0, 100, 300, 600].forEach((ms) => window.setTimeout(update, ms));
+  };
+  // Both tabs get the minimize button in the same spot, left of the pill.
+  // On "Now playing" Spotify's own one (in its header, below the strip) is
+  // hidden by STRIP_CSS, so there's only one; ours still clicks it.
+  const tabs = (current: PanelView) => <PanelTabs view={current} onPick={pick} onMinimize={minimize} />;
 
   // Should the panel show right now? Cheap: no drawing.
   const decide = () => {
@@ -94,9 +112,28 @@ export function startPanelStats(): void {
     // "Recently played"), so that tells them apart.
     const container = sidebar?.querySelector(".main-nowPlayingView-container");
     const showingNowPlaying = !!container && !container.querySelector('[role="tablist"]');
+    // Collapsed to Spotify's thin 32px strip: Prism's panel must not cover
+    // it (Spotify's "Show Now Playing view" button is there). Instead it goes
+    // INSIDE Spotify's peek box, under that button, so the sliver Spotify
+    // slides out on hover shows the edge of the stats, not Now Playing.
+    const peek = sidebar?.querySelector(".Root__right-sidebar-collapsed .Root__right-sidebar-peekContent") ?? null;
+    const collapsed = !!sidebar?.querySelector(".Root__right-sidebar-collapsed");
+    if (collapsed && !peek) return null;
     const uri = playlistUriFromPath(Spicetify.Platform.History.location.pathname);
     if (!isPanelStatsOn(loadPanelStatsSetting()) || !uri || !sidebar || !showingNowPlaying) return null;
-    return { sidebar, uri, saved: parseRecords(loadPlaylistRecordsText())[uri] ?? null };
+    return { sidebar, peek, uri, saved: parseRecords(loadPlaylistRecordsText())[uri] ?? null };
+  };
+  // Where the host goes: over the whole panel, or (collapsed) inside the
+  // peek box at the panel's full width, clipped by Spotify to the sliver.
+  const OPEN_STYLE = "position:absolute;inset:0;";
+  const PEEK_STYLE = `position:absolute;top:0;bottom:0;left:0;width:var(${PANEL_WIDTH_VAR},420px);pointer-events:none;`;
+  const placeHost = (show: { sidebar: Element; peek: Element | null }) => {
+    const parent = show.peek ?? show.sidebar;
+    if (host.parentElement !== parent) parent.appendChild(host);
+    const place = show.peek ? "peek" : "open";
+    if (host.dataset.prismPlace === place) return;
+    host.dataset.prismPlace = place;
+    host.style.cssText = (show.peek ? PEEK_STYLE : OPEN_STYLE) + HOST_LOOK;
   };
   let shownUri: string | null = null; // whose stats are drawn in the host now
 
@@ -153,13 +190,14 @@ export function startPanelStats(): void {
       host.remove();
       shownUri = null;
       stopJob();
-      if (show) showStrip(show.sidebar);
+      // Collapsed on "Now playing": Spotify's own peek, no strip.
+      if (show && !show.peek) showStrip(show.sidebar);
       else hideStrip();
       return;
     }
     hideStrip();
-    if (host.parentElement !== show.sidebar) show.sidebar.appendChild(host);
-    rememberWidth(show.sidebar);
+    placeHost(show);
+    if (!show.peek) rememberWidth(show.sidebar);
     shownUri = show.uri;
     const openStats = () => openPage({ go: "stats", playlist: show.uri });
     if (show.saved) {
@@ -219,7 +257,7 @@ export function startPanelStats(): void {
       return;
     }
     hideStrip();
-    if (host.parentElement !== show.sidebar) show.sidebar.appendChild(host);
+    placeHost(show);
     if (shownUri !== show.uri) {
       stopJob(); // the last playlist's scan stops here
       root.render(null); // empty until the idle draw below (never another playlist's stats)
@@ -234,6 +272,30 @@ export function startPanelStats(): void {
   window.addEventListener(RECORDS_CHANGED_EVENT, () => update()); // a new Prism playlist was saved
   window.addEventListener(PANEL_STATS_CHANGED_EVENT, () => update()); // Settings switch
   window.setInterval(update, 1500); // the panel was opened, closed or rebuilt
+
+  // Collapse / expand: react AT ONCE (the 1.5 s timer above would show
+  // Spotify's own Now Playing for a moment before the stats). Watches the
+  // class of the panel's peek box, which Spotify flips between
+  // Root__right-sidebar-collapsed and -expanded; re-attached if Spotify
+  // rebuilds the panel.
+  let watchedPeek: Element | null = null;
+  let wasCollapsed: boolean | null = null;
+  const peekWatcher = new MutationObserver(() => {
+    const collapsed = !!watchedPeek?.classList.contains("Root__right-sidebar-collapsed");
+    if (collapsed === wasCollapsed) return;
+    wasCollapsed = collapsed;
+    update();
+  });
+  const watchPeek = () => {
+    const peek = document.querySelector(".Root__right-sidebar > .Root__right-sidebar-peek");
+    if (peek === watchedPeek) return;
+    peekWatcher.disconnect();
+    watchedPeek = peek;
+    wasCollapsed = peek ? peek.classList.contains("Root__right-sidebar-collapsed") : null;
+    if (peek) peekWatcher.observe(peek, { attributes: true, attributeFilter: ["class"] });
+  };
+  watchPeek();
+  window.setInterval(watchPeek, 1500);
 }
 
 // No stats to show (yet): the tabs and one quiet line, on the twilight
