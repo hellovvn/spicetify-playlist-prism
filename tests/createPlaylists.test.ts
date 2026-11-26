@@ -84,7 +84,7 @@ describe("buildOrganizeRecord", () => {
       name: " Prism · Pop ",
       createdAt: 1000,
       labels: ["pop", "love"],
-      from: ["Dark Romance", "Liked Songs"],
+      from: ["Night Drive", "Liked Songs"],
       songs: [
         { uri: "a", name: "A", durationMs: 200000, tags: [{ name: "pop", weight: 1, source: "track" }], audio: { bpm: 100, key: "A", mode: "minor", camelot: "8A" }, mood: { love: 1 } },
         { uri: "b", name: "B", durationMs: 100000, tags: [], audio: null, mood: null },
@@ -98,7 +98,7 @@ describe("buildOrganizeRecord", () => {
       songCount: 2,
       tagCounts: [["pop", 1]],
       averageBpm: 100,
-      organized: { from: ["Dark Romance", "Liked Songs"] },
+      organized: { from: ["Night Drive", "Liked Songs"] },
     });
     expect(record.match).toBeUndefined(); // no seed, so no "how close to the seed"
     expect(record.estimate).toBeUndefined();

@@ -22,7 +22,7 @@ the NEW playlist.
    Candidates come from the selected sources, plus (if on) the marked "New finds" from
    Last.fm's similar songs (14e). Still no Song Radio / Spotify recommendations.
 
-## Scoring signals (decided 2026-11-20 after a read-only spike on "Dark Romance", 25 songs)
+## Scoring signals (decided 2026-11-20 after a read-only spike on a 25-song playlist)
 1. **Last.fm tags**: song tags, artist-tag fallback at half weight. About 50% of songs
    have song-level tags. Used for the chips and the "why it matched" text.
 2. **BPM + musical key**: 25/25 coverage. Read via
@@ -75,6 +75,7 @@ npm run build          # one-off build, writes to %APPDATA%\spicetify\CustomApps
 spicetify apply        # apply after first build or config changes
 npm test               # unit tests (Vitest, tests/*.test.ts, no Spotify needed)
 npm run smoke          # in-Spotify smoke test via debug port 9222 (needs spicetify watch -e)
+npm run release        # PUBLIC build: release/prism + release/prism-<version>.zip, no debug hook
 ```
 Since step 12a this is a Spicetify CUSTOM APP (src/settings.json has an "icon"), not an extension:
 - `src/app.tsx` = the page at `/prism`. Spicetify adds its header icon automatically
@@ -109,7 +110,7 @@ Since step 12a this is a Spicetify CUSTOM APP (src/settings.json has an "icon"),
   Last.fm credit in Settings > About, linking to ko-fi.com/<username> in the browser.
 - The username is ONE constant, `KOFI_USERNAME` in `src/support.ts` ("hellovvn"); while empty
   the button is hidden. Also `.github/FUNDING.yml` (GitHub Sponsor button) and the README's
-  Support section. Payments go through a PayPal business account (developer's own setup). A plain link only: never load Ko-fi's widget/overlay script inside Spotify.
+  Support section. A plain link only: never load Ko-fi's widget/overlay script inside Spotify.
 
 ## Secrets
 - Last.fm key (decided 2026-11-26, developer's pick): Prism works WITHOUT a key of the
@@ -154,7 +155,7 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
 4b title retries + artist fallback, 4c BPM/key, 5 seed panel + chips, 6 source picker,
 7 scan (throttle, cache, progress), 8 scoring + preview (top 30 recommended, ticked),
 9 create the new playlist (writes only in `src/spotify/write.ts`, guarded + static test
-`tests/writeGuard.test.ts`; real test 2026-11-21 made "[Prism test] Often", no other list changed).
+`tests/writeGuard.test.ts`; real test 2026-11-21 made a "[Prism test] ..." playlist, no other list changed).
   Note: `RootlistAPI.createPlaylist` has no public/private option; on the developer's account new
   playlists came out Private. The smoke test never creates playlists.
 - 9b (from the original spec, not built yet): optional second seed song.
@@ -230,7 +231,7 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
     DONE: tested by the developer and committed 2026-11-22.
     `src/organize/grouping.ts` (+ tests/grouping.test.ts, 17 tests). Weights per focus in
     FOCUS_WEIGHTS; OVERLAP_SHARE 0.8; Auto tries 3-8 with a silhouette-style score; names skip
-    tags of 4+ words. Real data (Liked Songs + Dark Romance, 250 songs): grouping ~0.15 s, Auto
+    tags of 4+ words. Real data (Liked Songs + one playlist, 250 songs): grouping ~0.15 s, Auto
     chose 8. Groups screen in OrganizeFlow is a plain list until 13c's album-cover cards.
     Improvements after testing "2 playlists into 2" (2026-11-22): count choice 2 added; seeds are
     "different AND typical of a crowd" (plain farthest-first grew groups around lone outliers);
@@ -351,7 +352,7 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   - 14e DISCOVER in Prism playlists: BUILT 2026-11-23 (not committed; smoke-tested, waiting for
     the developer's test). Similar songs NOT in the user's library ("New finds"), only ever
     added to the NEW playlist.
-    Spike (6 seeds, 763-song library): Last.fm `track.getSimilar` gave 30 for every seed;
+    Spike (6 seeds, a ~760-song library): Last.fm `track.getSimilar` gave 30 for every seed;
     118/120 found on Spotify by exact title + artist; ~6% already in the library; the top 1-3
     are usually the seed's own artist, so MAX_PER_ARTIST = 2.
     Pipeline (`findNewSongs` in flow.ts, pure parts in `src/discover/discover.ts` + tests):
@@ -360,7 +361,7 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
     candidates -> Last.fm tags (must share a kept tag, same rule as every Prism song) ->
     Spotify search (`src/spotify/search.ts`, GraphQL `searchModalResults`; other search
     definitions fail) -> BPM/key -> same scoreSong (lyrics mood unknown). Cached per seed + tags
-    for the session. ~36 found for "Often" in the smoke test.
+    for the session. ~36 found for one seed in the smoke test.
     UI (developer's picks): layout "A" = one best-first list with library songs; a "New finds"
     chip row Off/5/10/20 (default 10, saved as `prism:growNewCount`) under the songs count;
     rows = mint glass ("S2", .prism-new-find) + "New find" pill with the Prism star (the 3
@@ -438,7 +439,7 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   all in `src/tags/knownTags.ts`. Also kept: decades ("80s") and "<nationality> <known genre>"
   ("korean r&b"). Matching ignores spaces, "-" and "_" ("synthpop" = "synth-pop"). It applies in
   cleanTags (new tags) and isJunkTagName (cached tags, saved stats, Organize), so fandom tags
-  ("lestappencore") and personal labels vanish everywhere, including old records.
+  ("<artist>core") and personal labels vanish everywhere, including old records.
 - SIDE PANEL STATS: shown on EVERY playlist since 2026-11-25 (developer's request): Prism-made/organized
   ones from their saved record, the rest as an ESTIMATE (`loadPanelEstimate` in flow.ts): cache estimate at
   once, then the songs missing tags or a mood lookup are scanned like a tone scan (Last.fm + lyrics, shared
@@ -506,7 +507,7 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   renamed. No stats record is saved for merged playlists (they aren't Prism-grown/organized).
   DUPLICATES LIST (2026-11-24, mockup "A", developer's pick): "▾ Show duplicates" after the summary
   opens an in-place glass list; each row = the left-out copy + its playlist, and the copy kept
-  ("kept \"Snooze\" from Dark Romance", or "already in …" for the same URI). Data: `dropped` from mergeSongs.
+  ("kept \"<song>\" from <playlist>", or "already in …" for the same URI). Data: `dropped` from mergeSongs.
 - PLAYLIST TONE (2026-11-24, mockup "A", developer's pick; tested by the developer in Spotify,
   committed and merged 2026-11-24). Right-click a playlist > "Prism tone" opens the tone editor
   (`?go=tone&playlist=...`, `src/ui/ToneEditor.tsx`; the menu item says "Add Prism tone" when the
@@ -840,6 +841,24 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   Pure parts `src/update/version.ts` (+ tests/version.test.ts), fetch in `src/update/check.ts`.
   TO RELEASE: bump package.json "version", then publish a GitHub release tagged vX.Y.Z.
 - 11: Cleanup: remove the debug hook, README, release (after 12).
+  RELEASE BUILD (2026-11-26): `src/buildFlags.ts` has DEV_TOOLS (always true in git). Dev builds
+  keep the `window.__prism` hook + demo screens; `npm run release` (scripts/release.mjs) flips it to
+  false while it builds into release/prism (never CustomApps), always restores it, checks prism.js
+  has no `.__prism` hook, and zips with Windows' tar ("/" paths; Compress-Archive's "\" paths break
+  macOS/Linux unzip). The page bundle keeps the demo code, switched off.
+  MARKETPLACE (2026-11-26, developer's request): listed via repo topic `spicetify-apps` +
+  root `manifest.json` (name, description, preview docs/media/preview.png = mockup
+  "B, collage", developer's pick of five: star + "Prism" + tagline over three glass screens (Grow,
+  stats page, Northern lights playlist), frames from the docs/media clips, 1200x900,
+  readme). The Marketplace can't install custom apps: it shows the README, whose Install section
+  says: download the release zip, unzip into CustomApps, `spicetify config custom_apps prism`,
+  apply. So every user-facing change needs a NEW GitHub Release (bump package.json version, run
+  `npm run release`, attach the zip) or users never get it.
+  INSTALL SCRIPT (2026-11-26): `install.ps1` (repo root, README's one-liner `iwr -useb
+  https://raw.githubusercontent.com/hellovvn/spicetify-prism/main/install.ps1 | iex`) downloads the
+  LATEST release's prism-*.zip, replaces only CustomApps\prism (folder found via `spicetify -c`),
+  adds prism to custom_apps if missing, runs `spicetify apply`. Re-running = update. Never run it on
+  the dev machine: it would replace the dev build with the release.
 
 ## Dev loop (Claude runs this, not the developer)
 - If Spotify is restarted normally (not by the watch tab), the debug port 9222 is closed and the
@@ -882,8 +901,8 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
 - SMOKE TEST PLAYLIST (developer's rule, 2026-11-24): playlist names change all the time during
   development (e.g. Merge adds "[merged] "), so tests must NEVER find a playlist by its name or
   assume its song count. The smoke test's playlist is pinned by its Spotify ID in
-  `scripts/smoke.local.json` (gitignored: `{ "playlistUri": "spotify:playlist:..." }`; now the
-  "Dark Romance", 39 songs on 2026-11-24, after the old pinned one left the library); its name and song count
+  `scripts/smoke.local.json` (gitignored: `{ "playlistUri": "spotify:playlist:..." }`; now a
+  39-song playlist on 2026-11-24, after the old pinned one left the library); its name and song count
   are read live. Picker rows carry `data-uri` so tests can click them by ID.
 - BUILDING: never run `npm run build` while `spicetify watch -a` is running: both touch the
   CustomApps folder, the build crashes half-way (Node error after "Moving files out of folders")
@@ -892,7 +911,7 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
 - CLOSE THE WATCHER WHEN DONE (developer's rule, 2026-11-24): once the change is committed and
   pushed (merged into main), stop `spicetify watch -a` / `spicetify watch -e` (and any
   `npm run watch`) that this chat started, so no stray watcher blocks the next chat's build.
-- `window.__prism` debug hook must be removed or dev-only before any public release.
+- `window.__prism` debug hook is dev-only (src/buildFlags.ts); release zips never include it.
 
 ## UI elements (developer's rule, 2026-11-23)
 `docs/ui-elements.md` is the catalogue of every UI element: how to make it, how it looks, how it

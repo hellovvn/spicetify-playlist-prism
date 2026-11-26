@@ -145,7 +145,7 @@ describe("LYRICS_LINE_COLOURS", () => {
 
 describe("themes for single playlists (14b)", () => {
   const A = "spotify:playlist:37i9dQZF1DXcBWIGoYBM5M";
-  const B = "spotify:playlist:5nR6DVire9op0SxTxFNlQZ";
+  const B = "spotify:playlist:TestPlaylistId00000002";
   test("parseThemeOverrides keeps only playlists with known themes", () => {
     expect(parseThemeOverrides(null)).toEqual({});
     expect(parseThemeOverrides("not json")).toEqual({});

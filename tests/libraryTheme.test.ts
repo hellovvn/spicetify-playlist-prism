@@ -23,7 +23,7 @@ describe("isLikedSongsPage", () => {
     expect(isLikedSongsPage("/collection/tracks/")).toBe(true);
   });
   test("other pages", () => {
-    expect(isLikedSongsPage("/playlist/4Gt7ro1pcxWSRED2XPOCLI")).toBe(false);
+    expect(isLikedSongsPage("/playlist/TestPlaylistId00000001")).toBe(false);
     expect(isLikedSongsPage("/collection/albums")).toBe(false);
     expect(isLikedSongsPage(undefined)).toBe(false);
   });

@@ -1,0 +1,8 @@
+{
+  "name": "Prism",
+  "description": "Grow playlists from a favourite song, remix messy ones into moods, see what each playlist is made of, and give Spotify a twilight look. Uses song-level Last.fm tags, BPM, key and lyrics mood.",
+  "preview": "docs/media/preview.png",
+  "readme": "README.md",
+  "authors": [{ "name": "hellovvn", "url": "https://github.com/hellovvn" }],
+  "tags": ["playlists", "last.fm", "themes", "stats"]
+}

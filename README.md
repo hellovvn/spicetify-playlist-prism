@@ -237,10 +237,50 @@ profile, and the lyrics themselves are never stored.
 
 ## Install
 
-Prism isn't in the Spicetify Marketplace yet, so for now you build it from source.
+You need: the Spotify desktop app and [Spicetify](https://spicetify.app/docs/getting-started).
+No Last.fm account is needed: Prism comes with a shared Last.fm key.
 
-You need: the Spotify desktop app, [Spicetify](https://spicetify.app/docs/getting-started)
-and [Node.js](https://nodejs.org). No Last.fm account is needed: Prism comes with a shared Last.fm key.
+Tested on Windows (Spicetify 2.46). macOS and Linux should work but haven't been tried yet:
+please [report](https://github.com/hellovvn/spicetify-prism/issues) anything that breaks.
+
+**Windows, one step:** paste this into PowerShell.
+
+```powershell
+iwr -useb https://raw.githubusercontent.com/hellovvn/spicetify-prism/main/install.ps1 | iex
+```
+
+It downloads the latest release into Spicetify's `CustomApps` folder and turns Prism on
+([read the script](install.ps1) first if you like). Run it again any time to update.
+
+**By hand (any system):** Prism is a Spicetify **custom app**. You'll find it in the Spicetify
+Marketplace, but the Marketplace can't install custom apps itself, so it takes three steps:
+
+1. Download `prism-<version>.zip` from the [latest release](https://github.com/hellovvn/spicetify-prism/releases/latest).
+2. Unzip it into Spicetify's `CustomApps` folder, so you end up with `CustomApps/prism`.
+   - Windows: `%APPDATA%\spicetify\CustomApps`
+   - macOS / Linux: `~/.config/spicetify/CustomApps`
+
+   (Not sure? `spicetify -c` shows Spicetify's config file; `CustomApps` is next to it.)
+3. Turn it on:
+
+   ```powershell
+   spicetify config custom_apps prism
+   spicetify apply
+   ```
+
+Then open Spotify and click the Prism star in the top bar. That's it: Prism comes with a shared
+Last.fm key. Adding your own key is optional ([how to get one](#getting-a-lastfm-api-key)).
+
+**Updating:** run the PowerShell line again, or download the new zip, replace the `prism`
+folder, and run `spicetify apply`. Your settings, tones and stats stay (they're saved in Spotify, not in the folder).
+
+**After a Spotify update** Spicetify may be switched off: run `spicetify restore backup apply`
+and Prism comes back.
+
+### From source
+
+Needs [Node.js](https://nodejs.org) too. This build includes the developer tools (a debug hook for
+the smoke test); `npm run release` makes the same clean zip as the releases.
 
 ```powershell
 git clone https://github.com/hellovvn/spicetify-prism.git
@@ -250,9 +290,6 @@ npm run build
 spicetify config custom_apps prism
 spicetify apply
 ```
-
-Then open Spotify and click the Prism star in the top bar. That's it: Prism comes with a shared
-Last.fm key. Adding your own key is optional ([how to get one](#getting-a-lastfm-api-key)).
 
 ### Getting a Last.fm API key
 
@@ -283,6 +320,7 @@ Last.fm. Last.fm's API is free for non-commercial use ([terms](https://www.last.
 | "Last.fm doesn't accept your API key" | The key was mistyped, or the Shared secret was pasted instead: copy the API key again. |
 | "Last.fm has suspended your API key" | Make a new key (step 2) and save it in Settings. |
 | "Last.fm rate limit hit" | Too many requests at once: wait a minute and try again. |
+
 
 ### Settings
 
@@ -319,4 +357,4 @@ Prism is free. If it makes your playlists nicer, you can buy me a coffee (also f
 
 ## License
 
-MIT
+[MIT](LICENSE)

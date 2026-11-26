@@ -71,7 +71,7 @@ describe("scrubText", () => {
     expect(scrubText("url ?api_key=OLDKEY123&x=1")).toBe("url ?api_key=[hidden]&x=1");
     expect(scrubText("add to spotify:playlist:37i9dQZF1DX failed")).toBe("add to spotify:playlist failed");
     expect(scrubText("open https://open.spotify.com/track/abc123?si=x now")).toBe("open spotify:track now");
-    expect(scrubText('couldn\'t save "Dark Romance"')).toBe("couldn't save …");
+    expect(scrubText('couldn\'t save "Night Drive"')).toBe("couldn't save …");
     expect(scrubText("x".repeat(500)).length).toBe(200);
   });
 });
