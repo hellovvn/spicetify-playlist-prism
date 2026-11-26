@@ -16,12 +16,7 @@
 import React from "react";
 import type { ChartRow } from "../stats/playlistStats";
 import { tagColour } from "./tagLabels";
-
-// Where the bubbles sit in the 100x100 picture, biggest genre first
-// (hand-placed so they cluster and overlap nicely).
-const SPOTS: [number, number][] = [
-  [42, 46], [64, 38], [57, 64], [30, 67], [75, 64], [27, 34], [72, 82], [45, 84],
-];
+import { bubbleSpots, SPOTS } from "./bubbleSpots";
 
 // How long a popped bubble stays gone, and how long the pop itself takes.
 export const RETURN_AFTER_MS = 3000;
@@ -74,9 +69,10 @@ export function Fingerprint({
     later(RETURN_AFTER_MS + 600, () => set(name, "here"));
   }
 
-  const bubbles = rows.slice(0, SPOTS.length).map((row, i) => {
-    const [x, y] = SPOTS[i];
-    const r = 6 + Math.sqrt(row.share) * 17; // area grows with the share
+  const shown = rows.slice(0, SPOTS.length);
+  const spots = bubbleSpots(shown.map((row) => row.share));
+  const bubbles = shown.map((row, i) => {
+    const { x, y, r } = spots[i];
     const colour = colourOf(row.name);
     const id = `${prefix}-${i}`;
     const state = states[row.name] ?? "here";
