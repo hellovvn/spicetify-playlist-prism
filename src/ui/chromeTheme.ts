@@ -257,6 +257,38 @@ ${ON} [data-tippy-root] .main-contextMenu-tippy:has(> [role="tooltip"])::after {
   pointer-events: none;
 }
 
+/* ----- Toasts, "night + rainbow line" (look "A" of four, 2026-11-25) -----
+   The same look as the tooltips. Two kinds live in notistack's
+   .notistack-Snackbar: Spotify's own ("Removed from ...") is an Encore box in
+   Spotify's LIGHT theme (white, black text); Spicetify.showNotification's is a
+   .notistack-MuiContent (-default grey, -error red). Errors keep the night box
+   but get a pink line and a pink icon instead of Spotify's red. */
+${ON} .notistack-Snackbar [role="alert"] > [data-encore-id="box"],
+${ON} .notistack-Snackbar .notistack-MuiContent {
+  position: relative;
+  overflow: hidden;
+  background: ${NIGHT} !important;
+  color: #e9dcff !important;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px !important;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5) !important;
+}
+${ON} .notistack-Snackbar [role="alert"] > [data-encore-id="box"] [data-encore-id="text"] { color: #e9dcff !important; }
+${ON} .notistack-Snackbar [role="alert"] > [data-encore-id="box"] :is(button, a) { color: #cdb8ff !important; }
+${ON} .notistack-Snackbar [role="alert"] > [data-encore-id="box"]::after,
+${ON} .notistack-Snackbar .notistack-MuiContent::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: ${RAINBOW};
+  pointer-events: none;
+}
+${ON} .notistack-Snackbar .notistack-MuiContent-error::after { background: linear-gradient(90deg, #ff8fae, #f6a6c8); }
+${ON} .notistack-Snackbar .notistack-MuiContent-error svg { color: #ff8fae !important; fill: #ff8fae !important; }
+
 `;
 
 export function startChromeTheme(): void {
