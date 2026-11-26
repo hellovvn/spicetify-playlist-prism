@@ -30,7 +30,7 @@ import { getPlaylistCover, getSources, getSourceTracks } from "../spotify/read";
 import { getLastfmKey, loadPanelStatsSetting } from "../storage";
 import { SAMPLE_RECORD } from "../stats/playlistStats";
 import { StatsScreen } from "./StatsScreen";
-import { isPanelStatsOn } from "./sidePanel";
+import { isPanelStatsOn, readPanelView } from "./sidePanel";
 
 
 import { OrganizeFlow } from "./OrganizeFlow";
@@ -277,7 +277,7 @@ export function PrismPage() {
         load={() => loadPlaylistStats(playlist)}
         // Just navigation, like clicking the playlist in the sidebar.
         onOpenPlaylist={(uri) => History.push(`/playlist/${uri.split(":")[2]}`)}
-        onMinimize={isPanelStatsOn(loadPanelStatsSetting()) ? minimize : undefined}
+        onMinimize={isPanelStatsOn(loadPanelStatsSetting()) && readPanelView(document.documentElement) === "prism" ? minimize : undefined}
         loadExtras={loadPlaylistExtras}
         loadToneFit={loadToneFit}
         loadCover={getPlaylistCover}

@@ -502,6 +502,74 @@ export async function loadPlaylistStats(uri: string): Promise<PrismPlaylistRecor
   });
 }
 
+// The side panel's stats for ANY playlist (src/ui/panelHost.tsx). A playlist
+// Prism made has a saved record (the panel uses that directly). For any
+// other one: an ESTIMATE from the scan caches straight away, then the songs
+// that aren't cached yet are scanned (Last.fm tags, BPM/key, lyrics mood,
+// all cached for every Prism feature), and the estimate is worked out again
+// as the caches fill. Stops when shouldStop() says so (another page, the
+// "Now playing" tab...); songs done so far stay cached. Without a Last.fm
+// key it only uses what's cached. READ-ONLY: the playlist is never changed.
+export interface PanelStatsState {
+  record: PrismPlaylistRecord;
+  scanning: ScanProgress | null; // null = not scanning (done, or nothing to scan)
+}
+
+const PANEL_REBUILD_MS = 3000; // how often the estimate is redone while scanning
+
+export async function loadPanelEstimate(
+  uri: string,
+  onUpdate: (state: PanelStatsState) => void,
+  shouldStop: () => boolean
+): Promise<void> {
+  const [name, tracks] = await Promise.all([getPlaylistName(uri).catch(() => null), getSourceTracks(uri)]);
+  if (shouldStop()) return;
+  const audio = await getAudioAttributes(tracks.map((track) => track.uri)).catch(() => new Map<string, never>());
+  const build = () => {
+    const now = Date.now();
+    const tagCache = new TagCache(loadTagCacheText());
+    const moodCache = new MoodCache(loadMoodCacheText());
+    return {
+      record: estimateRecord({
+        uri,
+        name: name ?? "This playlist",
+        songs: tracks.map((track) => ({
+          uri: track.uri,
+          name: track.name,
+          durationMs: track.durationMs,
+          tags: tagCache.get(track.uri, now)?.tags ?? null,
+          audio: audio.get(track.uri) ?? null,
+          mood: moodCache.get(track.uri, now) ?? null,
+        })),
+      }),
+      // Songs with no cached tags, or whose lyrics mood was never looked up
+      // (undefined; null = looked up, no mood).
+      missing: tracks.filter((track) => !tagCache.get(track.uri, now) || moodCache.get(track.uri, now) === undefined),
+    };
+  };
+  let { record, missing } = build();
+  onUpdate({ record, scanning: null });
+  const apiKey = getLastfmKey();
+  if (!apiKey || missing.length === 0 || shouldStop()) return;
+
+  let rebuiltAt = Date.now();
+  await scanTracks(
+    missing,
+    apiKey,
+    (progress) => {
+      if (shouldStop()) return;
+      if (Date.now() - rebuiltAt > PANEL_REBUILD_MS) {
+        record = build().record; // the scan saves the caches every few songs
+        rebuiltAt = Date.now();
+      }
+      onUpdate({ record, scanning: progress });
+    },
+    shouldStop
+  );
+  if (shouldStop()) return;
+  onUpdate({ record: build().record, scanning: null });
+}
+
 // Artists, eras and key for a playlist (stats page and side panel), worked out
 // live from the playlist's songs: names, artists and release years from
 // Spotify's playlist list, keys from the same lookup as BPM. READ-ONLY.

@@ -7,8 +7,11 @@
 // the seed (grown playlists), the main lyrics moods, and a button to the
 // full stats page.
 //
-// Shown by src/ui/panelHost.tsx only while a playlist Prism made or
-// organized is open. Read-only: nothing here changes Spotify.
+// Shown by src/ui/panelHost.tsx on any playlist page: a saved record for
+// playlists Prism made or organized, an estimate for the rest (with a
+// "Scanning songs" line while the missing songs are looked up). The tabs
+// ("Prism stats" | "Now playing") sit at the top. Read-only: nothing here
+// changes Spotify.
 //
 // The root has the class "prism-cosmos" (styles.ts): the twilight background,
 // and Spotify's buttons re-coloured lavender, like on Prism's own page.
@@ -21,6 +24,8 @@ import { ExtraStats, toneFitText, useExtras, useToneFit } from "./ExtraStats";
 import type { ToneSummary } from "../tone/tone";
 import type { PlaylistExtras } from "../stats/playlistExtras";
 import { formatClock, formatLength, madeOn, panelSubtitle } from "./sidePanel";
+import { ScoreRing } from "./ScoreRing";
+import type { ScanProgress } from "../scan/scan";
 
 export interface NowPlaying {
   name: string;
@@ -34,9 +39,11 @@ export interface PanelStatsProps {
   onOpenStats: () => void;
   loadExtras?: (uri: string) => Promise<PlaylistExtras>;
   loadToneFit?: (uri: string) => Promise<ToneSummary | null>;
+  tabs?: React.ReactNode; // PanelTabs, at the very top
+  scanning?: ScanProgress | null; // an estimate whose missing songs are being scanned
 }
 
-export function PanelStats({ record, nowPlaying, onOpenStats, loadExtras, loadToneFit }: PanelStatsProps) {
+export function PanelStats({ record, nowPlaying, onOpenStats, loadExtras, loadToneFit, tabs, scanning }: PanelStatsProps) {
   const extras = useExtras(record.uri, loadExtras);
   const toneFit = useToneFit(record.uri, loadToneFit);
   const rows = chartRows(record, 6);
@@ -62,6 +69,7 @@ export function PanelStats({ record, nowPlaying, onOpenStats, loadExtras, loadTo
   return (
     <div className="prism-cosmos" style={styles.root} data-prism="panel-stats">
       <div style={styles.scroll}>
+        {tabs}
         {nowPlaying && (
           <div style={styles.strip} data-prism="panel-now-playing">
             {nowPlaying.image ? <img src={nowPlaying.image} alt="" style={styles.art} /> : <div style={styles.art} />}
@@ -83,6 +91,8 @@ export function PanelStats({ record, nowPlaying, onOpenStats, loadExtras, loadTo
           </p>
         </div>
 
+        {scanning && scanning.total > 0 && <ScanLine progress={scanning} />}
+
         {builtFrom.length > 0 && (
           <div style={styles.chips} data-prism="panel-built-from">
             {builtFrom.slice(0, 8).map((name) => (
@@ -97,14 +107,22 @@ export function PanelStats({ record, nowPlaying, onOpenStats, loadExtras, loadTo
           <Fingerprint rows={chartRows(record, 8)} size={200} colourOf={colourOf} />
         </div>
 
+        {/* Numbers card, layout "B" (developer's pick 2026-11-25): the tone fit
+            as the standard score ring on the left (only with a tone), the four
+            numbers in a 2x2 grid beside it. */}
         <div className="prism-glass-panel" style={styles.quick}>
-          <Quick value={String(record.songCount)} label="songs" />
-          <Quick value={record.length && record.length.known ? formatLength(record.length.totalMs) : "–"} label="length" />
-          <Quick value={record.averageBpm ? String(record.averageBpm) : "–"} label="avg BPM" />
-          <Quick value={mood ?? "–"} label="top mood" />
           {toneFit && toneFit.average !== null && (
-            <Quick value={`${Math.round(toneFit.average * 100)}%`} label="tone fit" title={toneFitText(toneFit)} />
+            <div style={styles.ringCell} title={toneFitText(toneFit)} data-prism="panel-tone-fit">
+              <ScoreRing score={toneFit.average} label="tone fit" testId="panel-tone-ring" />
+              <p style={styles.small}>tone fit</p>
+            </div>
           )}
+          <div style={styles.quickGrid}>
+            <Quick value={String(record.songCount)} label="songs" />
+            <Quick value={record.length && record.length.known ? formatLength(record.length.totalMs) : "–"} label="length" />
+            <Quick value={record.averageBpm ? String(record.averageBpm) : "–"} label="avg BPM" />
+            <Quick value={mood ?? "–"} label="top mood" />
+          </div>
         </div>
 
         {rows.length > 0 && (
@@ -212,10 +230,26 @@ function Line({ label, name, value }: { label: string; name: string; value: stri
   );
 }
 
-function Quick({ value, label, title }: { value: string; label: string; title?: string }) {
+// "Scanning songs…" + the standard progress bar + "12 of 30" (the Inline
+// progress element in docs/ui-elements.md).
+function ScanLine({ progress }: { progress: ScanProgress }) {
+  const percent = Math.round((progress.done / progress.total) * 100);
   return (
-    // The tone fit (the only one with a title) is the 5th cell: it spans the row.
-    <div style={{ textAlign: "center", minWidth: 0, ...(title ? { gridColumn: "1 / -1" } : {}) }} title={title} data-prism={title ? "panel-tone-fit" : undefined}>
+    <div style={styles.scanLine} role="status" data-prism="panel-scanning">
+      <span>Scanning songs…</span>
+      <span className="prism-progress" style={styles.scanBar}>
+        <span className="prism-progress-fill" style={{ display: "block", width: `${percent}%` }} />
+      </span>
+      <span style={styles.scanCount}>
+        {progress.done} of {progress.total}
+      </span>
+    </div>
+  );
+}
+
+function Quick({ value, label }: { value: string; label: string }) {
+  return (
+    <div style={{ minWidth: 0 }}>
       <p style={styles.quickValue}>{value}</p>
       <p style={styles.small}>{label}</p>
     </div>
@@ -232,7 +266,11 @@ const styles: Record<string, React.CSSProperties> = {
   divider: { borderTop: "1px solid rgba(255,255,255,0.15)" },
   title: { margin: 0, fontSize: 18, fontWeight: 700, color: "#f3e8ff" },
   fingerprint: { display: "flex", justifyContent: "center", padding: "10px 0" },
-  quick: { display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10, padding: "10px 8px" },
+  quick: { display: "flex", alignItems: "center", justifyContent: "space-evenly", gap: 16, padding: 12 },
+  ringCell: { display: "flex", flexDirection: "column", alignItems: "center", gap: 2, flexShrink: 0 },
+  // Columns as wide as their numbers with one even gap; the ring and this grid
+  // are spread evenly across the card (equal halves left a wide gap after short numbers).
+  quickGrid: { flex: "0 1 auto", minWidth: 0, display: "grid", gridTemplateColumns: "repeat(2, minmax(0, max-content))", rowGap: 10, columnGap: 28 },
   quickValue: { margin: 0, fontSize: 16, fontWeight: 700 },
   card: { padding: "10px 12px", display: "flex", flexDirection: "column", gap: 6 },
   cardTitle: { margin: 0, fontSize: 12, fontWeight: 700, color: "#cdb8ff" },
@@ -246,4 +284,7 @@ const styles: Record<string, React.CSSProperties> = {
   dot: { width: 8, height: 8, borderRadius: "50%" },
   line: { margin: 0, fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
   big: { margin: 0, fontSize: 16, fontWeight: 700 },
+  scanLine: { display: "flex", alignItems: "center", gap: 8, fontSize: 12 },
+  scanBar: { flex: "1 1 auto", maxWidth: 140, display: "block" },
+  scanCount: { color: "#cdb8ff", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" },
 };
