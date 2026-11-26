@@ -727,27 +727,38 @@ const CSS = `
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
-/* ----- Scanning animation: a big diamond with a rainbow star halo -----
-   The stars swell and brighten one after another (a shimmer travelling
-   round the ring), and the diamond gently grows and shrinks. */
-@keyframes prism-scan-ray {
-  0%, 100% { opacity: 0.35; transform: scale(0.55); }
-  50%      { opacity: 1; transform: scale(1.15); }
-}
+/* ----- Scanning icon: the Prism star in a filling rainbow ring -----
+   (ScanningPrism, mockup "D"). The star gently grows and shrinks (never
+   turns), a soft glow breathes behind it, two sparkles twinkle, and the
+   ring's arc follows the scan (stroke-dashoffset, eased). Before the count is
+   known, a short arc circles round (.prism-scan-waiting). */
 @keyframes prism-scan-breathe {
   0%, 100% { transform: scale(1); }
-  50%      { transform: scale(1.06); }
+  50%      { transform: scale(1.07); }
 }
-.prism-scan-ray {
-  /* Each star swells from its own middle. */
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: prism-scan-ray 1.8s ease-in-out infinite;
+@keyframes prism-scan-glow {
+  0%, 100% { opacity: 0.35; transform: scale(0.9); }
+  50%      { opacity: 0.8; transform: scale(1.15); }
 }
-.prism-scan-gem {
+@keyframes prism-scan-twinkle {
+  0%, 100% { opacity: 0.3; transform: scale(0.55); }
+  50%      { opacity: 1; transform: scale(1.15); }
+}
+@keyframes prism-scan-circle {
+  to { transform: rotate(360deg); }
+}
+.prism-scan-star, .prism-scan-glow, .prism-scan-waiting {
   transform-box: view-box;
   transform-origin: 50% 50%;
-  animation: prism-scan-breathe 2.4s ease-in-out infinite;
+}
+.prism-scan-star { animation: prism-scan-breathe 2.4s ease-in-out infinite; }
+.prism-scan-glow { animation: prism-scan-glow 2.4s ease-in-out infinite; }
+.prism-scan-waiting { animation: prism-scan-circle 1.6s linear infinite; }
+.prism-scan-ring { transition: stroke-dashoffset 0.4s ease-out; }
+.prism-scan-sparkle {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: prism-scan-twinkle 1.8s ease-in-out infinite;
 }
 
 /* ----- Start page: flip tiles (FlipTile.tsx, icons in HomeIcons.tsx) -----
@@ -1077,7 +1088,8 @@ ${RING_ANGLE_PROPERTY}
 @media (prefers-reduced-motion: reduce) {
   .prism-blob, .prism-wave { animation: none !important; }
   .prism-star { animation: none !important; opacity: 0.6; }
-  .prism-scan-ray, .prism-scan-gem { animation: none !important; }
+  .prism-scan-star, .prism-scan-glow, .prism-scan-sparkle, .prism-scan-waiting { animation: none !important; }
+  .prism-scan-ring { transition: none; }
   .prism-page, .prism-fade-in, .prism-overlay, .prism-glass-card, .prism-bar-fill, .prism-bubble, .prism-bubble-wobble, .prism-bubble-body.is-back { animation: none; }
   /* Popping still works, just without the swell: the bubble disappears at once. */
   .prism-bubble-body.is-popping { animation: none; opacity: 0; }

@@ -491,7 +491,12 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   2026-11-25): a flowing copy of the star (.prism-flow, SMIL gradient slide) fades in and a
   glow (.prism-glow) breathes behind it with hue-rotate. The star NEVER turns (developer's
   request); the moving neon ring round the top-bar button was REMOVED (purple circle only,
-  3px inside the button). prism-active.svg = same picture with "-active" gradient ids. The scanning diamond is unchanged.
+  3px inside the button). prism-active.svg = same picture with "-active" gradient ids.
+  SCANNING ICON (2026-11-26, mockup "D, glow + progress ring", developer's pick): the scan
+  screen's old faceted diamond + star halo is replaced by `ScanningPrism` = the Prism star
+  (breathing, never turns) over a soft glow, in a pastel rainbow ring that FILLS with the scan's
+  progress (`progress` prop, done/total; before the count is known a short arc circles).
+  Ring = `[data-prism="scan-ring"]`, CSS .prism-scan-* in styles.ts.
 - Smoke note: "Cancel stops the scan part-way" can fail as a race when nearly every song is
   cached (the scan finishes before the Cancel click lands); a re-run reports it as SKIPPED.
 - MERGE PLAYLISTS (2026-11-23, built on branch feature/merge-playlists, waiting for the
