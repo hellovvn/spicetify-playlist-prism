@@ -713,7 +713,8 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   USER COUNT (2026-11-26, developer's request): the relay counts distinct `/lastfm-key` callers per
   UTC day (`relay/src/usage.ts`, tests/relayUsage.test.ts): IP hashed with day + secret STATS_TOKEN,
   hash kept 2 days, only `users:<day>` stays. No STATS_TOKEN = no counting. Read with GET /usage +
-  `Authorization: Bearer <STATS_TOKEN>` (command in relay/README.md). Approximate (shared networks,
+  `Authorization: Bearer <STATS_TOKEN>`, easiest `npm run users [days]` (token in
+  %USERPROFILE%\.prism\stats-token, never in the repo, never printed). Deployed 2026-11-26. Approximate (shared networks,
   changing IPs, KV races). Mentioned in the README's Privacy line.
 - 15 (DONE 2026-11-26, smoke-tested, committed): internal ids renamed from "playlist-prism" /
   "Playlist Prism" to "prism" (see "Name"). The header icon's aria-label was already "Prism"

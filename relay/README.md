@@ -30,7 +30,9 @@ secret `STATS_TOKEN`, and that hash expires after 2 days. Only one number per da
 changes counts twice, and two first calls at the same moment can count as one. Without
 `STATS_TOKEN` nothing is counted.
 
-Read the last 30 days (`?days=` up to 90) in PowerShell:
+Easiest: keep the token in `%USERPROFILE%\.prism\stats-token` (outside the repo) and run
+`npm run users` (or `npm run users 90`) in the project folder. Or by hand in PowerShell
+(`?days=` up to 90):
 
 ```powershell
 $t = Read-Host "Stats token"; (irm https://prism-reports.hellovvn-spicetify-prism.workers.dev/usage -Headers @{ Authorization = "Bearer $t" }).days
