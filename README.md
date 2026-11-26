@@ -11,7 +11,6 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Spicetify-custom%20app-b9a6ff?style=flat-square" alt="Spicetify custom app">
   <img src="https://img.shields.io/badge/Spotify-desktop-ffb8d9?style=flat-square" alt="Spotify desktop">
-  <img src="https://img.shields.io/badge/needs-Last.fm%20API%20key-a8ecc9?style=flat-square" alt="Needs a Last.fm API key">
   <img src="https://img.shields.io/badge/license-MIT-a9cdff?style=flat-square" alt="MIT license">
 </p>
 
@@ -229,7 +228,8 @@ Prism never deletes playlists and never removes or reorders songs. Tones, themes
 are stored only on your computer. All write calls live in one file (`src/spotify/write.ts`), and a
 unit test fails if one shows up anywhere else.
 
-**Privacy:** your Last.fm API key is stored only in Spotify on your computer. Song titles and
+**Privacy:** if you add your own Last.fm API key, it is stored only in Spotify on your computer.
+Without one, Prism asks its small relay for Prism's shared Last.fm key once per Spotify start. Song titles and
 artists are sent to Last.fm to look up tags and similar songs. Lyrics are read to work out a mood
 profile, and the lyrics themselves are never stored.
 
@@ -237,8 +237,8 @@ profile, and the lyrics themselves are never stored.
 
 ## Install
 
-You need: the Spotify desktop app, [Spicetify](https://spicetify.app/docs/getting-started) and a
-free [Last.fm API key](https://www.last.fm/api/account/create).
+You need: the Spotify desktop app and [Spicetify](https://spicetify.app/docs/getting-started).
+No Last.fm account is needed: Prism comes with a shared Last.fm key.
 
 **Windows, one step:** paste this into PowerShell.
 
@@ -265,12 +265,11 @@ Marketplace, but the Marketplace can't install custom apps itself, so it takes t
    spicetify apply
    ```
 
-Then open Spotify, click the Prism star in the top bar, open **Settings** and paste your Last.fm
-API key.
+Then open Spotify and click the Prism star in the top bar. That's it: Prism comes with a shared
+Last.fm key. Adding your own key is optional ([how to get one](#getting-a-lastfm-api-key)).
 
 **Updating:** run the PowerShell line again, or download the new zip, replace the `prism`
-folder, and run `spicetify apply`. Your
-settings, tones and stats stay (they're saved in Spotify, not in the folder).
+folder, and run `spicetify apply`. Your settings, tones and stats stay (they're saved in Spotify, not in the folder).
 
 **After a Spotify update** Spicetify may be switched off: run `spicetify restore backup apply`
 and Prism comes back.
@@ -289,11 +288,42 @@ spicetify config custom_apps prism
 spicetify apply
 ```
 
+### Getting a Last.fm API key
+
+Prism reads genre and mood tags and similar songs from Last.fm. Out of the box it uses Prism's
+shared Last.fm key, so you don't need one. Your own free key is optional: handy if the shared one is
+ever busy. It takes about a minute:
+
+1. Sign in to [Last.fm](https://www.last.fm/login) (or [make a free account](https://www.last.fm/join)).
+2. Open [last.fm/api/account/create](https://www.last.fm/api/account/create) and fill in the form:
+   - **Contact email:** your email
+   - **Application name:** anything, for example `Prism`
+   - **Application description**, **Callback URL** and **Application homepage:** can stay empty
+3. Click **Submit**. The next page shows an **API key** and a **Shared secret**.
+4. Copy the **API key** (the Shared secret isn't needed).
+5. In Spotify, open Prism's **Settings** (the Settings button on the Prism page, or Spotify's
+   profile menu > **Prism settings**), paste the key and click **Test & save**.
+
+Lost the key? Your keys are listed at [last.fm/api/accounts](https://www.last.fm/api/accounts).
+The key stays on your computer (in Spotify's local storage) and is never sent anywhere except
+Last.fm. Last.fm's API is free for non-commercial use ([terms](https://www.last.fm/api/tos)).
+
+**If Prism says something about your key:**
+
+| Message | What to do |
+| --- | --- |
+| "Couldn't get Prism's shared Last.fm access" | Prism couldn't fetch its shared key (offline?): try again, or add your own key. |
+| "Prism's shared Last.fm access isn't working right now" | Try again later, or add your own key (steps above). |
+| "Last.fm doesn't accept your API key" | The key was mistyped, or the Shared secret was pasted instead: copy the API key again. |
+| "Last.fm has suspended your API key" | Make a new key (step 2) and save it in Settings. |
+| "Last.fm rate limit hit" | Too many requests at once: wait a minute and try again. |
+
+
 ### Settings
 
 Open them from the Prism page, or from Spotify's profile menu > **Prism settings**.
 
-- **Last.fm API key** (required)
+- **Your own Last.fm API key** (optional; Prism's shared key is used without one)
 - **Playlist theme:** No theme or one of the nine skies
 - **Prism look for lyrics:** on or off
 - **Prism stats in the side panel:** on or off

@@ -61,5 +61,5 @@
   if ($apps -notmatch "(^|\s|\|)prism(\s|\||$)") { spicetify config custom_apps prism | Out-Null }
   spicetify apply
 
-  Say "Done. Open Spotify, click the Prism star in the top bar, open Settings and paste your Last.fm API key."
+  Say "Done. Open Spotify and click the Prism star in the top bar."
 }

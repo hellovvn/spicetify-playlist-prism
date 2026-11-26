@@ -580,10 +580,22 @@ try {
         const all = await recState();
         check("count All recommends every match", all.n === totalMatches && all.ticked, `${all.n} of ${totalMatches}`);
         await clickCount("custom");
+        // Clicking Custom re-applies the number already in its box (PR #38):
+        // after "All", a box that says 15 must not leave every match ticked.
+        const boxed = parseInt(await cdp.evaluate(`${PREVIEW}.querySelector('[data-prism="count-custom-input"]').value`));
+        if (boxed > 0) {
+          const reapplied = await recState();
+          check("clicking Custom re-applies the number in its box", reapplied.n === Math.min(boxed, totalMatches) && reapplied.ticked, `box ${boxed}, ${reapplied.n} recommended`);
+        }
+        // Type 15. React ignores an "input" event whose value didn't change
+        // (the box may already say 15 from an earlier run), so clear it first.
         await cdp.evaluate(`(() => {
           const input = ${PREVIEW}.querySelector('[data-prism="count-custom-input"]');
-          Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(input, "15");
-          input.dispatchEvent(new Event("input", { bubbles: true }));
+          const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set;
+          for (const value of ["", "15"]) {
+            set.call(input, value);
+            input.dispatchEvent(new Event("input", { bubbles: true }));
+          }
         })()`);
         await sleep(250);
         const custom = await recState();
