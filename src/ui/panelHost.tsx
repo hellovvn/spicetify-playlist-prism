@@ -32,7 +32,9 @@ import { playlistUriFromPath } from "./toneView";
 const HOST_ID = "prism-panel-stats";
 const TABS_STRIP_ID = "prism-panel-tabs";
 const STRIP_STYLE_ID = "prism-panel-tabs-style";
-const STRIP_HEIGHT = 48; // px
+// The tabs pill (30px) is centred in the strip, so the gap above and below it
+// is the same (16px).
+const STRIP_HEIGHT = 62; // px
 // While the strip is up, Spotify's Now Playing view moves down by the strip's
 // height. Done on the view's outer box, because Spotify has two layouts (the
 // older one with its header in the flow, the video one with an overlaid header).
@@ -74,7 +76,7 @@ export function startPanelStats(): void {
   // The tabs strip over Spotify's own panel ("Now playing" picked).
   const strip = document.createElement("div");
   strip.id = TABS_STRIP_ID;
-  strip.style.cssText = `position:absolute;top:0;left:0;right:0;height:${STRIP_HEIGHT}px;z-index:3;box-sizing:border-box;padding:12px 16px 0;display:flex;justify-content:center;align-items:flex-start;`;
+  strip.style.cssText = `position:absolute;top:0;left:0;right:0;height:${STRIP_HEIGHT}px;z-index:3;box-sizing:border-box;padding:0 16px;display:flex;justify-content:center;align-items:center;`;
   const stripRoot = (Spicetify.ReactDOM as any).createRoot(strip);
 
   const view = (): PanelView => readPanelView(document.documentElement);

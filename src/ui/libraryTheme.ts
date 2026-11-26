@@ -135,6 +135,7 @@ ${SIDE} .Root__right-sidebar-peek::before {
 }
 ${SIDE} aside,
 ${SIDE} aside::before,
+${SIDE} .main-nowPlayingView-container aside > div,
 ${SIDE} .main-nowPlayingView-container { background: transparent !important; }
 `;
 }
