@@ -58,7 +58,7 @@ export function needsCheck(saved: SavedCheck | null, now: number): boolean {
 }
 
 /** The release to tell the user about, or null. "Not now" hides one version
- *  (prism:updateDismissed); a later version shows the notice again. */
+ *  until Spotify restarts (sessionStorage); a later version shows the notice again. */
 export function noticeFor(latest: LatestRelease | null, current: string, dismissed: string | null): LatestRelease | null {
   if (!latest || !isNewer(latest.version, current)) return null;
   if (dismissed && !isNewer(latest.version, dismissed)) return null;

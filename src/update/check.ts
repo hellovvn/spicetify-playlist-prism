@@ -7,6 +7,8 @@ import { type LatestRelease, needsCheck, noticeFor, parseSavedCheck, readRelease
 
 const RELEASE_URL = "https://api.github.com/repos/hellovvn/spicetify-prism/releases/latest";
 const CHECK_KEY = "prism:updateCheck";
+// "Not now" lasts until Spotify restarts (developer's request, 2026-11-26), so it
+// lives in sessionStorage.
 const DISMISSED_KEY = "prism:updateDismissed";
 
 export { PRISM_VERSION };
@@ -27,10 +29,10 @@ export async function findUpdate(now = Date.now()): Promise<LatestRelease | null
       console.warn(`${LOG_PREFIX} couldn't check for a new version`, error);
     }
   }
-  return noticeFor(saved?.latest ?? null, PRISM_VERSION, Spicetify.LocalStorage.get(DISMISSED_KEY));
+  return noticeFor(saved?.latest ?? null, PRISM_VERSION, sessionStorage.getItem(DISMISSED_KEY));
 }
 
-/** "Not now": hide the notice until a version after this one comes out. */
+/** "Not now": hide the notice until Spotify restarts (or a later version is out). */
 export function dismissUpdate(version: string): void {
-  Spicetify.LocalStorage.set(DISMISSED_KEY, version);
+  sessionStorage.setItem(DISMISSED_KEY, version);
 }

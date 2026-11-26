@@ -1,7 +1,7 @@
 // "Prism 0.2.0 is out" on the start page (developer's pick "A", 2026-11-26).
 // The standard Notice box with small secondary buttons: "How to update" opens
 // the steps in place (option "B", 2026-11-26), "What's new" opens the GitHub
-// release page in the browser, "Not now" hides it until the next version.
+// release page in the browser, "Not now" hides it until Spotify restarts.
 
 import React from "react";
 import { osFrom } from "../report/report";
