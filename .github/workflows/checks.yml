@@ -1,0 +1,39 @@
+# Runs on every push and pull request: type check, unit tests (including
+# tests/writeGuard.test.ts) and a build into dist/. None of these need Spotify.
+# The smoke test (npm run smoke) can't run here: it needs Spotify on the
+# developer's PC, so it stays a local step before merging.
+name: Checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install packages
+        run: npm ci
+
+      - name: Type check
+        # TypeScript isn't a local dependency; pin the version used locally.
+        run: npx -y -p typescript@5.6.3 tsc --noEmit -p .
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build
+        # --out=dist (build-local) so the build never looks for Spicetify.
+        # The build tool's exit code isn't reliable, so also check its last line.
+        run: |
+          set -o pipefail
+          npm run build-local 2>&1 | tee build.log
+          grep -q "Build succeeded." build.log

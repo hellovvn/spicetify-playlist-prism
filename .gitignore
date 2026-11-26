@@ -148,6 +148,8 @@ smoke-output/
 # Smoke test's own settings: which of the developer's playlists it uses (by ID)
 scripts/smoke.local.json
 
+# Local build output (npm run build-local, also run by CI)
+dist/
 # GitHub App private keys (prism-reports relay): never commit
 *.pem
 # Cloudflare Wrangler local state
