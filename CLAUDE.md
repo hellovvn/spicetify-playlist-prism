@@ -97,6 +97,20 @@ Since step 12a this is a Spicetify CUSTOM APP (src/settings.json has an "icon"),
   Requests even for single calls. For song details use `Spicetify.GraphQL.Request(
   Spicetify.GraphQL.Definitions.getTrack, { uri })` → `data.trackUnion`.
 
+## Last.fm terms (read 2026-11-25, https://www.last.fm/api/tos)
+- Non-commercial use only; doubtful cases go to partners@last.fm. They "must credit Last.fm
+  and include links"; their logo needs written approval (so text only).
+- Credit lives in Settings > "About" (developer's pick "A", `data-prism="lastfm-credit"`) and
+  the README's Credits section.
+- Tip/donation link: the terms don't mention donations (suggested: ask Last.fm).
+
+## Ko-fi support (2026-11-25, developer's pick "A")
+- A "Support Prism" glass button (an `<a class="prism-glass-button">`, cup icon) under the
+  Last.fm credit in Settings > About, linking to ko-fi.com/<username> in the browser.
+- The username is ONE constant, `KOFI_USERNAME` in `src/support.ts` ("hellovvn"); while empty
+  the button is hidden. Also `.github/FUNDING.yml` (GitHub Sponsor button) and the README's
+  Support section. Payments go through a PayPal business account (developer's own setup). A plain link only: never load Ko-fi's widget/overlay script inside Spotify.
+
 ## Secrets
 - The Last.fm API key is entered by the user in a settings field and stored in
   `Spicetify.LocalStorage` (key `prism:lastfmKey`). Never hardcode it or commit it.

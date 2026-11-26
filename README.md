@@ -20,7 +20,8 @@
   <a href="#install">Install</a> ·
   <a href="#how-songs-are-matched">How it works</a> ·
   <a href="#what-prism-changes">What Prism changes</a> ·
-  <a href="#development">Development</a>
+  <a href="#development">Development</a> ·
+  <a href="#support">Support</a>
 </p>
 
 <p align="center">
@@ -272,6 +273,19 @@ npm test               # unit tests (Vitest)
 
 Built with TypeScript, React and [Spicetify Creator](https://github.com/spicetify/spicetify-creator).
 How the demo clips are made: [docs/media/SHOTLIST.md](docs/media/SHOTLIST.md).
+
+## Credits
+
+Genre and mood tags and similar songs come from [Last.fm](https://www.last.fm/) (powered by
+AudioScrobbler). Tempo, key and lyrics come from Spotify. Prism isn't made by or connected to
+Last.fm or Spotify.
+
+## Support
+
+Prism is free. If it makes your playlists nicer, you can buy me a coffee (also from
+**Settings > About > Support Prism** inside the app).
+
+<a href="https://ko-fi.com/hellovvn"><img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="Support Prism on Ko-fi" height="36"></a>
 
 ## License
 
