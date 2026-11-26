@@ -728,6 +728,18 @@ try {
   );
   check("settings open on the page with their title", visible);
   await screenshot("settings.png");
+  // Side rail: each section button shows its own section (and only that one).
+  const railOk = await cdp.evaluate(`(async () => {
+    const out = [];
+    for (const id of ["look", "lastfm", "feedback", "about", "theme"]) {
+      document.querySelector('[data-prism="settings-tab-' + id + '"]')?.click();
+      await new Promise((r) => setTimeout(r, 150));
+      const shown = [...document.querySelectorAll('[data-prism^="settings-section-"]')].map((el) => el.dataset.prism);
+      out.push(shown.length === 1 && shown[0] === "settings-section-" + id);
+    }
+    return out.every(Boolean);
+  })()`);
+  check("the side rail switches between the five sections", railOk);
   await cdp.evaluate("window.__prism.goHome()");
 
   console.log("\n[11] Playlist stats page (sample numbers, read-only)");
