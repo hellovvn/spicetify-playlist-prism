@@ -83,6 +83,7 @@ it. The rules for changing or adding elements are in CLAUDE.md under "UI element
 | Fingerprint bubbles | `Fingerprint` | See-through bubbles in the genre colour | Float + wobble; click pops (droplets), back after 3 s |
 | Cover ring | `.prism-artwork` (stats page cover); colours shared in `src/ui/ringColours.ts` | Cover inside a moving pastel neon ring. ROUND variant (2026-11-25): the profile photo on themed profile pages (`[data-prism-page="profile"] .main-entityHeader-imageContainer`, CSS in `src/ui/playlistTheme.ts`), the same ring and glow drawn just outside the round photo | Ring turns (3.5 s). Reduced motion: still |
 | Notice | `.prism-notice` | Glass box, 12px corners, rainbow bar on the left | Used for tips, warnings and errors (`role="status"` / `alert`) |
+| New version notice (approved 2026-11-26, mockup "A" of four) | `UpdateNotice` (src/ui/UpdateNotice.tsx) at the top of the start page | The standard Notice: "**Prism 0.2.0 is out.** You have 0.1.0." + two 32px secondary buttons "What's new" (opens the GitHub release page in the browser) and "Not now" | Only when GitHub's latest release is newer (checked once a day). "Not now" hides it until a later version comes out |
 | Error line | inline text in `--prism-error` pink | Small pink text | |
 | Inline confirm bar | Text + two secondary buttons in a dark purple strip (leave scan, combine groups) | Says what will happen | Asks before anything destructive |
 | Pop-up | `.prism-overlay` + `.prism-glass-card` (`role="dialog"`) | Dimmed, blurred page with a glass card (20px corners) | Rises in |
@@ -120,6 +121,7 @@ it. The rules for changing or adding elements are in CLAUDE.md under "UI element
 | Top-bar icon | `src/assets/prism.svg` + `headerIcon.ts` | Spotify's top bar; spins on hover with a star halo and rainbow ring |
 
 ## History
+- 2026-11-26: NEW "New version notice" on the start page (the standard Notice, mockup "A").
 - 2026-11-25: NEW Spotify toast look "night + rainbow line" (look "A"), same as the tooltips; error toasts pink instead of red.
 - 2026-11-25: Side panel numbers card = layout "B" (tone fit as the Score ring beside a 2x2 grid); before, a centred 2x2 grid with the tone fit as a 5th cell spanning the row.
 - 2026-11-25: NEW Spotify tooltip look "night + rainbow line" (mockup "D"). Left panel's round icon buttons (Expand Your Library) hover in Quiet night purple instead of Spotify's grey.

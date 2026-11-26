@@ -25,6 +25,7 @@
 import React from "react";
 import { FlipTile } from "./FlipTile";
 import { StartBar } from "./StartBar";
+import { UpdateNotice } from "./UpdateNotice";
 import { OrganizeIcon, PrismIcon as PrismTileIcon } from "./HomeIcons";
 import { getPlaylistCover, getSources, getSourceTracks } from "../spotify/read";
 import { getLastfmKey, loadPanelStatsSetting } from "../storage";
@@ -480,6 +481,8 @@ function HomeScreen({ onStart, onOrganize, onMerge, onAddTo }: { onStart: (seed:
 
   return (
     <div className="prism-fade-in" style={styles.column} data-prism-state="home">
+      {/* Only shows when GitHub has a newer Prism release (UpdateNotice.tsx). */}
+      <UpdateNotice />
       {/* Two modes side by side, as flip tiles: an icon on the front, the
           details and buttons on the back (FlipTile.tsx). */}
       <div style={styles.modes}>
