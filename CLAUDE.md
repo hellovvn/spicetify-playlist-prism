@@ -408,8 +408,21 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   ("korean r&b"). Matching ignores spaces, "-" and "_" ("synthpop" = "synth-pop"). It applies in
   cleanTags (new tags) and isJunkTagName (cached tags, saved stats, Organize), so fandom tags
   ("lestappencore") and personal labels vanish everywhere, including old records.
-- SIDE PANEL STATS: shown for Prism-made/organized playlists. It only covers the panel while it shows Now Playing
-  (never the queue). Pure parts are in `src/ui/sidePanel.ts` (tested; NOT "panelStats.ts", which
+- SIDE PANEL STATS: shown on EVERY playlist since 2026-11-25 (developer's request): Prism-made/organized
+  ones from their saved record, the rest as an ESTIMATE (`loadPanelEstimate` in flow.ts): cache estimate at
+  once, then the songs missing tags or a mood lookup are scanned like a tone scan (Last.fm + lyrics, shared
+  caches) while the panel shows them; the estimate is redone every 3 s; leaving the playlist, the Queue or
+  the "Now playing" tab stops the scan. No Last.fm key = cache only. Playlists of only audiobooks/podcasts
+  say "No songs here...". TABS (mockup "B", `src/ui/PanelTabs.tsx`): "Prism stats" | "Now playing", ONE
+  choice for all playlists, kept as `data-prism-panel-view` on <html> (page + always-on bundles share it;
+  resets when Spotify restarts). On "Now playing" a 48px strip with the tabs sits across the top of
+  .Root__right-sidebar and Spotify's .main-nowPlayingView-container moves down (both Spotify layouts:
+  header in flow, and the video one with headerContainerV2 overlaid). The full stats page's "Back to
+  playlist" morphs into the panel for estimates too, unless the tabs are on "Now playing".
+  NUMBERS CARD = layout "B" (2026-11-25): tone fit as the standard ScoreRing (now src/ui/ScoreRing.tsx, so
+  the always-on bundle doesn't pull in PreviewScreen) left of a 2x2 grid (songs, length, avg BPM, top mood).
+  It only covers the panel while it shows Now Playing (never the queue). NOTE: Spotify draws the QUEUE
+  inside the same .main-nowPlayingView-container; only the Queue has a [role=tablist], which is the check. Pure parts are in `src/ui/sidePanel.ts` (tested; NOT "panelStats.ts", which
   clashes with PanelStats.tsx on Windows). The view is `src/ui/PanelStats.tsx`, mounted by
   `src/ui/panelHost.tsx` from the always-on script (createRoot into a div placed inside
   .Root__right-sidebar, re-checked every 1.5 s). Settings switch "Prism stats in the side panel"
@@ -601,6 +614,11 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   GREEN GIF (`img[src*="equaliser-animated-green"]`; while Spotify's window is unfocused it's
   the still `equaliser-green.svg` instead; no variable reaches either): a CSS filter
   turns it Prism pink and keeps the animation.
+  Left panel's round icon buttons (Expand Your Library...) hover/press with Spotify's grey
+  --background-highlight / --background-press: swapped for #251c45 / #1d1638 on .Root__nav-bar (2026-11-25).
+  TOOLTIPS (mockup "D", 2026-11-25): `[data-tippy-root] .main-contextMenu-tippy:has(> [role=tooltip])` =
+  #0b0817, text #e9dcff, 2px pastel rainbow line at the bottom (CSS in chromeTheme.ts). Tooltips open on
+  JS pointer events: to test, dispatch pointerover/mouseenter on the button (CDP mouse moves didn't).
   Testing note: Git Bash rewrites a "/search" argument into "C:/Program Files/Git/search";
   use MSYS_NO_PATHCONV=1 when passing Spotify paths to node scripts.
 - ADD WITH PRISM (asked 2026-11-24; built, not committed, waiting for the developer's test):

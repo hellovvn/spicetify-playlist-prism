@@ -70,6 +70,10 @@ ${ON} .Root__globalNav input:hover { background-color: ${CARD_HOVER} !important;
 ${ON} .Root__nav-bar {
   --background-elevated-base: ${CARD};
   --background-elevated-highlight: ${CARD_HOVER};
+  /* Round icon buttons (Expand Your Library...) are see-through and hover /
+     press in Spotify's grey --background-highlight / --background-press. */
+  --background-highlight: ${CARD_HOVER};
+  --background-press: ${CARD};
 }
 /* Picture placeholders in the side panels and the player (a FOLDER's icon tile
    in Your Library, and the square behind covers while they load) read
@@ -227,6 +231,31 @@ ${ON} .GenericModal__overlay [data-encore-id="buttonPrimary"]:hover:not(:disable
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 0 14px rgba(205, 184, 255, 0.55);
 }
 ${ON} .GenericModal__overlay [data-encore-id="buttonPrimary"]:active:not(:disabled) > span { transform: scale(0.97) !important; }
+
+/* ----- Tooltips, "night + rainbow line" (mockup "D" of four, 2026-11-25) -----
+   Spotify's tooltips are a .main-contextMenu-tippy box (grey #282828) inside
+   [data-tippy-root], holding a [role="tooltip"] span. Right-click menus can
+   use the same box, so only boxes that hold a tooltip are touched. */
+${ON} [data-tippy-root] .main-contextMenu-tippy:has(> [role="tooltip"]) {
+  position: relative;
+  overflow: hidden;
+  background: ${NIGHT} !important;
+  color: #e9dcff !important;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px !important;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5) !important;
+}
+${ON} [data-tippy-root] .main-contextMenu-tippy:has(> [role="tooltip"]) > [role="tooltip"] { color: #e9dcff !important; }
+${ON} [data-tippy-root] .main-contextMenu-tippy:has(> [role="tooltip"])::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: ${RAINBOW};
+  pointer-events: none;
+}
 
 `;
 
