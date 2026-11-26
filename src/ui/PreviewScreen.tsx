@@ -255,7 +255,13 @@ export function PreviewScreen({ seed, kept, songs, onBack, onCreate, describeErr
               type="button"
               className={customOpen ? "on" : ""}
               aria-pressed={customOpen}
-              onClick={() => setCustomOpen(true)}
+              onClick={() => {
+                setCustomOpen(true);
+                // The box keeps its last number: Custom means that number again
+                // (otherwise "All" stayed ticked until the number was changed).
+                const n = parsePickCount(customText);
+                if (typeof n === "number") chooseCount(n);
+              }}
               data-prism="count-custom"
             >
               Custom
