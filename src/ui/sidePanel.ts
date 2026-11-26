@@ -2,8 +2,9 @@
 // (unit-tested in tests/sidePanel.test.ts). The panel itself is
 // src/ui/PanelStats.tsx, and src/ui/panelHost.tsx puts it on screen.
 //
-// Shown while the open page is a playlist Prism made or organized, i.e. one
-// with a saved record. Read-only: it never changes the playlist.
+// Shown on ANY playlist page while the Settings switch is on: a saved record
+// for playlists Prism made or organized, an estimate (with a background scan)
+// for the rest. Read-only: it never changes the playlist.
 
 import type { PrismPlaylistRecord, PrismPlaylistRecords } from "../stats/playlistStats";
 
@@ -31,6 +32,18 @@ export function panelRecordFor(path: string, records: PrismPlaylistRecords): Pri
   return uri ? records[uri] ?? null : null;
 }
 
+// The panel's two tabs (mockup "B"): "Prism stats" or Spotify's own "Now
+// playing". ONE choice for every playlist, kept until switched back or
+// Spotify restarts. It lives as an attribute on <html>, because the page
+// (PrismPage: may the stats page minimize into the panel?) and the always-on
+// script (panelHost) are separate bundles that only share the page.
+export type PanelView = "prism" | "spotify";
+export const PANEL_VIEW_ATTR = "data-prism-panel-view";
+
+export function readPanelView(root: { getAttribute(name: string): string | null }): PanelView {
+  return root.getAttribute(PANEL_VIEW_ATTR) === "spotify" ? "spotify" : "prism";
+}
+
 // "spotify:image:ab67…" -> a normal https address an <img> can show.
 export function imageUrl(spotifyImage: string | undefined | null): string | null {
   if (!spotifyImage) return null;
@@ -51,6 +64,10 @@ export function panelSubtitle(record: PrismPlaylistRecord): string {
   if (record.seed) return `Grown from "${record.seed.name}" · ${record.seed.artists.join(", ")}`;
   // Not the source playlists' names: those playlists may be deleted later.
   if (record.organized) return "Organized with Prism";
+  // An estimate for a playlist Prism didn't make: say how much of it is known.
+  if (record.estimate && record.estimate.scanned < record.songCount) {
+    return `${record.songCount} songs · stats from ${record.estimate.scanned} scanned`;
+  }
   return `${record.songCount} songs`;
 }
 

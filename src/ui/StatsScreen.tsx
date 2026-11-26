@@ -100,9 +100,10 @@ function StatsContent({
     };
   }, [record.uri]);
   // ONE button back to the playlist. When the side panel can show this
-  // playlist (setting on, saved stats), it morphs the page into the panel;
-  // otherwise it simply opens the playlist.
-  const back = onMinimize && !record.estimate ? onMinimize : onOpenPlaylist;
+  // playlist (setting on, its tabs on "Prism stats"; estimates too since
+  // 2026-11-25), it morphs the page into the panel; otherwise it simply
+  // opens the playlist.
+  const back = onMinimize ?? onOpenPlaylist;
   const rows = chartRows(record);
   const builtFrom = builtFromTags(record);
   // One colour per genre on this page (bars, bubbles and chips match, and no

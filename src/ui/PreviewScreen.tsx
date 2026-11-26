@@ -9,6 +9,8 @@
 // Nothing is created here: "Create playlist" hands the picks to step 9.
 
 import React from "react";
+import { ScoreRing } from "./ScoreRing";
+export { ScoreRing };
 import type { ScannedSong } from "../scan/scan";
 import {
   DEFAULT_PICK_COUNT,
@@ -474,31 +476,6 @@ function NamePopup({ name, setName, songCount, seedName, creating, error, onCanc
 // the score's share of the circle; rotate(-90) starts it at the top.
 // The fill is a lavender-to-pink gradient. Every ring defines the same
 // gradient id; they're identical, so it doesn't matter which one is used.
-export function ScoreRing({ score }: { score: number }) {
-  const r = 20;
-  const round = 2 * Math.PI * r;
-  const pct = Math.round(score * 100);
-  return (
-    <svg width={52} height={52} viewBox="0 0 52 52" style={{ flexShrink: 0 }} data-prism="preview-score" role="img" aria-label={`${pct}% match`}>
-      <defs>
-        <linearGradient id="prism-score-fill" x1="0" x2="1">
-          <stop offset="0" stopColor="#cdb8ff" />
-          <stop offset="1" stopColor="#ffb3c7" />
-        </linearGradient>
-      </defs>
-      <circle cx={26} cy={26} r={r} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth={4} />
-      <circle
-        cx={26} cy={26} r={r} fill="none" stroke="url(#prism-score-fill)" strokeWidth={4} strokeLinecap="round"
-        strokeDasharray={`${(round * pct) / 100} ${round}`} transform="rotate(-90 26 26)"
-      />
-      <text x={26} y={31} textAnchor="middle" fontSize={15} fontWeight={700} fill="#ffffff">
-        {pct}
-        <tspan fontSize={10}>%</tspan>
-      </text>
-    </svg>
-  );
-}
-
 // Right side: "102 BPM · 8A" and the main lyrics moods.
 function SideInfo({ audio, mood }: { audio: AudioAttributes | null; mood: MoodProfile | null }) {
   const moods = mood ? topMoods(mood) : [];

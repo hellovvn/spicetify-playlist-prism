@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 640" width="800" height="640" role="img" aria-labelledby="t d">
+  <title id="t">Merge playlists</title>
+  <desc id="d">A pink and a sky-blue playlist bubble drift together into one mint bubble; the doubles pop away.</desc>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1a1336"/>
+      <stop offset=".6" stop-color="#2e2058"/>
+      <stop offset="1" stop-color="#46316f"/>
+    </linearGradient>
+    <radialGradient id="haze" cx=".5" cy=".5" r=".55">
+      <stop offset="0" stop-color="#8f6bd8" stop-opacity=".4"/>
+      <stop offset="1" stop-color="#8f6bd8" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="pink"><stop offset=".55" stop-color="#f7a8cf" stop-opacity=".08"/><stop offset="1" stop-color="#f7a8cf" stop-opacity=".7"/></radialGradient>
+    <radialGradient id="skyb"><stop offset=".55" stop-color="#9fcdf3" stop-opacity=".08"/><stop offset="1" stop-color="#9fcdf3" stop-opacity=".7"/></radialGradient>
+    <radialGradient id="mint"><stop offset=".55" stop-color="#9fe3c8" stop-opacity=".08"/><stop offset="1" stop-color="#9fe3c8" stop-opacity=".7"/></radialGradient>
+    <g id="note" transform="scale(2)"><circle cx="6" cy="24" r="6"/><path d="M9.6 24V3.5L24 0V7L13 9.8V24Z"/></g>
+    <style>
+      text { font-family: 'Segoe UI', system-ui, Arial, sans-serif; }
+      .l { animation: left 6s ease-in-out infinite; }
+      .r { animation: right 6s ease-in-out infinite; }
+      .j { animation: join 6s ease-in-out infinite; transform-origin: 400px 300px; }
+      .dup { animation: pop 6s ease-out infinite; transform-box: fill-box; transform-origin: center; }
+      .d2 { animation-delay: .15s; } .d3 { animation-delay: .3s; }
+      .lab1 { animation: fadeA 6s ease-in-out infinite; }
+      .lab2 { animation: fadeB 6s ease-in-out infinite; }
+      .tw { animation: tw 3s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+      @keyframes left  { 0%,15% { transform: translateX(0); opacity: 1 } 42% { transform: translateX(150px); opacity: 0 } 80% { transform: translateX(150px); opacity: 0 } 100% { transform: translateX(0); opacity: 1 } }
+      @keyframes right { 0%,15% { transform: translateX(0); opacity: 1 } 42% { transform: translateX(-150px); opacity: 0 } 80% { transform: translateX(-150px); opacity: 0 } 100% { transform: translateX(0); opacity: 1 } }
+      @keyframes join  { 0%,30% { transform: scale(.6); opacity: 0 } 45%,82% { transform: scale(1); opacity: 1 } 95%,100% { transform: scale(.6); opacity: 0 } }
+      @keyframes pop   { 0%,36% { transform: translateY(0) scale(1); opacity: 0 } 40% { opacity: 1 } 58% { transform: translateY(-120px) scale(1.4); opacity: 0 } 100% { opacity: 0 } }
+      @keyframes fadeA { 0%,18% { opacity: 1 } 32%,88% { opacity: 0 } 100% { opacity: 1 } }
+      @keyframes fadeB { 0%,40% { opacity: 0 } 50%,82% { opacity: 1 } 92%,100% { opacity: 0 } }
+      @keyframes tw    { 0%,100% { opacity: .2; transform: scale(.6) } 50% { opacity: 1; transform: scale(1) } }
+      @media (prefers-reduced-motion: reduce) { * { animation: none !important; } .j, .lab2 { opacity: 0; } }
+    </style>
+  </defs>
+
+  <rect width="800" height="640" fill="url(#sky)"/>
+  <rect width="800" height="640" fill="url(#haze)"/>
+  <g fill="#fff">
+    <path class="tw" d="M110 90q0 9 9 9q-9 0-9 9q0-9-9-9q9 0 9-9Z"/>
+    <path class="tw" style="animation-delay:1s" d="M690 140q0 7 7 7q-7 0-7 7q0-7-7-7q7 0 7-7Z"/>
+    <path class="tw" style="animation-delay:2s" d="M640 520q0 8 8 8q-8 0-8 8q0-8-8-8q8 0 8-8Z"/>
+    <path class="tw" style="animation-delay:.5s" d="M160 500q0 6 6 6q-6 0-6 6q0-6-6-6q6 0 6-6Z"/>
+  </g>
+
+  <!-- two playlists -->
+  <g class="l">
+    <circle cx="250" cy="300" r="110" fill="url(#pink)" stroke="#f7a8cf" stroke-width="3"/>
+    <path d="M184 245a77 77 0 0 1 44-28" fill="none" stroke="#fff" stroke-opacity=".75" stroke-width="5" stroke-linecap="round"/>
+    <use href="#note" x="226" y="268" fill="#fff" fill-opacity=".85"/>
+  </g>
+  <g class="r">
+    <circle cx="550" cy="300" r="110" fill="url(#skyb)" stroke="#9fcdf3" stroke-width="3"/>
+    <path d="M484 245a77 77 0 0 1 44-28" fill="none" stroke="#fff" stroke-opacity=".75" stroke-width="5" stroke-linecap="round"/>
+    <use href="#note" x="526" y="268" fill="#fff" fill-opacity=".85"/>
+  </g>
+
+  <!-- the merged playlist -->
+  <g class="j">
+    <circle cx="400" cy="300" r="150" fill="url(#mint)" stroke="#9fe3c8" stroke-width="3.5"/>
+    <path d="M310 225a105 105 0 0 1 60-38" fill="none" stroke="#fff" stroke-opacity=".75" stroke-width="6" stroke-linecap="round"/>
+    <use href="#note" x="346" y="258" fill="#9fe3c8"/>
+    <use href="#note" x="406" y="284" fill="#9fe3c8"/>
+  </g>
+
+  <!-- doubles float away -->
+  <g fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="2.5">
+    <circle class="dup" cx="330" cy="200" r="14"/>
+    <circle class="dup d2" cx="460" cy="190" r="11"/>
+    <circle class="dup d3" cx="400" cy="170" r="9"/>
+  </g>
+
+  <g text-anchor="middle">
+    <g class="lab1">
+      <text x="250" y="460" fill="#efe9ff" font-size="26" font-weight="600">Playlist A</text>
+      <text x="250" y="492" fill="#c9b9f0" font-size="20">50 songs</text>
+      <text x="550" y="460" fill="#efe9ff" font-size="26" font-weight="600">Playlist B</text>
+      <text x="550" y="492" fill="#c9b9f0" font-size="20">42 songs</text>
+    </g>
+    <g class="lab2">
+      <text x="400" y="510" fill="#efe9ff" font-size="28" font-weight="600">A + B · 84 songs</text>
+      <text x="400" y="544" fill="#c9b9f0" font-size="20">8 doubles dropped</text>
+    </g>
+  </g>
+</svg>

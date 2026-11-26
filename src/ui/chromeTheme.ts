@@ -65,10 +65,45 @@ ${ON} .Root__globalNav input { background-color: ${CARD} !important; }
 ${ON} .Root__globalNav button[class*="legacy-button"]:hover,
 ${ON} .Root__globalNav input:hover { background-color: ${CARD_HOVER} !important; }
 
+/* Left panel: the round "+" (Create) button reads the elevated colours
+   (Spotify's grey #1f1f1f / #2a2a2a), so give it the same cards as the top bar. */
+${ON} .Root__nav-bar {
+  --background-elevated-base: ${CARD};
+  --background-elevated-highlight: ${CARD_HOVER};
+  /* Round icon buttons (Expand Your Library...) are see-through and hover /
+     press in Spotify's grey --background-highlight / --background-press. */
+  --background-highlight: ${CARD_HOVER};
+  --background-press: ${CARD};
+}
+/* Picture placeholders in the side panels and the player (a FOLDER's icon tile
+   in Your Library, and the square behind covers while they load) read
+   --image-placeholder-bg-color (Spotify's grey #282828). */
+${ON} .Root__nav-bar,
+${ON} .Root__right-sidebar,
+${ON} .Root__now-playing-bar { --image-placeholder-bg-color: ${CARD}; }
+
+/* The playing song's "equaliser" in song lists is a green picture, which no
+   colour variable reaches: /images/equaliser-animated-green.gif while Spotify's
+   window has focus, the still /images/equaliser-green.svg while it doesn't.
+   This filter turns every pixel Prism pink (#f6a6c8) and keeps the animation. */
+${ON} img[src*="equaliser-animated-green"],
+${ON} img[src*="equaliser-green"] {
+  filter: brightness(0) saturate(100%) invert(80%) sepia(30%) saturate(900%) hue-rotate(290deg);
+}
+
 /* Right-hand panel (Now Playing, Queue, ...): Spotify paints #121212 on its
    outer boxes; its cards (Credits, Next in queue...) read the elevated
    colours set above. */
 ${ON} .Root__right-sidebar { --background-base: ${PANEL}; --background-highlight: ${CARD}; }
+/* Friend activity: the "listening now" dot on a friend's photo reads
+   --spice-notification (Spotify blue -> lavender); a friend without a photo
+   gets a circle in --spice-button-disabled (grey #535353 -> deep purple).
+   The panel's own background (the theme, mirrored) is set in libraryTheme.ts. */
+${ON} .Root__right-sidebar {
+  --spice-notification: #cdb8ff;
+  --spice-rgb-notification: 205, 184, 255;
+  --spice-button-disabled: #3a2d5e;
+}
 ${ON} .Root__right-sidebar .Root__right-sidebar-peek,
 ${ON} .Root__right-sidebar aside,
 ${ON} .Root__right-sidebar .main-nowPlayingView-container { background-color: ${PANEL} !important; }
@@ -196,6 +231,63 @@ ${ON} .GenericModal__overlay [data-encore-id="buttonPrimary"]:hover:not(:disable
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 0 14px rgba(205, 184, 255, 0.55);
 }
 ${ON} .GenericModal__overlay [data-encore-id="buttonPrimary"]:active:not(:disabled) > span { transform: scale(0.97) !important; }
+
+/* ----- Tooltips, "night + rainbow line" (mockup "D" of four, 2026-11-25) -----
+   Spotify's tooltips are a .main-contextMenu-tippy box (grey #282828) inside
+   [data-tippy-root], holding a [role="tooltip"] span. Right-click menus can
+   use the same box, so only boxes that hold a tooltip are touched. */
+${ON} [data-tippy-root] .main-contextMenu-tippy:has(> [role="tooltip"]) {
+  position: relative;
+  overflow: hidden;
+  background: ${NIGHT} !important;
+  color: #e9dcff !important;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px !important;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5) !important;
+}
+${ON} [data-tippy-root] .main-contextMenu-tippy:has(> [role="tooltip"]) > [role="tooltip"] { color: #e9dcff !important; }
+${ON} [data-tippy-root] .main-contextMenu-tippy:has(> [role="tooltip"])::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: ${RAINBOW};
+  pointer-events: none;
+}
+
+/* ----- Toasts, "night + rainbow line" (look "A" of four, 2026-11-25) -----
+   The same look as the tooltips. Two kinds live in notistack's
+   .notistack-Snackbar: Spotify's own ("Removed from ...") is an Encore box in
+   Spotify's LIGHT theme (white, black text); Spicetify.showNotification's is a
+   .notistack-MuiContent (-default grey, -error red). Errors keep the night box
+   but get a pink line and a pink icon instead of Spotify's red. */
+${ON} .notistack-Snackbar [role="alert"] > [data-encore-id="box"],
+${ON} .notistack-Snackbar .notistack-MuiContent {
+  position: relative;
+  overflow: hidden;
+  background: ${NIGHT} !important;
+  color: #e9dcff !important;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px !important;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5) !important;
+}
+${ON} .notistack-Snackbar [role="alert"] > [data-encore-id="box"] [data-encore-id="text"] { color: #e9dcff !important; }
+${ON} .notistack-Snackbar [role="alert"] > [data-encore-id="box"] :is(button, a) { color: #cdb8ff !important; }
+${ON} .notistack-Snackbar [role="alert"] > [data-encore-id="box"]::after,
+${ON} .notistack-Snackbar .notistack-MuiContent::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: ${RAINBOW};
+  pointer-events: none;
+}
+${ON} .notistack-Snackbar .notistack-MuiContent-error::after { background: linear-gradient(90deg, #ff8fae, #f6a6c8); }
+${ON} .notistack-Snackbar .notistack-MuiContent-error svg { color: #ff8fae !important; fill: #ff8fae !important; }
 
 `;
 

@@ -150,3 +150,7 @@ scripts/smoke.local.json
 
 # Local build output (npm run build-local, also run by CI)
 dist/
+# GitHub App private keys (prism-reports relay): never commit
+*.pem
+# Cloudflare Wrangler local state
+relay/.wrangler/

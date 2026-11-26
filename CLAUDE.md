@@ -97,6 +97,20 @@ Since step 12a this is a Spicetify CUSTOM APP (src/settings.json has an "icon"),
   Requests even for single calls. For song details use `Spicetify.GraphQL.Request(
   Spicetify.GraphQL.Definitions.getTrack, { uri })` → `data.trackUnion`.
 
+## Last.fm terms (read 2026-11-25, https://www.last.fm/api/tos)
+- Non-commercial use only; doubtful cases go to partners@last.fm. They "must credit Last.fm
+  and include links"; their logo needs written approval (so text only).
+- Credit lives in Settings > "About" (developer's pick "A", `data-prism="lastfm-credit"`) and
+  the README's Credits section.
+- Tip/donation link: the terms don't mention donations (suggested: ask Last.fm).
+
+## Ko-fi support (2026-11-25, developer's pick "A")
+- A "Support Prism" glass button (an `<a class="prism-glass-button">`, cup icon) under the
+  Last.fm credit in Settings > About, linking to ko-fi.com/<username> in the browser.
+- The username is ONE constant, `KOFI_USERNAME` in `src/support.ts` ("hellovvn"); while empty
+  the button is hidden. Also `.github/FUNDING.yml` (GitHub Sponsor button) and the README's
+  Support section. Payments go through a PayPal business account (developer's own setup). A plain link only: never load Ko-fi's widget/overlay script inside Spotify.
+
 ## Secrets
 - The Last.fm API key is entered by the user in a settings field and stored in
   `Spicetify.LocalStorage` (key `prism:lastfmKey`). Never hardcode it or commit it.
@@ -408,8 +422,21 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   ("korean r&b"). Matching ignores spaces, "-" and "_" ("synthpop" = "synth-pop"). It applies in
   cleanTags (new tags) and isJunkTagName (cached tags, saved stats, Organize), so fandom tags
   ("lestappencore") and personal labels vanish everywhere, including old records.
-- SIDE PANEL STATS: shown for Prism-made/organized playlists. It only covers the panel while it shows Now Playing
-  (never the queue). Pure parts are in `src/ui/sidePanel.ts` (tested; NOT "panelStats.ts", which
+- SIDE PANEL STATS: shown on EVERY playlist since 2026-11-25 (developer's request): Prism-made/organized
+  ones from their saved record, the rest as an ESTIMATE (`loadPanelEstimate` in flow.ts): cache estimate at
+  once, then the songs missing tags or a mood lookup are scanned like a tone scan (Last.fm + lyrics, shared
+  caches) while the panel shows them; the estimate is redone every 3 s; leaving the playlist, the Queue or
+  the "Now playing" tab stops the scan. No Last.fm key = cache only. Playlists of only audiobooks/podcasts
+  say "No songs here...". TABS (mockup "B", `src/ui/PanelTabs.tsx`): "Prism stats" | "Now playing", ONE
+  choice for all playlists, kept as `data-prism-panel-view` on <html> (page + always-on bundles share it;
+  resets when Spotify restarts). On "Now playing" a 48px strip with the tabs sits across the top of
+  .Root__right-sidebar and Spotify's .main-nowPlayingView-container moves down (both Spotify layouts:
+  header in flow, and the video one with headerContainerV2 overlaid). The full stats page's "Back to
+  playlist" morphs into the panel for estimates too, unless the tabs are on "Now playing".
+  NUMBERS CARD = layout "B" (2026-11-25): tone fit as the standard ScoreRing (now src/ui/ScoreRing.tsx, so
+  the always-on bundle doesn't pull in PreviewScreen) left of a 2x2 grid (songs, length, avg BPM, top mood).
+  It only covers the panel while it shows Now Playing (never the queue). NOTE: Spotify draws the QUEUE
+  inside the same .main-nowPlayingView-container; only the Queue has a [role=tablist], which is the check. Pure parts are in `src/ui/sidePanel.ts` (tested; NOT "panelStats.ts", which
   clashes with PanelStats.tsx on Windows). The view is `src/ui/PanelStats.tsx`, mounted by
   `src/ui/panelHost.tsx` from the always-on script (createRoot into a div placed inside
   .Root__right-sidebar, re-checked every 1.5 s). Settings switch "Prism stats in the side panel"
@@ -569,6 +596,13 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   Green -> pink in the panel too. `src/theme/libraryTheme.ts` (pure, tests/libraryTheme.test.ts),
   `src/ui/libraryTheme.ts` (always-on). Panel grey = `.main-yourLibraryX-entryPoints` +
   `.main-yourLibraryX-libraryContainer`.
+  RIGHT PANEL (2026-11-25, option 2 "mirror left" of four full-page mockups, developer's
+  pick): the right panel gets the SAME still background as the left (panelBackground of the
+  main theme, every theme), flipped left-right (::before with scaleX(-1) on
+  `.Root__right-sidebar-peek`; aside + .main-nowPlayingView-container cleared). CSS in
+  libraryTheme.ts behind `html[data-prism-side-theme]` (outweighs chromeTheme's #151029).
+  Friend activity: "listening now" dot = `--spice-notification` (lavender), photo
+  placeholder = `--spice-button-disabled` (#3a2d5e), set in chromeTheme.ts.
   HOVER (developer's pick, option 4 "rainbow edge"): with a theme on, EVERY row (Prism or not)
   gets lavender glass + a pastel rainbow bar on the left + a 3px slide. The Prism-only purple
   rays were then removed completely (prismRows.ts deleted); with No theme rows keep Spotify's grey.
@@ -589,6 +623,16 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   `.main-connectBar-connectBar` (only there while another device plays; checked with a
   temporary copy). Don't paint `.main-nowPlayingView-section`: "Related music videos" has
   no card in Spotify and turned into a square block.
+  Also (2026-11-25): the left panel's "+" (Create) button reads `--background-elevated-*`
+  (now the #1d1638 / #251c45 cards), and the playing song's equaliser in song lists is a
+  GREEN GIF (`img[src*="equaliser-animated-green"]`; while Spotify's window is unfocused it's
+  the still `equaliser-green.svg` instead; no variable reaches either): a CSS filter
+  turns it Prism pink and keeps the animation.
+  Left panel's round icon buttons (Expand Your Library...) hover/press with Spotify's grey
+  --background-highlight / --background-press: swapped for #251c45 / #1d1638 on .Root__nav-bar (2026-11-25).
+  TOOLTIPS (mockup "D", 2026-11-25): `[data-tippy-root] .main-contextMenu-tippy:has(> [role=tooltip])` =
+  #0b0817, text #e9dcff, 2px pastel rainbow line at the bottom (CSS in chromeTheme.ts). Tooltips open on
+  JS pointer events: to test, dispatch pointerover/mouseenter on the button (CDP mouse moves didn't).
   Testing note: Git Bash rewrites a "/search" argument into "C:/Program Files/Git/search";
   use MSYS_NO_PATHCONV=1 when passing Spotify paths to node scripts.
 - ADD WITH PRISM (asked 2026-11-24; built, not committed, waiting for the developer's test):
@@ -622,6 +666,27 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
 - TESTING NOTE (2026-11-25): reloading Spotify over CDP with `Page.reload {ignoreCache: true}`
   left Spotify's own chunks half-loaded (lottie-animation "Cannot access 'f' before
   initialization") and playlist pages showed "Something went wrong". Use a plain Page.reload.
+- BUG REPORTS + IDEAS (asked 2026-11-25; relay deployed and tested 2026-11-25): users send a report from
+  inside Prism; it becomes a PUBLIC issue on spicetify-prism (developer's choice; may switch to a
+  private repo later). Prism calls a relay (`relay/`, Cloudflare Worker, setup in
+  relay/README.md) that opens the issue as the GitHub App `prism-reports` (App ID 5928498,
+  Issues read/write only, installed on spicetify-prism only). The App's .pem key lives ONLY as
+  the Worker secret GITHUB_PRIVATE_KEY: never in Prism, never committed (*.pem is gitignored).
+  No replies to users (no contact field). Relay: 3/sender/hour, 50/day, @mentions defused,
+  pure parts tested (tests/relayReport.test.ts).
+  FORM (mockup "B", developer's pick 2026-11-25): Settings > "Help make Prism better" > "Report a
+  bug" / "Suggest an idea" opens `src/ui/ReportScreen.tsx` INSIDE the Settings layer
+  (SettingsState.report), so the screen underneath is kept. Pure parts `src/report/report.ts`
+  (+ tests/report.test.ts): the same relay parseReport check runs in Prism; details = versions,
+  OS, screen, playlist theme, last 5 Prism warnings (`src/report/errorLog.ts` wraps
+  console.warn/error for "[Playlist Prism]" lines, memory only) scrubbed by scrubText (Last.fm
+  key, api_key=, Spotify ids, quoted names, text after " for "). User sees the details and can
+  untick them. RELAY LIVE at https://prism-reports.hellovvn-spicetify-prism.workers.dev
+  (REPORT_RELAY_URL in `src/report/send.ts`; empty = Send says "Reporting isn't set up yet").
+  Cloudflare account = the developer's (workers.dev subdomain hellovvn-spicetify-prism, KV
+  LIMITS id in relay/wrangler.toml); redeploy with `npx wrangler deploy` in relay/. Real test
+  2026-11-25: issue #33 by the bot, labels idea + from-prism, @mention defused (closed).
+  Testing note: never send a real report without the developer's OK (it's a public issue).
 - 15 (to-do): rename the internal ids from "playlist-prism" / "Playlist Prism" to just "prism"
   (custom app nameId and folder, `window.__playlistPrism` hook, `[Playlist Prism]` console
   prefix, "playlist-prism:*" window events, the header icon's aria-label). Storage keys are
@@ -704,6 +769,38 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   redirect to /collection/tracks (Liked Songs), and "Expand Your Library" only widens the left
   panel, which libraryTheme.ts already themes.
   Step 16 pages are all done (2026-11-25); left: Marketplace (Spicetify's, ask).
+  Re-checked 2026-11-25 (profile, search results, show, episode, Edit details, shortcuts):
+  all themed; the one miss was green PRIMARY buttons outside the action bar (episode
+  "Comment"), now `[data-prism-theme] [data-encore-id="buttonPrimary"]` = the gradient.
+  Colour sweep 2026-11-25 (script: every visible element whose bg/fill/text is Spotify's
+  green, #121212-#535353 grey or blue; TEST it with a planted green box first, a quoting
+  bug once made every page look clean). Fixed: an artist's Show all pages
+  (/artist/<id>/discography[/...], related, appears-on, featuring, discovered-on, playlists)
+  = page kind "sky"; Discography's per-release `.artist-artistDiscography-headerContainer`
+  cleared; the round-photo card fix now covers "sky" pages too; folder tiles + cover
+  placeholders in the bars read `--image-placeholder-bg-color` (= #1d1638).
+  16i BROWSE PAGES (2026-11-25, developer's pick "A, full sky + glass" of three, because
+  full sky = pages you browse/listen from, band = Home, quiet night = tools/settings):
+  page kind "browse" = What's New (/content-feed), Live Events (/concerts), Podcast Charts
+  (/podcastcharts[/...]). The shared sky + cleared washes remove Spotify's purple/blue
+  banners; chart tiles (`[data-testid="chart-category-card"] > a`) = lavender glass;
+  concert date labels (`time[datetime]:has(> [data-encore-id="text"])`) = purple glass.
+  Podcast Charts' tile pictures are Spotify's own art (blue/magenta), left as they are.
+  MARKETPLACE (Spicetify's own page, developer's request 2026-11-25): also kind "browse".
+  Spicetify's stable classes: tabs `.marketplace-tabBar-headerItemLink` (glass; active =
+  gradient), `.marketplace-header` cleared, its Dropdown/search/icon button = glass, cards
+  `.main-card-card[class*="marketplace-card"]` (classes are --extension/--theme/...) =
+  lavender glass, `.marketplace-installButton` = the pastel gradient.
+  With this, every Spotify page in the sweep shows no Spotify green/grey/blue.
+  SIDEWAYS SHELVES (developer spotted on Home, 2026-11-25): the edge "black shadow" is
+  `.search-searchCategory-contentArea::before/::after` (#121212 at 70%) -> deep purple
+  fade; the arrows `.search-searchCategory-carouselButton` -> purple glass; the card
+  picture fix (`.main-cardImage-imageWrapper`, grey square behind round photos) now
+  applies on EVERY themed page. The sweep can't see these (pseudo-element gradients and
+  hover-only buttons), so check shelves by eye.
+  SHARED SPOTIFY INSTALL: another checkout's `npm run build` (main folder, an old commit)
+  silently replaced this branch's build mid-check (2026-11-25). If the theme suddenly
+  looks gone everywhere, check the CustomApps file times and grep a new string first.
   Facts found: every page above has `.Root__main-view` at #121212 and no data-prism-theme;
   album/artist/Liked headers use the same `.main-entityHeader-*` + action bar +
   `.main-trackList-*` song list as playlists, and `.main-topBar-background` takes the cover

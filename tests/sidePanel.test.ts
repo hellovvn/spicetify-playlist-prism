@@ -1,7 +1,7 @@
 // Unit tests for the side-panel stats helpers. Run with: npm test
 
 import { describe, expect, test } from "vitest";
-import { artworkUrls, formatClock, formatLength, imageUrl, isPanelStatsOn, panelRecordFor, panelSubtitle, playlistUriFromPath } from "../src/ui/sidePanel";
+import { artworkUrls, formatClock, formatLength, imageUrl, isPanelStatsOn, PANEL_VIEW_ATTR, panelRecordFor, panelSubtitle, playlistUriFromPath, readPanelView } from "../src/ui/sidePanel";
 import { SAMPLE_RECORD } from "../src/stats/playlistStats";
 
 const ID = "4cCN2s73MfFCG1Rti184H2";
@@ -72,5 +72,17 @@ describe("small formatters", () => {
     // The source playlists aren't named (they may be deleted later).
     expect(panelSubtitle({ ...SAMPLE_RECORD, seed: null, organized: { from: ["Dark Romance", "sc"] } })).toBe("Organized with Prism");
     expect(panelSubtitle({ ...SAMPLE_RECORD, seed: null, organized: undefined, songCount: 12 })).toBe("12 songs");
+  });
+  test("panelSubtitle: an estimate says how many songs it's worked out from", () => {
+    const estimate = { ...SAMPLE_RECORD, seed: null, organized: undefined, songCount: 30 };
+    expect(panelSubtitle({ ...estimate, estimate: { scanned: 12 } })).toBe("30 songs · stats from 12 scanned");
+    expect(panelSubtitle({ ...estimate, estimate: { scanned: 30 } })).toBe("30 songs");
+  });
+  test("readPanelView: Prism stats unless Now playing was picked", () => {
+    const root = (value: string | null) => ({ getAttribute: (name: string) => (name === PANEL_VIEW_ATTR ? value : null) });
+    expect(readPanelView(root(null))).toBe("prism");
+    expect(readPanelView(root("prism"))).toBe("prism");
+    expect(readPanelView(root("spotify"))).toBe("spotify");
+    expect(readPanelView(root("other"))).toBe("prism");
   });
 });
