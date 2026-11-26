@@ -298,6 +298,32 @@ ${RING_ANGLE_PROPERTY}
   background: linear-gradient(135deg, #f6a6c8, #b9a7ff) !important;
   color: #2b1d52 !important;
 }
+/* A Marketplace README page: its box (.marketplace-readme__container, painted
+   --spice-main #121212) = lavender glass like the cards, and the README's own
+   water.css-style colour variables (set from the viewer's Spicetify theme)
+   = Prism's: lavender text and borders, pink links, glass code/inputs and
+   fold-outs. Table lines read --spice-button-disabled (#535353 there). */
+[${PAGE_ATTR}="browse"] .marketplace-readme__container {
+  background-color: rgba(205, 184, 255, 0.06) !important;
+  box-shadow: inset 0 0 0 1px rgba(205, 184, 255, 0.16);
+  border-radius: 12px;
+  /* Marketplace only pads the sides (0 10px); once the box is visible the
+     banner would touch its top edge. */
+  padding: 12px !important;
+}
+[${PAGE_ATTR}="browse"] #marketplace-readme {
+  --background-body: transparent;
+  --background: rgba(205, 184, 255, 0.1);
+  --background-alt: rgba(205, 184, 255, 0.06);
+  --border: rgba(205, 184, 255, 0.25);
+  --spice-button-disabled: rgba(205, 184, 255, 0.22);
+  --text-main: #e9dcff;
+  --text-bright: #ffffff;
+  --links: #ffb8d9;
+  --code: #ffe2a8;
+  --focus: rgba(205, 184, 255, 0.6);
+  --selection: rgba(185, 167, 255, 0.45);
+}
 /* Live Events: the date label on each concert photo (a <time>, 60% black in
    Spotify) becomes deep purple glass. Found by structure (generated classes). */
 [${PAGE_ATTR}="browse"] time[datetime]:has(> [data-encore-id="text"]) {

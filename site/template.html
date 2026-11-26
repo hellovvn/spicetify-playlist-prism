@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{title}}</title>
+<meta name="description" content="{{description}}">
+<link rel="icon" href="media/prism-icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="skip" href="#content">Skip to the guide</a>
+<header class="banner">
+  <a href="index.html" aria-label="Prism home"><img src="media/banner.svg" alt="Prism"></a>
+</header>
+<div class="layout">
+  <aside class="sidebar">
+    <nav aria-label="Guide">{{nav}}</nav>
+    <div class="side-links">
+      <a class="side-button" href="install.html">Install Prism</a>
+      <a href="https://github.com/hellovvn/spicetify-prism">GitHub</a>
+      <a href="https://github.com/hellovvn/spicetify-prism/issues">Report a problem</a>
+    </div>
+  </aside>
+  <main id="content" class="content">
+    <article>
+{{content}}
+    </article>
+    {{pager}}
+    <footer class="footer">
+      Prism is free and open source (MIT). Genre and mood tags and similar songs come from
+      <a href="https://www.last.fm/">Last.fm</a>. Not made by or connected to Last.fm or Spotify.
+    </footer>
+  </main>
+</div>
+<script>
+  // Keep the open page's link in view (the menu scrolls sideways on phones).
+  var active = document.querySelector(".sidebar .active");
+  if (active) active.closest("nav").scrollLeft = active.offsetLeft - 40;
+</script>
+</body>
+</html>

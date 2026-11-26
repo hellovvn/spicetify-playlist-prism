@@ -40,5 +40,8 @@ Add. Close the Prism page's Settings first.
 - **Size:** 800 px wide at 5:4 (README rows show them at ~420 px); the hero is 960 px wide.
 - **Length:** hero ~15 s, feature clips 4–8 s. Start at the top of the page (no scrolling).
 - **Frame rate:** 15 fps.
+- **Rounded corners**, like the banner: baked into each clip as see-through pixels (a README can't
+  use CSS). `record-demos.mjs` does it while encoding; `node scripts/round-clips.mjs` rounds any
+  clip that isn't yet (it skips rounded ones). `merge.svg` uses a clip path.
 - **Theme:** Northern lights (the themes clip starts from No theme).
 - **No text you need to read in under a second.** If a step needs explaining, it goes in the README.
