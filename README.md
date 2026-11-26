@@ -24,143 +24,177 @@
 </p>
 
 <p align="center">
-  <img src="docs/media/hero.webp" alt="A short tour of Prism: growing a playlist from one song, remixing a playlist into mood groups, and the playlist stats page" width="720">
+  <img src="docs/media/home.webp" alt="Prism's start page: Grow a playlist, Remix into moods, Merge playlists and Add a song" width="720">
 </p>
-
----
 
 ## Features
 
 <table>
-  <tr>
-    <td width="33%" valign="top">
-      <img src="docs/media/grow.webp" alt="Growing a playlist from one song" width="100%"><br>
-      <b><a href="#grow-a-playlist">Grow a playlist</a></b><br>
-      Start with one song you love and get a playlist of songs that feel like it.
-    </td>
-    <td width="33%" valign="top">
-      <img src="docs/media/remix.webp" alt="Remixing playlists into groups by genre and mood" width="100%"><br>
-      <b><a href="#remix-into-moods">Remix into moods</a></b><br>
-      Shuffle your playlists into fresh ones sorted by genre and mood.
-    </td>
-    <td width="33%" valign="top">
-      <img src="docs/media/merge.svg" alt="Merging two playlists and dropping duplicates" width="100%"><br>
-      <b><a href="#merge-playlists">Merge playlists</a></b><br>
-      Stack playlists together and drop the doubles.
-    </td>
-  </tr>
-  <tr>
-    <td valign="top">
-      <img src="docs/media/add-with-prism.webp" alt="Add with Prism showing the five best-fitting playlists for a song" width="100%"><br>
-      <b><a href="#add-with-prism">Add with Prism</a></b><br>
-      Let Prism find the best home for a song.
-    </td>
-    <td valign="top">
-      <img src="docs/media/tone.gif" alt="Score rings showing how well each song fits a playlist's tone" width="100%"><br>
-      <b><a href="#playlist-tone">Playlist tone</a></b><br>
-      Give a playlist a vibe and see which songs fit it and which drift.
-    </td>
-    <td valign="top">
-      <img src="docs/media/themes.gif" alt="A playlist page with the Northern lights theme" width="100%"><br>
-      <b><a href="#playlist-themes">Playlist themes</a></b><br>
-      Nine moving skies across Spotify, and a different one per playlist.
-    </td>
-  </tr>
-  <tr>
-    <td valign="top">
-      <img src="docs/media/stats.webp" alt="Playlist stats page with genre bars and fingerprint bubbles" width="100%"><br>
-      <b><a href="#playlist-stats">Playlist stats</a></b><br>
-      Genre mix, moods, tempo, eras and a bubble fingerprint.
-    </td>
-    <td valign="top">
-      <img src="docs/media/side-panel.gif" alt="Prism stats in Spotify's side panel" width="100%"><br>
-      <b><a href="#playlist-stats">Side panel stats</a></b><br>
-      A playlist's stats right next to it while you listen.
-    </td>
-    <td valign="top">
-      <b><a href="#prism-look-for-lyrics">Prism look for lyrics</a></b><br>
-      Sing along under a twilight sky, with the controls always there.
-    </td>
-  </tr>
-</table>
+<tr>
+<td width="50%" valign="middle">
+<img src="docs/media/grow.webp" alt="Growing a playlist from one song: ranked matches with score rings and New finds" width="400">
+</td>
+<td width="50%" valign="middle">
+<h3 id="grow-a-playlist">Grow a playlist</h3>
+<p><b>Start with one song you love and get a playlist of songs that feel like it.</b></p>
+<ul>
+<li>Right-click a song, then <b>Start a Prism playlist</b></li>
+<li>Matches come from your own playlists and Liked Songs</li>
+<li>Optional <b>New finds</b>: similar songs you don't have yet</li>
+</ul>
+<details><summary>Step by step</summary>
 
----
-
-## Grow a playlist
-
-1. Right-click any song and choose **Start a Prism playlist**, or start from the song that's
-   playing or a pasted link.
+1. Right-click any song and choose **Start a Prism playlist**, or start from the song that's playing or a pasted link.
 2. Prism shows the song's genre tags, tempo, key and lyrics mood. Switch off any tag that doesn't fit.
 3. Pick where songs can come from: any of your playlists and/or Liked Songs.
-4. Prism scans them and ranks every song, with a score ring, the shared tags and the reasons it matched.
-   Choose how many to keep (10, 20, 30, 50, All or your own number).
-5. **New finds** (optional: Off, 5, 10 or 20): similar songs you don't have yet, from Last.fm. They're
-   clearly marked and only ever go into the new playlist.
-6. Click **Create**. The seed song comes first, the rest is shuffled, and the playlist starts with a
-   [tone](#playlist-tone) based on what you picked.
+4. Prism ranks every song with a score ring, the shared tags and why it matched. Keep 10, 20, 30, 50, all or your own number.
+5. **New finds** (Off, 5, 10 or 20): similar songs from Last.fm that aren't in your library. They're marked and only go into the new playlist.
+6. Click **Create**. The seed song comes first, the rest is shuffled.
 
-## Remix into moods
+</details>
+</td>
+</tr>
+<tr>
+<td width="50%" valign="middle">
+<h3 id="remix-into-moods">Remix into moods</h3>
+<p><b>Shuffle your playlists into fresh ones sorted by genre and mood.</b></p>
+<ul>
+<li><b>Sort them for me</b>, or <b>I'll pick the vibes</b></li>
+<li>Each group is a card with an album-art mosaic</li>
+<li>Rename, move songs, combine groups, then create</li>
+</ul>
+<details><summary>Step by step</summary>
 
 Pick one or more playlists, then choose a door:
 
 - **Sort them for me:** Prism suggests groups by genre, mood and tempo and names them.
 - **I'll pick the vibes:** you choose the genres and moods for each group, and Prism sorts the songs in.
 
-Each group is a card with an album-art mosaic. Rename it, move or remove songs, or combine groups.
-Under **More options**: how many groups (Auto, 2–8), what to group by (Balanced, Genre, Mood, Energy)
-and whether a song may land in more than one group. Songs that fit nowhere wait on a "Not included"
-card, with the reason for each. **Create playlists** makes one new playlist per group.
+Under **More options**: how many groups (Auto, 2–8), what to group by (Balanced, Genre, Mood, Energy) and whether a song may land in more than one group. Songs that fit nowhere wait on a "Not included" card, with the reason for each. **Create playlists** makes one new playlist per group.
 
-## Merge playlists
+</details>
+</td>
+<td width="50%" valign="middle">
+<img src="docs/media/remix.webp" alt="Remixing a playlist into groups by genre and mood" width="400">
+</td>
+</tr>
+<tr>
+<td width="50%" valign="middle">
+<img src="docs/media/merge.svg" alt="Two playlist bubbles drifting into one, with the doubles dropped" width="400">
+</td>
+<td width="50%" valign="middle">
+<h3 id="merge-playlists">Merge playlists</h3>
+<p><b>Stack your playlists together and drop the doubles.</b></p>
+<ul>
+<li>Pick two or more playlists</li>
+<li>The same song from another album counts as a double too</li>
+<li><b>Show duplicates</b> lists every copy left out</li>
+</ul>
+<details><summary>Step by step</summary>
 
-Pick two or more playlists. Prism shows how many songs each has, the total, and how many duplicates
-it drops (the same song, even from a different album). **Show duplicates** lists each one and which
-copy was kept. Name the new playlist and click **Merge**. If you leave **Rename the originals** on,
-your own originals get "[merged] " in front of their name, so you can tell them apart.
+Prism shows how many songs each playlist has, the total, and how many duplicates it drops. Name the new playlist and click **Merge**. If you leave **Rename the originals** on, your own originals get "[merged] " in front of their name, so you can tell them apart. Their songs, order, cover and description stay as they are.
 
-## Add with Prism
+</details>
+</td>
+</tr>
+<tr>
+<td width="50%" valign="middle">
+<h3 id="add-with-prism">Add with Prism</h3>
+<p><b>Let Prism find the best home for a song.</b></p>
+<ul>
+<li>Right-click a song, then <b>Add with Prism</b></li>
+<li>See the five playlists it fits best</li>
+<li>One click adds it to the end</li>
+</ul>
+<details><summary>Step by step</summary>
 
-Right-click a song (or the song playing in the player bar) and open **Add with Prism**. Prism shows
-the five playlists it fits best, judged on genre, lyrics mood, tempo and key. Click one to add the
-song at the end. **More on the Prism page…** shows the scores and the shared genres. Only playlists
-you can add to are suggested, and never ones that already have the song.
+Works on any song, including the one playing in the player bar. Playlists are judged on genre, lyrics mood, tempo and key. **More on the Prism page…** shows the scores and the shared genres. Only playlists you can add to are suggested, and never ones that already have the song.
 
-## Playlist tone
+</details>
+</td>
+<td width="50%" valign="middle">
+<img src="docs/media/add-with-prism.webp" alt="Add with Prism showing the five best-fitting playlists for a song" width="400">
+</td>
+</tr>
+<tr>
+<td width="50%" valign="middle">
+<img src="docs/media/tone.webp" alt="Score rings showing how well each song fits a playlist's tone" width="400">
+</td>
+<td width="50%" valign="middle">
+<h3 id="playlist-tone">Playlist tone</h3>
+<p><b>Give a playlist a vibe and see which songs fit it and which drift.</b></p>
+<ul>
+<li>Right-click a playlist, then <b>Add Prism tone</b></li>
+<li>Pick its key genres, moods and tempo</li>
+<li>A score ring on every song makes the drifters stand out</li>
+</ul>
+<details><summary>Step by step</summary>
 
-Right-click a playlist and choose **Add Prism tone**. Pick its key genres, lyrics moods and tempo
-(Prism suggests a start from the songs already in it). A **Tone** strip appears on the playlist page.
-Switch it on and every song gets a score ring for how well it fits, so the drifters stand out. Tones
-are saved only on your computer.
+Prism suggests a start from the songs already in the playlist. A **Tone** strip appears on the playlist page; switch it on to see the rings. Playlists you grow with Prism start with a tone. Tones are saved only on your computer.
 
-## Playlist themes
+</details>
+</td>
+</tr>
+<tr>
+<td width="50%" valign="middle">
+<h3 id="playlist-stats">Playlist stats</h3>
+<p><b>See what any playlist is made of.</b></p>
+<ul>
+<li>Right-click a playlist, then <b>Prism stats</b></li>
+<li>Genre mix, moods, tempo, artists, eras and key</li>
+<li>A fingerprint of glass bubbles (pop them)</li>
+</ul>
+<details><summary>Step by step</summary>
 
-In Settings, pick one of nine themes: **Twilight**, **Northern lights**, **Starry night**,
-**Milky Way**, **Bubble nebula**, **Afterglow**, **Misty morning**, **Blossom canopy** or
-**Window rain**. Playlist pages get a moving sky, a colour rail beside the songs (each song's main
-genre) and a genre mix bar. Albums, artists, Liked Songs, Home, Search and the other pages get the
-same sky or a quiet dark purple. Spotify's green turns pastel, and its bars, side panel, menus,
-dialogs and pop-up messages become frosted glass.
+The page shows songs, length, average tempo, top mood and tone fit, the **genre mix** as glass bars, mood mix, tempo spread, artists, eras and key. For playlists Prism made, it also shows the seed song or source playlists and how close each song is to the seed. Other playlists get an estimate from what's already been scanned.
 
-Want one playlist to look different? Right-click it and choose **Prism theme** to give it its own
-sky. That's saved only on your computer and never changes the playlist.
+</details>
+</td>
+<td width="50%" valign="middle">
+<img src="docs/media/stats.webp" alt="Playlist stats page with stat cards, genre bars and fingerprint bubbles" width="400">
+</td>
+</tr>
+<tr>
+<td width="50%" valign="middle">
+<img src="docs/media/side-panel.webp" alt="Prism stats in Spotify's side panel next to a playlist" width="400">
+</td>
+<td width="50%" valign="middle">
+<h3 id="side-panel-stats">Stats beside your music</h3>
+<p><b>A playlist's stats right next to it while you listen.</b></p>
+<ul>
+<li>A <b>Prism stats</b> tab next to <b>Now playing</b></li>
+<li>Fills in songs it hasn't scanned yet while you look</li>
+<li><b>View full stats</b> opens the whole page</li>
+</ul>
+<details><summary>Step by step</summary>
 
-## Playlist stats
+Shows on every playlist you open. Turn it off in Settings with **Prism stats in the side panel**.
 
-Right-click any playlist and choose **Prism stats**. The page shows songs, length, average tempo,
-top mood and tone fit, the **genre mix** as glass bars, a **fingerprint** of glass bubbles (pop
-them), mood mix, tempo spread, artists, eras and key. For playlists Prism made, it also shows the
-seed song or the source playlists and how close each song is to the seed. Other playlists get an
-estimate from what's already been scanned.
+</details>
+</td>
+</tr>
+<tr>
+<td width="50%" valign="middle">
+<h3 id="playlist-themes">Playlist themes</h3>
+<p><b>Nine moving skies across Spotify, and a different one per playlist.</b></p>
+<ul>
+<li>Pick a theme in Settings</li>
+<li>Spotify's green turns pastel, its bars turn to frosted glass</li>
+<li>Lyrics get the sky too, with the controls always there</li>
+</ul>
+<details><summary>Step by step</summary>
 
-When any playlist is open, Spotify's right-hand panel gets a **Prism stats** tab next to
-**Now playing**, with a compact version of the same stats and a **View full stats** button. For
-playlists Prism didn't make, it fills in the songs it hasn't scanned yet while you look.
+Themes: **Twilight**, **Northern lights**, **Starry night**, **Milky Way**, **Bubble nebula**, **Afterglow**, **Misty morning**, **Blossom canopy** and **Window rain**. Playlist pages get a moving sky, a colour rail beside the songs (each song's main genre) and a genre mix bar. Albums, artists, Liked Songs, Home, Search and the other pages get the same sky or a quiet dark purple.
 
-## Prism look for lyrics
+Want one playlist to look different? Right-click it and choose **Prism theme**. That's saved only on your computer and never changes the playlist.
 
-Spotify's lyrics view gets Prism's sky (your theme's, or twilight with no theme) instead of the
-album colours, and the top bar and player controls stay visible. Turn it off in Settings to get
-Spotify's own lyrics back.
+</details>
+</td>
+<td width="50%" valign="middle">
+<img src="docs/media/themes.webp" alt="A playlist page switching between Prism themes" width="400">
+</td>
+</tr>
+</table>
 
 ---
 
@@ -237,7 +271,7 @@ npm test               # unit tests (Vitest)
 ```
 
 Built with TypeScript, React and [Spicetify Creator](https://github.com/spicetify/spicetify-creator).
-How the demo GIFs are made: [docs/media/SHOTLIST.md](docs/media/SHOTLIST.md).
+How the demo clips are made: [docs/media/SHOTLIST.md](docs/media/SHOTLIST.md).
 
 ## License
 

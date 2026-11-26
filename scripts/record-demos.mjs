@@ -15,7 +15,10 @@ const OUT_DIR = path.resolve("docs/media");
 const TMP = path.resolve("build-tmp/frames"); // build-tmp is git-excluded
 const TTH = "spotify:playlist:37i9dQZF1DXcBWIGoYBM5M";
 const SEED = "spotify:track:4EoJ151oQ5jY48z4RhSE96"; // "the cure", Olivia Rodrigo (in Today's Top Hits)
-const VIEW = { width: 1800, height: 1240 };
+const VIEW = { width: 1600, height: 1080 };
+const DPR = 2; // record at double density so small text stays sharp
+const SHAPE = 0.8; // every feature clip is cropped to this height/width (5:4), so the README rows line up
+const QUALITY = 82;
 
 // ----- CDP -----
 const list = await (await fetch("http://127.0.0.1:9222/json/list")).json();
@@ -59,10 +62,16 @@ async function clickAt(sel) {
   await send("Input.dispatchMouseEvent", { type: "mouseReleased", x, y, button: "left", clickCount: 1 });
 }
 const goHome = () => go("/playlist-prism?go=home&r=" + Date.now());
-const pageCrop = (b, ratio) => ({ x: b.x - 20, y: Math.max(0, b.y - 12), w: b.w + 40, h: Math.min(VIEW.height - Math.max(0, b.y - 12), (b.w + 40) * ratio) });
+const pageCrop = (b, ratio = SHAPE) => ({ x: b.x, y: Math.max(0, b.y - 4), w: b.w, h: Math.min(VIEW.height - Math.max(0, b.y - 4), b.w * ratio) });
 const top = (r, ratio) => ({ x: r.x, y: r.y, w: r.w, h: Math.min(r.h, r.w * ratio) });
 async function scrollTop0() {
   for (let i = 0; i < 4; i++) { await ev(`document.querySelectorAll(".Root__main-view [data-overlayscrollbars-viewport]").forEach((e) => { e.scrollTop = 0; })`); await sleep(250); }
+}
+// The main view without Spotify's top bar (64 px), cut to the 5:4 shape.
+const belowTopBar = (m) => ({ x: m.x, y: m.y + 64, w: m.w, h: Math.min(m.h - 64, m.w * SHAPE) });
+// Scroll the main view so the playlist's big cover header is mostly out of the 5:4 frame.
+async function scrollMain(px) {
+  for (let i = 0; i < 3; i++) { await ev(`document.querySelectorAll(".Root__main-view [data-overlayscrollbars-viewport]").forEach((e) => { e.scrollTop = ${px}; })`); await sleep(250); }
 }
 const clickButton = (text) => ev(`[...document.querySelectorAll(".Root__main-view button")].find((b) => b.textContent.toLowerCase().includes(${JSON.stringify(text.toLowerCase())}) && !b.disabled)?.click()`);
 const setLocal = (key, value) => ev(`Spicetify.LocalStorage.set(${JSON.stringify(key)}, ${JSON.stringify(value)})`);
@@ -88,7 +97,7 @@ listeners.set("Page.screencastFrame", (p) => {
 async function startRec() {
   frames = [];
   segment++;
-  await send("Page.startScreencast", { format: "jpeg", quality: 92, everyNthFrame: 1 });
+  await send("Page.startScreencast", { format: "jpeg", quality: 95, everyNthFrame: 1 });
 }
 async function stopRec() {
   await send("Page.stopScreencast");
@@ -97,7 +106,7 @@ async function stopRec() {
 }
 
 // crop = CSS px rect; width = output width in px
-async function toGif(name, recorded, crop, width = 720) {
+async function toGif(name, recorded, crop, width = 800, quality = QUALITY) {
   if (recorded.length < 2) throw new Error("no frames recorded");
   const dir = path.join(TMP, name);
   await rm(dir, { recursive: true, force: true });
@@ -112,12 +121,15 @@ async function toGif(name, recorded, crop, width = 720) {
   }
   concat += `file '${path.join(dir, String(recorded.length - 1).padStart(4, "0") + ".jpg").replace(/\\/g, "/")}'\n`;
   await writeFile(path.join(dir, "list.txt"), concat);
-  const c = [crop.w, crop.h, crop.x, crop.y].map((n) => Math.round(n));
+  // Frames come in device pixels: scale the CSS-px crop to match (keep sizes even for the encoder).
+  const probe = execFileSync(FFMPEG.replace(/ffmpeg(\.exe)?$/i, "ffprobe$1"), ["-v", "error", "-show_entries", "stream=width", "-of", "csv=p=0", path.join(dir, "0000.jpg")]).toString();
+  const k = parseInt(probe, 10) / VIEW.width;
+  const c = [crop.w, crop.h, crop.x, crop.y].map((n) => Math.round((n * k) / 2) * 2);
   const webp = !process.argv.includes("--gif");
   const out = path.join(OUT_DIR, name + (webp ? ".webp" : ".gif"));
   const vf = `fps=15,crop=${c[0]}:${c[1]}:${c[2]}:${c[3]},scale=${width}:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=112:stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle`;
   const args = webp
-    ? ["-vf", `fps=15,crop=${c[0]}:${c[1]}:${c[2]}:${c[3]},scale=${width}:-1:flags=lanczos`, "-c:v", "libwebp", "-quality", "72", "-compression_level", "6", "-preset", "picture"]
+    ? ["-vf", `fps=15,crop=${c[0]}:${c[1]}:${c[2]}:${c[3]},scale=${width}:-1:flags=lanczos`, "-c:v", "libwebp", "-quality", String(quality), "-compression_level", "6", "-preset", "picture"]
     : ["-vf", vf];
   execFileSync(FFMPEG, ["-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", path.join(dir, "list.txt"), ...args, "-loop", "0", out]);
   if (!process.argv.includes("--keep-frames")) await rm(dir, { recursive: true, force: true });
@@ -127,6 +139,36 @@ async function toGif(name, recorded, crop, width = 720) {
 
 // ----- scenarios -----
 const scenarios = {
+  // README hero: the start page, uncropped, with each tile and start bar coming alive on hover.
+  async home() {
+    await setTheme("aurora");
+    await goHome();
+    await waitFor(`!!document.querySelector('[data-prism="flip-organize"]')`, 10000);
+    await scrollTop0();
+    await send("Input.dispatchMouseEvent", { type: "mouseMoved", x: 5, y: VIEW.height - 5 });
+    await sleep(1200);
+    const box = await rect('[data-prism="page"]');
+    await startRec();
+    await sleep(800);
+    await hover('[data-prism="flip-prism"]');
+    await sleep(3400);
+    await hover('[data-prism="flip-organize"]');
+    await sleep(3600);
+    for (const bar of await ev(`[...document.querySelectorAll(".prism-home-bar")].map((_, i) => i)`)) {
+      await ev(`(() => { const b = document.querySelectorAll(".prism-home-bar")[${bar}].getBoundingClientRect(); window.__prismBar = [b.x + b.width / 2, b.y + b.height / 2]; })()`);
+      const [x, y] = await ev("window.__prismBar");
+      await send("Input.dispatchMouseEvent", { type: "mouseMoved", x, y });
+      await sleep(2600);
+    }
+    await send("Input.dispatchMouseEvent", { type: "mouseMoved", x: 5, y: VIEW.height - 5 });
+    await sleep(1200);
+    const rec = await stopRec();
+    // From the page's top edge to just under the last start bar, no Spotify edges in frame.
+    const bottom = await ev(`Math.max(...[...document.querySelectorAll(".prism-home-bar")].map((b) => b.getBoundingClientRect().bottom))`);
+    const y = Math.max(0, box.y - 4);
+    await toGif("home", rec, { x: box.x, y, w: box.w, h: Math.min(VIEW.height - y, bottom + 36 - y) }, 960, 80);
+  },
+
   async stats() {
     await setTheme("aurora");
     await goHome();
@@ -140,7 +182,8 @@ const scenarios = {
     await clickAt(".prism-bubble");
     await sleep(2200);
     const rec = await stopRec();
-    await toGif("stats", rec, { x: box.x - 16, y: Math.max(0, box.y - 8), w: box.w + 32, h: Math.min(box.h, (box.w + 32) * 0.6) });
+    const w = box.w + 32;
+    await toGif("stats", rec, { x: box.x - 16, y: Math.max(0, box.y - 8), w, h: Math.min(VIEW.height - Math.max(0, box.y - 8), w * SHAPE) });
   },
 
   async "side-panel"() {
@@ -151,8 +194,10 @@ const scenarios = {
     await startRec();
     await sleep(4000);
     const rec = await stopRec();
+    // The playlist's songs on the left, the stats panel on the right.
     const side = await rect(".Root__right-sidebar");
-    await toGif("side-panel", rec, { x: side.x, y: side.y, w: side.w, h: Math.min(side.h, side.w * 1.5) }, Math.min(420, Math.round(side.w)));
+    const w = Math.min(side.x + side.w, side.h / SHAPE);
+    await toGif("side-panel", rec, { x: side.x + side.w - w, y: side.y, w, h: w * SHAPE });
   },
 
   async themes() {
@@ -160,13 +205,17 @@ const scenarios = {
     await go("/playlist/37i9dQZF1DXcBWIGoYBM5M");
     await waitFor(`!!document.querySelector(".main-trackList-indexable")`, 15000);
     await scrollTop0();
+    const bar = await rect('[data-testid="action-bar-row"]');
+    const view = await rect(".Root__main-view");
+    await scrollMain(Math.max(0, bar.y - view.y - 128)); // keep the genre mix bar in frame
+    await send("Input.dispatchMouseEvent", { type: "mouseMoved", x: 5, y: VIEW.height - 5 }); // no tooltips in frame
     await sleep(1500);
     const main = await rect(".Root__main-view");
     await startRec();
     await sleep(1300);
     for (const t of ["aurora", "blossom", "rain", "milkyway"]) { await setTheme(t); await sleep(2000); }
     const rec = await stopRec();
-    await toGif("themes", rec, main, 640);
+    await toGif("themes", rec, belowTopBar(main), 800, 76); // busy skies: a bit lower quality keeps it near 5 MB
   },
 
   // Grow: seed chips, then the ranked preview (the source picker isn't recorded: it lists your playlists).
@@ -193,7 +242,7 @@ const scenarios = {
     for (let i = 0; i < 12; i++) { await ev(`document.querySelector('[data-prism="preview-list"]').scrollBy(0, 14)`); await sleep(110); }
     await sleep(1200);
     const rec = await stopRec();
-    await toGif("grow", rec, pageCrop(box, 0.85));
+    await toGif("grow", rec, pageCrop(box));
   },
 
   async remix() {
@@ -219,7 +268,7 @@ const scenarios = {
     await clickAt('[data-prism="choose-next"]');
     await sleep(4000);
     const rec = await stopRec();
-    await toGif("remix", rec, pageCrop(await rect('[data-prism="page"]'), 0.85));
+    await toGif("remix", rec, pageCrop(await rect('[data-prism="page"]')));
   },
 
   async "add-with-prism"() {
@@ -234,7 +283,7 @@ const scenarios = {
     await hover('[data-prism="addto-row"] button');
     await sleep(1500);
     const rec = await stopRec();
-    await toGif("add-with-prism", rec, pageCrop(await rect('[data-prism="page"]'), 0.85));
+    await toGif("add-with-prism", rec, pageCrop(await rect('[data-prism="page"]')));
   },
 
   async tone() {
@@ -248,15 +297,17 @@ const scenarios = {
     await setTone(TTH, { genres: ["pop", "dance pop", "indie pop"], moods: ["love", "heartbreak"], tempo: "any", show: false });
     for (let i = 0; i < 5; i++) { await ev(`document.querySelectorAll(".Root__main-view [data-overlayscrollbars-viewport]").forEach((e) => { e.scrollTop = 0; })`); await sleep(300); }
     console.log("scrollTop after reset:", await ev(`[...document.querySelectorAll(".Root__main-view [data-overlayscrollbars-viewport]")].map((e) => e.scrollTop).join(",")`));
+    const before = await rect("[data-prism-tone-strip]");
+    const main0 = await rect(".Root__main-view");
+    await scrollMain(Math.max(0, before.y - main0.y - 150));
     await sleep(1200);
-    const strip = await rect("[data-prism-tone-strip]");
     const main = await rect(".Root__main-view");
     await startRec();
     await sleep(900);
     await clickAt("[data-prism-tone-strip] .prism-toggle");
     await sleep(3800);
     const rec = await stopRec();
-    await toGif("tone", rec, { x: main.x, y: main.y, w: main.w, h: main.h }, 640);
+    await toGif("tone", rec, belowTopBar(main));
   },
 };
 
@@ -267,7 +318,7 @@ const saved = await ev(`(${JSON.stringify(SAVED_KEYS)}).map((k) => [k, Spicetify
 try {
   await send("Emulation.setFocusEmulationEnabled", { enabled: true });
   await send("Page.setWebLifecycleState", { state: "active" });
-  await send("Emulation.setDeviceMetricsOverride", { ...VIEW, deviceScaleFactor: 1, mobile: false });
+  await send("Emulation.setDeviceMetricsOverride", { ...VIEW, deviceScaleFactor: DPR, mobile: false });
   await sleep(800);
   await scenarios[name]();
 } finally {
