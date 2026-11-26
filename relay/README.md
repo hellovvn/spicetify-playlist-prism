@@ -7,6 +7,7 @@ GitHub issue as the `prism-reports` GitHub App. The App's private key lives only
 ```
 Prism --POST /report--> relay (checks, rate limits) --GitHub App--> issue on GITHUB_REPO
 Prism --GET /lastfm-key--> relay --> { ok: true, key } (Prism's own Last.fm API key)
+you   --GET /usage (token)--> relay --> { ok: true, days: [{ day, users }] }
 ```
 
 The Last.fm key is Prism's shared key for users who haven't added their own. It's a
@@ -16,10 +17,26 @@ here means it is never in the repo and can be swapped without a Prism release.
 - `src/report.ts`: checks the report and builds the issue (pure, tested in
   `tests/relayReport.test.ts`). `@mentions` are defused so a report never notifies anyone.
 - `src/githubAuth.ts`: the App's sign-in (JWT from the .pem key, then an installation token).
+- `src/usage.ts`: the anonymous daily user count (pure, tested in `tests/relayUsage.test.ts`).
 - `src/worker.ts`: the HTTP endpoint, rate limits, GitHub calls.
 
 Limits: 3 reports per sender per hour, 50 per day in total, 20 KB per report.
 Senders' IPs are only kept as a hash, for one hour.
+
+**User count:** every Prism asks `/lastfm-key` once per Spotify start, so the relay counts
+the distinct callers per UTC day. The IP is never stored: it is hashed with the day and the
+secret `STATS_TOKEN`, and that hash expires after 2 days. Only one number per day is kept
+(`users:<day>`). It's approximate: people sharing a network count once, someone whose IP
+changes counts twice, and two first calls at the same moment can count as one. Without
+`STATS_TOKEN` nothing is counted.
+
+Easiest: keep the token in `%USERPROFILE%\.prism\stats-token` (outside the repo) and run
+`npm run users` (or `npm run users 90`) in the project folder. Or by hand in PowerShell
+(`?days=` up to 90):
+
+```powershell
+$t = Read-Host "Stats token"; (irm https://prism-reports.hellovvn-spicetify-prism.workers.dev/usage -Headers @{ Authorization = "Bearer $t" }).days
+```
 
 ## One-time setup
 
@@ -38,7 +55,9 @@ Cloudflare (run in this `relay` folder):
 4. Store Prism's Last.fm API key (an app registered at last.fm/api/account/create as
    "Prism"; only the "API key", never the "shared secret"):
    `npx wrangler secret put LASTFM_APP_KEY`
-5. Deploy: `npx wrangler deploy`. It prints the relay's address
+5. Make a long random token for the user count (reading the count needs it; keep a copy in your
+   password manager) and store it: `npx wrangler secret put STATS_TOKEN`
+6. Deploy: `npx wrangler deploy`. It prints the relay's address
    (`https://prism-reports.<account>.workers.dev`), which Prism will call.
 
 ## Changing things later

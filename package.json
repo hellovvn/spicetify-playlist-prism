@@ -9,7 +9,8 @@
     "watch": "spicetify-creator --watch",
     "test": "vitest run",
     "test:watch": "vitest",
-    "smoke": "node scripts/smoke.mjs"
+    "smoke": "node scripts/smoke.mjs",
+    "users": "node scripts/users.mjs"
   },
   "license": "MIT",
   "devDependencies": {
