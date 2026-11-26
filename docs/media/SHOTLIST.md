@@ -4,27 +4,28 @@ The README's demo clips live here. They're recorded from Spotify with
 `scripts/record-demos.mjs` on the public playlist **Today's Top Hits** (no personal playlists in
 frame), cropped to Prism's part of the screen.
 
-| Clip | File | Status |
+| Clip | File | Notes |
 | --- | --- | --- |
-| Hero tour | `hero.webp` | Stitched from grow + remix + stats (see below) |
-| Grow | `grow.webp` | Recorded |
-| Remix | `remix.webp` | Recorded |
-| Merge | `merge.svg` | Placeholder: needs a second public playlist to merge with |
-| Add with Prism | `add-with-prism.webp` | Recorded (shows the 5 best-fitting playlists from the library) |
-| Tone | `tone.gif` | Recorded |
-| Themes | `themes.gif` | Recorded |
-| Stats | `stats.webp` | Recorded |
-| Side panel | `side-panel.gif` | Recorded (top line = the song playing at the time) |
+| Hero | `home.webp` | The start page, uncropped; each tile and start bar comes alive on hover |
+| Grow | `grow.webp` | Ranked matches with score rings and New finds |
+| Remix | `remix.webp` | Picking "Sort them for me", then the group cards |
+| Merge | `merge.svg` | Animated drawing (no second public playlist to merge with) |
+| Add with Prism | `add-with-prism.webp` | The 5 best-fitting playlists (from the library) |
+| Tone | `tone.webp` | Switching the tone on: score rings appear |
+| Stats | `stats.webp` | The full stats page, popping a fingerprint bubble |
+| Side panel | `side-panel.webp` | The playlist's songs with the stats panel beside them |
+| Themes | `themes.webp` | One playlist page going through four themes |
 | Lyrics | none | Left out on purpose: a lyrics clip would publish song lyrics |
 
-Format: animated WebP for clips with Prism's moving background (about a third of the GIF size),
-GIF for mostly-still clips (GIF is smaller there). Keep each file under ~5 MB.
+Every feature clip is cropped to the same 5:4 shape (`SHAPE` in the script) and recorded at double
+density (`DPR = 2`), so the README rows line up and small text stays sharp. Animated WebP, under
+~5 MB each.
 
 ## Re-recording
 
 ```powershell
 node scripts/record-demos.mjs grow          # writes docs/media/grow.webp
-node scripts/record-demos.mjs tone --gif    # writes docs/media/tone.gif
+node scripts/record-demos.mjs home          # the hero
 ```
 
 Needs ffmpeg (`winget install --id Gyan.FFmpeg -e`; set `FFMPEG` to its path if it isn't on PATH)
@@ -32,18 +33,12 @@ and Spotify running with the debug port (`spicetify watch -a`). The script sets 
 tone while it records and puts your own settings back afterwards. It never clicks Create, Merge or
 Add. Close the Prism page's Settings first.
 
-The hero is stitched from three finished clips:
-
-```powershell
-ffmpeg -i grow.webp -i remix.webp -i stats.webp -filter_complex "[0:v]trim=0.4:4.2,setpts=PTS-STARTPTS,fps=15,scale=720:-2,crop=720:520:0:0,setsar=1[v0];[1:v]trim=0.6:5.2,setpts=PTS-STARTPTS,fps=15,scale=720:-2,crop=720:520:0:0,setsar=1[v1];[2:v]trim=0.3:4.6,setpts=PTS-STARTPTS,fps=15,scale=-2:520,crop=720:520:(iw-720)/2:0,setsar=1[v2];[v0][v1][v2]concat=n=3:v=1:a=0[out]" -map "[out]" -c:v libwebp -quality 70 -loop 0 hero.webp
-```
-
 ## Rules for every clip
 
 - **Demo library only.** Use demo playlists made for recording (no personal playlist names,
   profile picture or private songs). Hide the profile name in the top bar.
-- **Size:** 640-720 px wide, cropped to the part that matters (gallery cells show them at ~280 px).
-- **Length:** hero ~12 s, gallery clips 4–8 s. Start at the top of the page (no scrolling).
+- **Size:** 800 px wide at 5:4 (README rows show them at ~420 px); the hero is 960 px wide.
+- **Length:** hero ~15 s, feature clips 4–8 s. Start at the top of the page (no scrolling).
 - **Frame rate:** 15 fps.
 - **Theme:** Northern lights (the themes clip starts from No theme).
 - **No text you need to read in under a second.** If a step needs explaining, it goes in the README.
