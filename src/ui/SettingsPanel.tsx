@@ -11,6 +11,7 @@ import { parsePlaylistTheme, PLAYLIST_THEMES, PLAYLIST_THEME_CHANGED_EVENT, type
 import { isPanelStatsOn, PANEL_STATS_CHANGED_EVENT } from "./sidePanel";
 import { isLyricsThemeOn, LYRICS_THEME_CHANGED_EVENT } from "./lyricsTheme";
 import { testApiKey } from "../lastfm/client";
+import { LASTFM_KEY_GUIDE_URL } from "../lastfm/keyErrors";
 import { ThemeStrip } from "./ThemeStrip";
 import { kofiUrl } from "../support";
 
@@ -107,17 +108,12 @@ export function SettingsPanel({ notice, onReport }: SettingsPanelProps) {
         </p>
       )}
       <p>
-        Prism uses Last.fm to get song-level genre and mood tags. It works straight away with Prism's
-        shared Last.fm key, so you don't need to do anything.
+        Prism uses Last.fm for song-level genre and mood tags. It works straight away with Prism's shared
+        Last.fm key, so you don't need to do anything.
       </p>
       <p style={{ color: "var(--spice-subtext)", fontSize: 13 }} data-prism="lastfm-key-source">
-        {hasOwnKey ? "Using your own Last.fm key." : "Using Prism's shared Last.fm key."} Want your own (for example
-        if the shared one is busy)? Get a free API key at{" "}
-        <a href="https://www.last.fm/api/account/create" target="_blank" rel="noreferrer">
-          last.fm/api/account/create
-        </a>
-        , paste the "API key" (not the "shared secret") below and choose Test &amp; save. It is stored only in
-        Spotify on this computer.
+        {hasOwnKey ? "Using your own Last.fm key." : "Using Prism's shared Last.fm key."} You can add your own
+        (optional, for example if the shared one is busy). It is stored only in Spotify on this computer.
       </p>
       <input
         type="password" // hides the key on screen, like a password field
@@ -128,6 +124,24 @@ export function SettingsPanel({ notice, onReport }: SettingsPanelProps) {
         className="prism-glass-input"
         style={{ fontSize: 14 }}
       />
+      {/* How to get a key: short steps instead of one long sentence. */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        <p style={{ margin: 0 }}>
+          1. Get a free API key at{" "}
+          <a href="https://www.last.fm/api/account/create" target="_blank" rel="noreferrer" style={{ color: "inherit", textDecoration: "underline" }}>
+            last.fm/api/account/create
+          </a>
+        </p>
+        <p style={{ margin: 0 }}>2. Paste the "API key" (not the "Shared secret") in the box above</p>
+        <p style={{ margin: 0 }}>3. Click Test & save</p>
+        <p style={{ color: "var(--spice-subtext)", fontSize: 13, margin: "4px 0 0" }}>
+          Want your own key? Here's a{" "}
+          <a href={LASTFM_KEY_GUIDE_URL} target="_blank" rel="noreferrer" data-prism="lastfm-key-guide" style={{ color: "inherit", textDecoration: "underline" }}>
+            step-by-step guide
+          </a>
+          .
+        </p>
+      </div>
       <div className="prism-actions" style={{ display: "flex", gap: 8 }}>
         {/* Spotify's own buttons, so they match the rest of the app. */}
         <ButtonPrimary buttonSize="sm" onClick={onSave} disabled={busy}>

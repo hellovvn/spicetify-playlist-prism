@@ -123,6 +123,12 @@ Since step 12a this is a Spicetify CUSTOM APP (src/settings.json has an "icon"),
   never forwards Last.fm calls). Swap a suspended key: new Last.fm app, `npx wrangler secret
   put LASTFM_APP_KEY`, users get it at their next restart. Never hardcode or commit either key
   (the developer's personal key included); reports scrub both.
+- KEY ERRORS (2026-11-26, PR #39, adapted for the shared key): `src/lastfm/keyErrors.ts` (pure,
+  tests/keyErrors.test.ts). No key at all (our code -1) = the shared key couldn't be fetched;
+  invalid (10) / suspended (26) get a message by whose key it was (`keyProblemMessage(error,
+  getLastfmKeySource())`): the user's own -> fix it in Settings; Prism's shared -> try later or
+  add your own. Nothing asks for a key before starting any more. Settings links to the README's
+  "Getting a Last.fm API key" guide (LASTFM_KEY_GUIDE_URL), now framed as optional.
 
 ## Code layout
 - `src/app.tsx` (page entry), `src/ui/PrismPage.tsx` (the page), `src/extensions/prism.tsx`
@@ -825,6 +831,14 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   pick, possibly page by page; respect "UI elements" rules (new looks go in
   docs/ui-elements.md). Easiest first chunk: Liked Songs + album + artist (same layout as
   playlists).
+- NEW VERSION NOTICE (2026-11-26, mockup "A" of four, developer's pick; built, not committed):
+  the start page shows "Prism X is out. You have Y." (the standard Notice, `src/ui/UpdateNotice.tsx`)
+  when GitHub's latest RELEASE (api.github.com/repos/hellovvn/spicetify-prism/releases/latest,
+  no sign-in; drafts/pre-releases ignored) is newer than package.json's "version". Checked at most
+  once a day (`prism:updateCheck`; a 404 = no release yet, also remembered). "What's new" opens the
+  release page; "Not now" saves `prism:updateDismissed` = that version (a later one shows again).
+  Pure parts `src/update/version.ts` (+ tests/version.test.ts), fetch in `src/update/check.ts`.
+  TO RELEASE: bump package.json "version", then publish a GitHub release tagged vX.Y.Z.
 - 11: Cleanup: remove the debug hook, README, release (after 12).
 
 ## Dev loop (Claude runs this, not the developer)

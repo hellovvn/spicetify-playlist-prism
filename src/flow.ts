@@ -14,6 +14,7 @@ import { addSongToPlaylist, createMergedPlaylist, createPrismPlaylist, PrismWrit
 import { hasSong, rankPlaylists, type CandidatePlaylist, type FitSong, type PlaylistFit } from "./addto/fitPlaylists";
 import type { TrackInfo } from "./spotify/read";
 import { lastfmFetchers } from "./lastfm/fetchers";
+import { isKeyProblem, keyProblemMessage, noKeyError } from "./lastfm/keyErrors";
 import { LOG_PREFIX } from "./log";
 import { ensureLastfmKey } from "./lastfm/sharedKey";
 import {
@@ -71,14 +72,14 @@ const LASTFM_REQUESTS_PER_SECOND = 4;
 // Spotify still limits bursts, see pausingLyricsMood in src/spotify/lyrics.ts.
 const LYRICS_REQUESTS_PER_SECOND = 5;
 
-export const isKeyProblem = (error: unknown) => error instanceof LastfmError && (error.code === 10 || error.code === 26);
+
 const isRateLimit = (error: unknown) => error instanceof LastfmError && error.code === 29;
 
 // Everything the seed screen needs: song details, tags, BPM/key, lyrics mood.
 // If anything fails, the error goes back to the page, which shows friendlyError().
 export async function loadSeed(uri: string): Promise<SeedData> {
   const apiKey = await ensureLastfmKey();
-  if (!apiKey) throw new LastfmError(10, "No Last.fm key saved");
+  if (!apiKey) throw noKeyError();
 
   const track = await getTrackInfo(uri);
   console.log(`${LOG_PREFIX} seed song: ${track.name} - ${track.artists.join(", ")}`);
@@ -128,7 +129,7 @@ export async function runScan(
   shouldStop: () => boolean
 ): Promise<ScanOutcome> {
   const apiKey = await ensureLastfmKey();
-  if (!apiKey) throw new LastfmError(10, "No Last.fm key saved");
+  if (!apiKey) throw noKeyError();
 
   // All playlists at once; each is one fast Spotify request.
   const lists = await Promise.all(sources.map((source) => getSourceTracks(source.uri)));
@@ -264,7 +265,7 @@ export async function findNewSongs(
   const cached = newFindsCache.get(cacheKey);
   if (cached) return cached;
   const apiKey = await ensureLastfmKey();
-  if (!apiKey) throw new LastfmError(10, "No Last.fm key saved");
+  if (!apiKey) throw noKeyError();
   const wait = createRateLimiter(LASTFM_REQUESTS_PER_SECOND);
   const started = Date.now();
 
@@ -651,6 +652,8 @@ async function songSignals(uri: string): Promise<{ track: TrackInfo; song: FitSo
   const tagCache = new TagCache(loadTagCacheText());
   let tags = tagCache.get(uri, now)?.tags ?? null;
   const apiKey = await ensureLastfmKey();
+  // Not cached and no key: say so, instead of "this song has no tags".
+  if (!tags && !apiKey) throw noKeyError();
   if (!tags && apiKey) {
     const result = await getSongTags(track, lastfmFetchers(apiKey));
     tags = result.tags;
@@ -684,16 +687,8 @@ export async function addSongTo(playlist: { uri: string; name: string }, song: {
 // Turns known errors into messages a user can act on (shown on the page).
 // (Last.fm error 6 "not found" never gets here: getSongTags treats it as "no tags".)
 export function friendlyError(error: unknown): string {
-  if (isKeyProblem(error)) {
-    const source = getLastfmKeySource();
-    if (source === "own") {
-      return "Last.fm API key problem: check your key in Prism settings (the Settings button at the top of this page).";
-    }
-    if (source === "prism") {
-      return "Prism's shared Last.fm access isn't working right now. Try again later, or add your own free key in Prism settings.";
-    }
-    return "Couldn't get Prism's shared Last.fm access (are you online?). Try again, or add your own free key in Prism settings.";
-  }
+  const keyMessage = keyProblemMessage(error, getLastfmKeySource());
+  if (keyMessage) return keyMessage;
   if (isRateLimit(error)) {
     return "Last.fm rate limit hit: wait a minute and try again.";
   }
