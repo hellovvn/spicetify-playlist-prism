@@ -1,6 +1,8 @@
 // Prism's report relay (Cloudflare Worker).
 // Prism sends POST /report with a ReportInput (JSON). The relay checks it, applies the
 // rate limits, and opens a GitHub issue as the "prism-reports" GitHub App.
+// GET /lastfm-key hands out Prism's own Last.fm API key (secret LASTFM_APP_KEY), so new
+// users need no key of their own and the key can be swapped without a Prism release.
 // The App's private key lives ONLY here (Cloudflare secret GITHUB_PRIVATE_KEY), never in Prism.
 // Setup and how to switch repos: relay/README.md.
 
@@ -23,6 +25,8 @@ interface Env {
   /** "off" turns reporting off without a redeploy of Prism. */
   REPORTS_ENABLED?: string;
   GITHUB_PRIVATE_KEY: string;
+  /** Prism's own Last.fm API key (read-only methods only). Unset = /lastfm-key answers 503. */
+  LASTFM_APP_KEY?: string;
   LIMITS: KV;
 }
 
@@ -38,6 +42,13 @@ export default {
     if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
 
     const url = new URL(request.url);
+    if (url.pathname === "/lastfm-key") {
+      if (request.method !== "GET") return reply(405, { ok: false, error: "Use GET." }, cors);
+      const key = (env.LASTFM_APP_KEY ?? "").trim();
+      if (!key) return reply(503, { ok: false, error: "No shared Last.fm key set up." }, cors);
+      // Cached for an hour by the browser; Prism asks once per Spotify start anyway.
+      return reply(200, { ok: true, key }, { ...cors, "Cache-Control": "public, max-age=3600" });
+    }
     if (url.pathname !== "/report") return reply(404, { ok: false, error: "Not found." }, cors);
     if (request.method !== "POST") return reply(405, { ok: false, error: "Use POST." }, cors);
     if (env.REPORTS_ENABLED === "off") {
@@ -155,7 +166,7 @@ function corsHeaders(request: Request, env: Env): Record<string, string> {
   const origin = request.headers.get("Origin") ?? "";
   const allowed = env.ALLOWED_ORIGINS.split(",").map((s) => s.trim());
   const headers: Record<string, string> = {
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
     "Access-Control-Max-Age": "86400",
     Vary: "Origin",

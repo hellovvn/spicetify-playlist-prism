@@ -16,8 +16,9 @@ import type { TrackInfo } from "./spotify/read";
 import { lastfmFetchers } from "./lastfm/fetchers";
 import { isKeyProblem, keyProblemMessage, noKeyError } from "./lastfm/keyErrors";
 import { LOG_PREFIX } from "./log";
+import { ensureLastfmKey } from "./lastfm/sharedKey";
 import {
-  getLastfmKey,
+  getLastfmKeySource,
   loadMoodCacheText,
   loadPlaylistRecordsText,
   loadTagCacheText,
@@ -77,7 +78,7 @@ const isRateLimit = (error: unknown) => error instanceof LastfmError && error.co
 // Everything the seed screen needs: song details, tags, BPM/key, lyrics mood.
 // If anything fails, the error goes back to the page, which shows friendlyError().
 export async function loadSeed(uri: string): Promise<SeedData> {
-  const apiKey = getLastfmKey();
+  const apiKey = await ensureLastfmKey();
   if (!apiKey) throw noKeyError();
 
   const track = await getTrackInfo(uri);
@@ -127,7 +128,7 @@ export async function runScan(
   onProgress: (progress: ScanProgress) => void,
   shouldStop: () => boolean
 ): Promise<ScanOutcome> {
-  const apiKey = getLastfmKey();
+  const apiKey = await ensureLastfmKey();
   if (!apiKey) throw noKeyError();
 
   // All playlists at once; each is one fast Spotify request.
@@ -195,7 +196,7 @@ export async function loadToneSongs(
   shouldStop: () => boolean = () => false
 ): Promise<ScannedSong[]> {
   const tracks = await getSourceTracks(uri);
-  const apiKey = getLastfmKey();
+  const apiKey = await ensureLastfmKey();
   if (apiKey) return (await scanTracks(tracks, apiKey, onProgress, shouldStop)).songs;
   const now = Date.now();
   const tagCache = new TagCache(loadTagCacheText());
@@ -263,7 +264,7 @@ export async function findNewSongs(
   const cacheKey = `${seed.track.uri}|${kept.map((tag) => tag.name).join(",")}`;
   const cached = newFindsCache.get(cacheKey);
   if (cached) return cached;
-  const apiKey = getLastfmKey();
+  const apiKey = await ensureLastfmKey();
   if (!apiKey) throw noKeyError();
   const wait = createRateLimiter(LASTFM_REQUESTS_PER_SECOND);
   const started = Date.now();
@@ -550,7 +551,7 @@ export async function loadPanelEstimate(
   };
   let { record, missing } = build();
   onUpdate({ record, scanning: null });
-  const apiKey = getLastfmKey();
+  const apiKey = await ensureLastfmKey();
   if (!apiKey || missing.length === 0 || shouldStop()) return;
 
   let rebuiltAt = Date.now();
@@ -650,7 +651,7 @@ async function songSignals(uri: string): Promise<{ track: TrackInfo; song: FitSo
   const now = Date.now();
   const tagCache = new TagCache(loadTagCacheText());
   let tags = tagCache.get(uri, now)?.tags ?? null;
-  const apiKey = getLastfmKey();
+  const apiKey = await ensureLastfmKey();
   // Not cached and no key: say so, instead of "this song has no tags".
   if (!tags && !apiKey) throw noKeyError();
   if (!tags && apiKey) {
@@ -686,7 +687,7 @@ export async function addSongTo(playlist: { uri: string; name: string }, song: {
 // Turns known errors into messages a user can act on (shown on the page).
 // (Last.fm error 6 "not found" never gets here: getSongTags treats it as "no tags".)
 export function friendlyError(error: unknown): string {
-  const keyMessage = keyProblemMessage(error);
+  const keyMessage = keyProblemMessage(error, getLastfmKeySource());
   if (keyMessage) return keyMessage;
   if (isRateLimit(error)) {
     return "Last.fm rate limit hit: wait a minute and try again.";

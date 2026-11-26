@@ -28,7 +28,7 @@ import { StartBar } from "./StartBar";
 import { UpdateNotice } from "./UpdateNotice";
 import { OrganizeIcon, PrismIcon as PrismTileIcon } from "./HomeIcons";
 import { getPlaylistCover, getSources, getSourceTracks } from "../spotify/read";
-import { getLastfmKey, loadPanelStatsSetting } from "../storage";
+import { loadPanelStatsSetting } from "../storage";
 import { SAMPLE_RECORD } from "../stats/playlistStats";
 import { StatsScreen } from "./StatsScreen";
 import { isPanelStatsOn, readPanelView } from "./sidePanel";
@@ -71,9 +71,9 @@ type View =
   | { kind: "demo-scan"; id: string }
   | { kind: "demo-stats"; id: string };
 
-// Settings, when open. thenStart (a seed) / thenView: what to continue with after saving the key.
+// Settings, when open.
 // report: "Report a bug" / "Suggest an idea" is open (inside Settings; Back returns to Settings).
-type SettingsState = { notice?: string; thenStart?: string; thenView?: View; report?: ReportKind };
+type SettingsState = { notice?: string; report?: ReportKind };
 
 // What a request does: switch the screen, or open settings on top of it.
 type PageAction = { view: View } | { settings: SettingsState };
@@ -90,10 +90,7 @@ const newId = () => `local-${++localIds}`;
 function actionFor(request: PageRequest, id: string): PageAction {
   switch (request.go) {
     case "start":
-      // No key yet: ask for it first, then carry on with this song.
-      if (!getLastfmKey()) {
-        return { settings: { notice: "Growing a playlist needs a free Last.fm API key. Add yours below, then your Prism starts.", thenStart: request.seed } };
-      }
+      // No key needed: without one of their own, users get Prism's shared key (lastfm/sharedKey.ts).
       return { view: { kind: "prism", seed: request.seed, id } };
     case "settings":
       return { settings: {} };
@@ -351,11 +348,7 @@ export function PrismPage() {
     body = (
       <HomeScreen
         onStart={start}
-        onOrganize={() => {
-          // Remix scans with Last.fm: ask for the key first instead of failing after the picker.
-          const next: View = { kind: "organize", id: newId() };
-          apply(getLastfmKey() ? { view: next } : { settings: { notice: "Remix needs a free Last.fm API key. Add yours below, then Remix starts.", thenView: next } });
-        }}
+        onOrganize={() => apply({ view: { kind: "organize", id: newId() } })}
         onMerge={() => apply({ view: { kind: "merge", id: newId() } })}
         onAddTo={() => apply({ view: { kind: "addto", id: newId() } })}
       />
@@ -452,10 +445,6 @@ export function PrismPage() {
         {settings && !settings.report && (
           <SettingsPanel
             notice={settings.notice}
-            onSaved={() => {
-              if (settings.thenStart) start(settings.thenStart);
-              else if (settings.thenView) apply({ view: settings.thenView });
-            }}
             onReport={(kind) => setSettings({ ...settings, report: kind })}
           />
         )}

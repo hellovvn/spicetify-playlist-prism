@@ -2,14 +2,28 @@
 //
 // LocalStorage is a key/value store inside Spotify that survives restarts.
 // It lives only on this computer: it is never synced, committed to git, or
-// sent anywhere. That's why the Last.fm API key goes here and not in code.
+// sent anywhere. That's why the user's own Last.fm API key goes here and not in code.
 //
 // All our keys start with "prism:" so they can't clash with other extensions.
 
-const LASTFM_KEY = "prism:lastfmKey";
+import { chooseLastfmKey, type KeySource } from "./lastfm/keyChoice";
 
-// Returns the saved key, or null if none has been saved yet.
+const LASTFM_KEY = "prism:lastfmKey";
+// Prism's shared key, a copy of what the relay hands out (src/lastfm/sharedKey.ts).
+const SHARED_LASTFM_KEY = "prism:sharedLastfmKey";
+
+// The key Prism should use: the user's own one, else Prism's shared one (or null).
 export function getLastfmKey(): string | null {
+  return chooseLastfmKey(getOwnLastfmKey(), getSharedLastfmKey())?.key ?? null;
+}
+
+// Whose key getLastfmKey() returns ("own" / "prism"), or null when there's none.
+export function getLastfmKeySource(): KeySource | null {
+  return chooseLastfmKey(getOwnLastfmKey(), getSharedLastfmKey())?.source ?? null;
+}
+
+// The user's own key from Settings, or null if they haven't added one.
+export function getOwnLastfmKey(): string | null {
   const key = Spicetify.LocalStorage.get(LASTFM_KEY);
   // Treat an empty or whitespace-only value the same as "not set".
   return key && key.trim() ? key.trim() : null;
@@ -21,6 +35,15 @@ export function setLastfmKey(key: string): void {
 
 export function clearLastfmKey(): void {
   Spicetify.LocalStorage.remove(LASTFM_KEY);
+}
+
+export function getSharedLastfmKey(): string | null {
+  const key = Spicetify.LocalStorage.get(SHARED_LASTFM_KEY);
+  return key && key.trim() ? key.trim() : null;
+}
+
+export function saveSharedLastfmKey(key: string): void {
+  Spicetify.LocalStorage.set(SHARED_LASTFM_KEY, key.trim());
 }
 
 // ----- Tag cache (see src/scan/tagCache.ts) -----

@@ -6,7 +6,7 @@
 // React calls the function again and updates the screen to match.
 
 import React from "react"; // Spicetify Creator maps this to Spotify's own React
-import { getLastfmKey, setLastfmKey, clearLastfmKey, loadLyricsThemeSetting, saveLyricsThemeSetting, loadPanelStatsSetting, savePanelStatsSetting, loadPlaylistThemeSetting, savePlaylistThemeSetting } from "../storage";
+import { getOwnLastfmKey, setLastfmKey, clearLastfmKey, loadLyricsThemeSetting, saveLyricsThemeSetting, loadPanelStatsSetting, savePanelStatsSetting, loadPlaylistThemeSetting, savePlaylistThemeSetting } from "../storage";
 import { parsePlaylistTheme, PLAYLIST_THEMES, PLAYLIST_THEME_CHANGED_EVENT, type PlaylistThemeId } from "../theme/playlistTheme";
 import { isPanelStatsOn, PANEL_STATS_CHANGED_EVENT } from "./sidePanel";
 import { isLyricsThemeOn, LYRICS_THEME_CHANGED_EVENT } from "./lyricsTheme";
@@ -29,20 +29,20 @@ function CoffeeIcon() {
 }
 
 export interface SettingsPanelProps {
-  // Shown above the form, e.g. "Add your Last.fm key first".
+  // Shown above the form.
   notice?: string;
-  // Called after a key was tested and saved (e.g. to continue a Prism).
-  onSaved?: () => void;
   // Opens "Report a bug" / "Suggest an idea" (ReportScreen.tsx).
   onReport?: (kind: "bug" | "idea") => void;
 }
 
-export function SettingsPanel({ notice, onSaved, onReport }: SettingsPanelProps) {
+export function SettingsPanel({ notice, onReport }: SettingsPanelProps) {
   const { ButtonPrimary, ButtonSecondary } = Spicetify.ReactComponent;
 
   // useState(initial) returns [currentValue, functionToChangeIt].
   // Changing state makes React re-render this component.
-  const [key, setKey] = React.useState<string>(getLastfmKey() ?? "");
+  const [key, setKey] = React.useState<string>(getOwnLastfmKey() ?? "");
+  // Whether the user's own key is saved (else Prism's shared key is used).
+  const [hasOwnKey, setHasOwnKey] = React.useState<boolean>(getOwnLastfmKey() !== null);
   const [status, setStatus] = React.useState<string>("");
   const [busy, setBusy] = React.useState<boolean>(false);
   // The lyrics switch: saved straight away, and an event tells the always-on
@@ -87,15 +87,16 @@ export function SettingsPanel({ notice, onSaved, onReport }: SettingsPanelProps)
       return;
     }
     setLastfmKey(trimmed);
+    setHasOwnKey(true);
     setStatus("Key works and is saved.");
     Spicetify.showNotification("Prism: Last.fm key saved");
-    onSaved?.();
   }
 
   function onClear() {
     clearLastfmKey();
     setKey("");
-    setStatus("Key removed.");
+    setHasOwnKey(false);
+    setStatus("Key removed. Prism's shared key is used again.");
   }
 
   return (
@@ -106,13 +107,18 @@ export function SettingsPanel({ notice, onSaved, onReport }: SettingsPanelProps)
           {notice}
         </p>
       )}
-      <p style={{ color: "var(--spice-subtext)", fontSize: 13 }}>
-        The key is stored only in Spotify on this computer. It is never added to the code or git.
+      <p>
+        Prism uses Last.fm for song-level genre and mood tags. It works straight away with Prism's shared
+        Last.fm key, so you don't need to do anything.
+      </p>
+      <p style={{ color: "var(--spice-subtext)", fontSize: 13 }} data-prism="lastfm-key-source">
+        {hasOwnKey ? "Using your own Last.fm key." : "Using Prism's shared Last.fm key."} You can add your own
+        (optional, for example if the shared one is busy). It is stored only in Spotify on this computer.
       </p>
       <input
         type="password" // hides the key on screen, like a password field
         value={key}
-        placeholder="Last.fm API key"
+        placeholder="Your own Last.fm API key (optional)"
         // onChange runs on every keystroke; we copy the input's text into state.
         onChange={(event) => setKey(event.target.value)}
         className="prism-glass-input"
@@ -129,10 +135,11 @@ export function SettingsPanel({ notice, onSaved, onReport }: SettingsPanelProps)
         <p style={{ margin: 0 }}>2. Paste the "API key" (not the "Shared secret") in the box above</p>
         <p style={{ margin: 0 }}>3. Click Test & save</p>
         <p style={{ color: "var(--spice-subtext)", fontSize: 13, margin: "4px 0 0" }}>
-          Prism uses Last.fm for song-level genre and mood tags. New to this?{" "}
+          Want your own key? Here's a{" "}
           <a href={LASTFM_KEY_GUIDE_URL} target="_blank" rel="noreferrer" data-prism="lastfm-key-guide" style={{ color: "inherit", textDecoration: "underline" }}>
-            Step-by-step guide
+            step-by-step guide
           </a>
+          .
         </p>
       </div>
       <div className="prism-actions" style={{ display: "flex", gap: 8 }}>

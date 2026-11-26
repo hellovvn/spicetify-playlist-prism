@@ -112,13 +112,23 @@ Since step 12a this is a Spicetify CUSTOM APP (src/settings.json has an "icon"),
   Support section. Payments go through a PayPal business account (developer's own setup). A plain link only: never load Ko-fi's widget/overlay script inside Spotify.
 
 ## Secrets
-- The Last.fm API key is entered by the user in a settings field and stored in
-  `Spicetify.LocalStorage` (key `prism:lastfmKey`). Never hardcode it or commit it.
-- KEY ERRORS (2026-11-26): `src/lastfm/keyErrors.ts` (pure, tests/keyErrors.test.ts) gives
-  missing (our code -1), invalid (10) and suspended (26) keys their own message pointing to
-  Prism settings; friendlyError uses it. Grow and Remix ask for the key BEFORE starting
-  (Settings notice, then carry on); Add with Prism says so when the song isn't cached. Settings
-  links to the README's "Getting a Last.fm API key" guide (LASTFM_KEY_GUIDE_URL).
+- Last.fm key (decided 2026-11-26, developer's pick): Prism works WITHOUT a key of the
+  user's own. Order (`chooseLastfmKey` in `src/lastfm/keyChoice.ts`, tested):
+  1. the user's OWN key from Settings (optional), `prism:lastfmKey`;
+  2. Prism's SHARED key: a read-only Last.fm app key registered as "Prism", handed out by the
+     relay (`GET /lastfm-key`, Worker secret `LASTFM_APP_KEY`) and copied into
+     `prism:sharedLastfmKey` (`src/lastfm/sharedKey.ts`: asked once per Spotify start by the
+     always-on script; the page waits for it only when there's no key at all yet).
+  Last.fm's limit is per IP, so one shared key is fine; Prism calls Last.fm directly (the relay
+  never forwards Last.fm calls). Swap a suspended key: new Last.fm app, `npx wrangler secret
+  put LASTFM_APP_KEY`, users get it at their next restart. Never hardcode or commit either key
+  (the developer's personal key included); reports scrub both.
+- KEY ERRORS (2026-11-26, PR #39, adapted for the shared key): `src/lastfm/keyErrors.ts` (pure,
+  tests/keyErrors.test.ts). No key at all (our code -1) = the shared key couldn't be fetched;
+  invalid (10) / suspended (26) get a message by whose key it was (`keyProblemMessage(error,
+  getLastfmKeySource())`): the user's own -> fix it in Settings; Prism's shared -> try later or
+  add your own. Nothing asks for a key before starting any more. Settings links to the README's
+  "Getting a Last.fm API key" guide (LASTFM_KEY_GUIDE_URL), now framed as optional.
 
 ## Code layout
 - `src/app.tsx` (page entry), `src/ui/PrismPage.tsx` (the page), `src/extensions/prism.tsx`

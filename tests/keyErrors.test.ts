@@ -15,10 +15,19 @@ describe("Last.fm key problems", () => {
     const missing = keyProblemMessage(noKeyError())!;
     const invalid = keyProblemMessage(new LastfmError(10, "Invalid API key"))!;
     const suspended = keyProblemMessage(new LastfmError(26, "Suspended"))!;
-    expect(missing).toMatch(/needs a free Last\.fm API key/);
+    expect(missing).toMatch(/shared Last\.fm access/);
     expect(invalid).toMatch(/Shared secret/);
     expect(suspended).toMatch(/suspended/);
     for (const message of [missing, invalid, suspended]) expect(message).toMatch(/Prism settings/);
+  });
+
+  it("doesn't blame the user for Prism's shared key", () => {
+    for (const code of [10, 26]) {
+      const message = keyProblemMessage(new LastfmError(code, "x"), "prism")!;
+      expect(message).toMatch(/Prism's shared Last\.fm access isn't working/);
+      expect(message).not.toMatch(/your API key/);
+    }
+    expect(keyProblemMessage(new LastfmError(29, "Rate limit"), "prism")).toBeNull();
   });
 
   it("returns null for other errors", () => {

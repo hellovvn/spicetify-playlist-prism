@@ -14,7 +14,7 @@ import { openPage } from "../nav";
 import { isKeyProblem } from "../lastfm/keyErrors";
 
 // Short enough for the menu; clicking it opens the Prism page, which shows the full message.
-const KEY_MENU_LINE = "Needs a Last.fm API key: see Prism page";
+const KEY_MENU_LINE = "Last.fm access problem: see Prism page";
 import { LOG_PREFIX } from "../log";
 
 const SLOTS = 5;

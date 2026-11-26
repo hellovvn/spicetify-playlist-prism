@@ -1,11 +1,13 @@
 // Last.fm API key problems: missing, invalid or suspended. Pure, so the
 // messages are unit-tested (tests/keyErrors.test.ts).
 import { LastfmError } from "./client";
+import type { KeySource } from "./keyChoice";
 
 // The step-by-step guide in the README ("Getting a Last.fm API key").
 export const LASTFM_KEY_GUIDE_URL = "https://github.com/hellovvn/spicetify-prism#getting-a-lastfm-api-key";
 
-// Our own code for "no key saved" (Last.fm's codes are all positive).
+// Our own code for "no key at all": no own key, and Prism's shared key couldn't be
+// fetched yet (offline or relay down on the first start). Last.fm's codes are all positive.
 export const NO_KEY = -1;
 export const INVALID_KEY = 10;
 export const SUSPENDED_KEY = 26;
@@ -20,10 +22,16 @@ export const isKeyProblem = (error: unknown): boolean =>
 const WHERE = "Prism settings (Settings on the Prism page, or Spotify's profile menu > Prism settings)";
 
 // A message the user can act on, or null when it isn't a key problem.
-export function keyProblemMessage(error: unknown): string | null {
+// source = whose key was in use (storage.getLastfmKeySource): the user's own, or
+// Prism's shared one. Only the user's own key is theirs to fix.
+export function keyProblemMessage(error: unknown, source: KeySource | null = "own"): string | null {
   if (!(error instanceof LastfmError)) return null;
   if (error.code === NO_KEY) {
-    return `This needs a free Last.fm API key. Add one in ${WHERE}: there's a short guide there on how to get one.`;
+    return `Couldn't get Prism's shared Last.fm access (are you online?). Try again, or add your own free Last.fm API key in ${WHERE}.`;
+  }
+  if (!isKeyProblem(error)) return null;
+  if (source === "prism") {
+    return `Prism's shared Last.fm access isn't working right now. Try again later, or add your own free Last.fm API key in ${WHERE}.`;
   }
   if (error.code === INVALID_KEY) {
     return `Last.fm doesn't accept your API key. Paste it again in ${WHERE}, and make sure it's the "API key", not the "Shared secret".`;
