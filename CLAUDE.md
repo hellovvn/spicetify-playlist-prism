@@ -76,6 +76,7 @@ spicetify apply        # apply after first build or config changes
 npm test               # unit tests (Vitest, tests/*.test.ts, no Spotify needed)
 npm run smoke          # in-Spotify smoke test via debug port 9222 (needs spicetify watch -e)
 npm run release        # PUBLIC build: release/prism + release/prism-<version>.zip, no debug hook
+npm run site           # guide website: site/pages/*.md -> site-dist/ (GitHub Pages)
 ```
 Since step 12a this is a Spicetify CUSTOM APP (src/settings.json has an "icon"), not an extension:
 - `src/app.tsx` = the page at `/prism`. Spicetify adds its header icon automatically
@@ -813,7 +814,12 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   Spicetify's stable classes: tabs `.marketplace-tabBar-headerItemLink` (glass; active =
   gradient), `.marketplace-header` cleared, its Dropdown/search/icon button = glass, cards
   `.main-card-card[class*="marketplace-card"]` (classes are --extension/--theme/...) =
-  lavender glass, `.marketplace-installButton` = the pastel gradient.
+  lavender glass, `.marketplace-installButton` = the pastel gradient. README pages
+  (/marketplace/readme, 2026-11-26): `.marketplace-readme__container` (--spice-main #121212)
+  = lavender glass; `#marketplace-readme` gets Prism values for Marketplace's water.css
+  variables (--background(-body/-alt), --border, --text-main, --links, --code...) and
+  --spice-button-disabled (its table lines). Opening /marketplace/readme by History.push with a
+  hand-made state crashed the main view: open it by clicking the card in the Apps tab.
   With this, every Spotify page in the sweep shows no Spotify green/grey/blue.
   SIDEWAYS SHELVES (developer spotted on Home, 2026-11-25): the edge "black shadow" is
   `.search-searchCategory-contentArea::before/::after` (#121212 at 70%) -> deep purple
@@ -859,6 +865,16 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   says: download the release zip, unzip into CustomApps, `spicetify config custom_apps prism`,
   apply. So every user-facing change needs a NEW GitHub Release (bump package.json version, run
   `npm run release`, attach the zip) or users never get it.
+  GUIDE SITE (2026-11-26, developer's pick "E1, sidebar guide" + banner across the top of every
+  page): the README was cut to ~95 lines (banner, hero clip, feature table, install, Last.fm key,
+  support); the full docs live at https://hellovvn.github.io/spicetify-prism/. Pages are Markdown
+  in `site/pages/` (first line `<!-- description: ... -->`), sidebar order = NAV in
+  `scripts/site.mjs` (a page missing from NAV fails the build), look = `site/template.html` +
+  `site/style.css` (twilight glass; on phones the sidebar is one swipeable pill row). Clips come
+  from docs/media. `.github/workflows/site.yml` builds it on PRs and deploys on main (Pages source
+  must be "GitHub Actions"). The Marketplace shows README.md (manifest "readme"), NOT the site, so
+  the README keeps install steps. Settings' LASTFM_KEY_GUIDE_URL still points at the README's
+  "Getting a Last.fm API key" heading (kept for that). Feature changes: update the site page too.
   INSTALL SCRIPT (2026-11-26): `install.ps1` (repo root, README's one-liner `iwr -useb
   https://raw.githubusercontent.com/hellovvn/spicetify-prism/main/install.ps1 | iex`) downloads the
   LATEST release's prism-*.zip, replaces only CustomApps\prism (folder found via `spicetify -c`),

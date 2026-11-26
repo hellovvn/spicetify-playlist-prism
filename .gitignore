@@ -156,3 +156,6 @@ dist/
 relay/.wrangler/
 # Public build made by npm run release (scripts/release.mjs)
 release/
+
+# Guide website build (npm run site)
+site-dist/

@@ -9,12 +9,14 @@
     "watch": "spicetify-creator --watch",
     "test": "vitest run",
     "test:watch": "vitest",
-    "smoke": "node scripts/smoke.mjs"
+    "smoke": "node scripts/smoke.mjs",
+    "site": "node scripts/site.mjs"
   },
   "license": "MIT",
   "devDependencies": {
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "marked": "^16.4.2",
     "spicetify-creator": "^1.0.17",
     "vitest": "^5.1.1"
   }

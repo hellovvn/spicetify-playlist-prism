@@ -9,6 +9,7 @@
 import { mkdir, writeFile, rm, readFile } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 import path from "node:path";
+import { roundCornersFilter } from "./round-clips.mjs"; // webp clips get the banner's rounded corners
 
 const FFMPEG = process.env.FFMPEG || "ffmpeg";
 const OUT_DIR = path.resolve("docs/media");
@@ -129,7 +130,7 @@ async function toGif(name, recorded, crop, width = 800, quality = QUALITY) {
   const out = path.join(OUT_DIR, name + (webp ? ".webp" : ".gif"));
   const vf = `fps=15,crop=${c[0]}:${c[1]}:${c[2]}:${c[3]},scale=${width}:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=112:stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle`;
   const args = webp
-    ? ["-vf", `fps=15,crop=${c[0]}:${c[1]}:${c[2]}:${c[3]},scale=${width}:-1:flags=lanczos`, "-c:v", "libwebp", "-quality", String(quality), "-compression_level", "6", "-preset", "picture"]
+    ? ["-vf", `fps=15,crop=${c[0]}:${c[1]}:${c[2]}:${c[3]},scale=${width}:-1:flags=lanczos,${roundCornersFilter(width)}`, "-c:v", "libwebp", "-quality", String(quality), "-compression_level", "6", "-preset", "picture", "-pix_fmt", "yuva420p"]
     : ["-vf", vf];
   execFileSync(FFMPEG, ["-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", path.join(dir, "list.txt"), ...args, "-loop", "0", out]);
   if (!process.argv.includes("--keep-frames")) await rm(dir, { recursive: true, force: true });

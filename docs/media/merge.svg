@@ -34,7 +34,9 @@
       @keyframes tw    { 0%,100% { opacity: .2; transform: scale(.6) } 50% { opacity: 1; transform: scale(1) } }
       @media (prefers-reduced-motion: reduce) { * { animation: none !important; } .j, .lab2 { opacity: 0; } }
     </style>
+    <clipPath id="round"><rect width="800" height="640" rx="18"/></clipPath>
   </defs>
+  <g clip-path="url(#round)">
 
   <rect width="800" height="640" fill="url(#sky)"/>
   <rect width="800" height="640" fill="url(#haze)"/>
@@ -83,5 +85,6 @@
       <text x="400" y="510" fill="#efe9ff" font-size="28" font-weight="600">A + B · 84 songs</text>
       <text x="400" y="544" fill="#c9b9f0" font-size="20">8 doubles dropped</text>
     </g>
+  </g>
   </g>
 </svg>
