@@ -40,16 +40,17 @@ function RailIcon({ d }: { d: string[] }) {
 }
 
 // The Settings sections, in rail order (layout "B, side rail", developer's pick 2026-11-26).
-export type SettingsSection = "look" | "lastfm" | "feedback" | "about";
+export type SettingsSection = "theme" | "look" | "lastfm" | "feedback" | "about";
 const SECTIONS: { id: SettingsSection; label: string; icon: string[] }[] = [
-  { id: "look", label: "Look", icon: ["M12 21a9 9 0 1 1 9-9c0 2-1.5 3-3 3h-2a2 2 0 0 0-1 3.7A1.5 1.5 0 0 1 12 21z", "M7.5 10.5h.01M12 7.5h.01M16.5 10.5h.01"] },
+  { id: "theme", label: "Theme", icon: ["M12 21a9 9 0 1 1 9-9c0 2-1.5 3-3 3h-2a2 2 0 0 0-1 3.7A1.5 1.5 0 0 1 12 21z", "M7.5 10.5h.01M12 7.5h.01M16.5 10.5h.01"] },
+  { id: "look", label: "Look", icon: ["M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z", "M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"] },
   { id: "lastfm", label: "Last.fm", icon: ["M3 12V4h8l9 9-8 8z", "M7.5 8h.01"] },
   { id: "feedback", label: "Feedback", icon: ["M4 5h16v11H9l-5 4z"] },
   { id: "about", label: "About", icon: ["M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z", "M12 11v5M12 8h.01"] },
 ];
 // Remembered while Spotify runs, so coming back from the report form (or
 // reopening Settings) lands on the same section.
-let lastSection: SettingsSection = "look";
+let lastSection: SettingsSection = "theme";
 
 export interface SettingsPanelProps {
   // Shown above the form.
@@ -186,7 +187,7 @@ export function SettingsPanel({ notice, onReport }: SettingsPanelProps) {
           data-prism={`settings-section-${section}`}
           key={section}
         >
-          {section === "look" && (
+          {section === "theme" && (
             <>
               <h3 className="prism-heading">Playlist theme</h3>
               <span style={{ fontSize: 13, fontWeight: 600 }} id="prism-playlist-theme-label">
@@ -206,8 +207,12 @@ export function SettingsPanel({ notice, onReport }: SettingsPanelProps) {
                 genre's colour) and a genre mix under the title. Genres come from songs Prism has already scanned. No theme:
                 playlists look as Spotify makes them. Playlists themselves are never changed.
               </p>
+            </>
+          )}
 
-              <h3 className="prism-heading" style={{ margin: "12px 0 0" }}>Lyrics</h3>
+          {section === "look" && (
+            <>
+              <h3 className="prism-heading">Lyrics</h3>
               <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                 <span style={{ fontSize: 13, fontWeight: 600 }} id="prism-lyrics-label">
                   Prism look for lyrics

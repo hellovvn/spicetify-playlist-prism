@@ -126,7 +126,7 @@ it. The rules for changing or adding elements are in CLAUDE.md under "UI element
 - 2026-11-25: NEW Spotify toast look "night + rainbow line" (look "A"), same as the tooltips; error toasts pink instead of red.
 - 2026-11-25: Side panel numbers card = layout "B" (tone fit as the Score ring beside a 2x2 grid); before, a centred 2x2 grid with the tone fit as a 5th cell spanning the row.
 - 2026-11-25: NEW Spotify tooltip look "night + rainbow line" (mockup "D"). Left panel's round icon buttons (Expand Your Library) hover in Quiet night purple instead of Spotify's grey.
-- 2026-11-26: NEW Settings side rail (layout "B"); Settings is split into Look / Last.fm / Feedback / About.
+- 2026-11-26: NEW Settings side rail (layout "B"); Settings is split into Theme / Look / Last.fm / Feedback / About (Theme got its own section so no section is taller than the other screens and the header never moves).
 - 2026-11-25: NEW side-panel tabs (mockup "B"); side-panel stats now show on every playlist (estimate + background scan for playlists Prism didn't make).
 - 2026-11-25: Settings got an "About" section (option "A" of four): the Last.fm credit and link required by Last.fm's API terms, built from the existing section heading + body/small text (no new element). Under it, a "Support Prism" glass button linking to Ko-fi (option "A" of four; existing glass button, no new element).
 - 2026-11-25: Theme preview strip: the edge was ragged (the sky's moving layers slipped past the rounded corners). Now clipped with clip-path and the rim drawn on top (::after), so it's one even line. Same look otherwise.
