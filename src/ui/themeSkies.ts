@@ -118,7 +118,7 @@ export function newSkyHtml(theme: NewSkyTheme, width: number, scale: number): { 
     // in one tilted strip, positioned in % along it.
     const bandHeight = px(240);
     let band =
-      `<span class="prism-pl-breathe" style="left:0;width:100%;top:20%;height:60%;background:radial-gradient(ellipse at center,rgba(190,175,255,.38),rgba(150,135,225,.16) 45%,transparent 72%);filter:blur(${px(12)}px);--d:12s"></span>` +
+      `<span class="prism-pl-breathe" style="left:0;width:100%;top:20%;height:60%;--d:12s"><span class="prism-still" style="background:radial-gradient(ellipse at center,rgba(190,175,255,.38),rgba(150,135,225,.16) 45%,transparent 72%);filter:blur(${px(12)}px)"></span></span>` +
       `<span style="left:30%;width:40%;top:30%;height:40%;background:radial-gradient(ellipse at center,rgba(255,225,200,.42),rgba(255,200,220,.16) 50%,transparent 75%);filter:blur(${px(10)}px)"></span>`;
     const WISPS = ["rgba(255,170,215,.26)", "rgba(150,200,255,.24)", "rgba(220,190,255,.26)", "rgba(255,210,190,.2)"];
     for (let i = 0; i < 9; i++) {
@@ -179,13 +179,13 @@ export function newSkyHtml(theme: NewSkyTheme, width: number, scale: number): { 
     // Blurred, dark branch shadows reaching in from the top corners, behind
     // the blossoms, gently swaying (2026-11-25, developer's request).
     html +=
-      `<span class="prism-pl-branches" style="left:0;top:0;width:100%;height:${px(200)}px;filter:blur(${px(3)}px)">` +
+      `<span class="prism-pl-branches" style="left:0;top:0;width:100%;height:${px(200)}px"><span class="prism-still" style="filter:blur(${px(3)}px)">` +
       `<svg viewBox="0 0 680 200" preserveAspectRatio="none" style="width:100%;height:100%"><g fill="none" stroke="rgba(38,14,40,.55)" stroke-linecap="round">` +
       `<path d="M-10 20 C80 40 150 30 230 70 S330 110 380 95" stroke-width="9"/><path d="M120 38 C140 70 170 90 160 130" stroke-width="5"/>` +
       `<path d="M230 70 C250 40 290 25 320 30" stroke-width="4"/><path d="M300 100 C310 130 300 150 315 175" stroke-width="3"/>` +
       `<path d="M690 10 C610 30 560 70 480 80 S400 70 360 50" stroke-width="8"/><path d="M560 62 C570 95 600 115 590 150" stroke-width="4"/>` +
       `<path d="M480 80 C470 110 440 125 430 160" stroke-width="3.5"/><path d="M420 72 C400 40 380 20 350 15" stroke-width="3"/>` +
-      `</g></svg></span>`;
+      `</g></svg></span></span>`;
     // The canopy: soft, slightly blurred PETALS (not round blobs; 2026-11-25,
     // developer's request), each turned its own way, swaying.
     for (let i = 0; i < n(90); i++) {
@@ -199,7 +199,8 @@ export function newSkyHtml(theme: NewSkyTheme, width: number, scale: number): { 
     const petal = (w: number, blur: number, opacity: number, drift: number, minD: number, maxD: number) => {
       const shape = pick(PETAL_SHAPES);
       const h = w * (shape === "notched" ? 1.15 : 0.66);
-      return `<span class="prism-pl-petal is-${shape}" style="left:${f1(rand(0, 95))}%;top:${f1(rand(-4, 10))}%;width:${f1(w)}px;height:${f1(h)}px;background:${pick(PETALS)};${blur ? `filter:blur(${f1(blur)}px);` : ""}--o:${opacity};--x:${Math.round(rand(-drift, drift * 1.5))}px;--rot:${Math.round(rand(200, 480))}deg;${timing(minD, maxD)}"></span>`;
+      const colour = pick(PETALS);
+      return `<span class="prism-pl-petal is-${shape}" style="left:${f1(rand(0, 95))}%;top:${f1(rand(-4, 10))}%;width:${f1(w)}px;height:${f1(h)}px;${blur ? "" : `background:${colour};`}--o:${opacity};--x:${Math.round(rand(-drift, drift * 1.5))}px;--rot:${Math.round(rand(200, 480))}deg;${timing(minD, maxD)}">${blur ? `<span class="prism-still" style="background:${colour};filter:blur(${f1(blur)}px)"></span>` : ""}</span>`;
     };
     for (let i = 0; i < n(14); i++) html += petal(rand(4, 6), 0, 0.55, 30, 18, 28);
     for (let i = 0; i < n(12); i++) html += petal(rand(8, 11), 0, 0.9, 50, 12, 20);

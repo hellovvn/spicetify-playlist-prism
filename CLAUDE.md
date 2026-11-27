@@ -992,6 +992,23 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   pushed (merged into main), stop `spicetify watch -a` / `spicetify watch -e` (and any
   `npm run watch`) that this chat started, so no stray watcher blocks the next chat's build.
 - `window.__prism` debug hook is dev-only (src/buildFlags.ts); release zips never include it.
+- PERFORMANCE (measured 2026-11-27 over CDP): Prism's JavaScript is ~1% of the main thread; the
+  lag is the GRAPHICS CARD redrawing the skies. Rule: never put `filter: blur()`/`drop-shadow()`
+  on an ANIMATED element (it's redone every frame: Northern lights' 80 rays ran at ~10 fps). Put
+  the colour + filter on a still child `<span class="prism-still">` (inset 0, border-radius
+  inherit) and animate the parent: same look, the blur is drawn once (Northern lights ~10 -> ~23
+  fps). Masks/clip-paths stay on the parent (they cut the blurred child exactly as before).
+  Measure without touching the user's settings: `__prism.previewSky(theme)` draws a sky in an
+  overlay over the main view (`previewSky(null)` removes it). Still slow: Blossom canopy's ~360
+  swaying petals (count, not blur; ~4 fps). Swaying it in 6 "boughs" was much faster but the
+  developer found it looked weird (2026-11-27): keep each petal swaying on its own.
+  Every RUNNING CSS animation's element gets its style recalculated on each main frame, even
+  when the animation itself runs on the graphics card (Blossom: ~530 elements, ~200 ms/s of
+  main thread). Fewer animated elements = less main-thread work; canvas drawing helps the main
+  thread but not the frame rate.
+  Timers: the side panel only redraws when its content changed (`draw` key in panelHost.tsx),
+  and the playlist page's stuck-header/photo check runs on scroll, resize, theme change and
+  new headers only (`headerNeedsCheck`), not on every update. Idle Prism JS: ~3 ms per 10 s.
 
 ## UI elements (developer's rule, 2026-11-23)
 `docs/ui-elements.md` is the catalogue of every UI element: how to make it, how it looks, how it

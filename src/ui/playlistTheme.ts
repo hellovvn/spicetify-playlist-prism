@@ -64,6 +64,11 @@ const CSS = `
 .Root__main-view[${THEME_ATTR}] { isolation: isolate; background-color: #1a1333 !important; }
 .${SKY_CLASS} { position: absolute; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; border-radius: inherit; }
 .${SKY_CLASS} * { position: absolute; }
+/* A STILL child that carries an animated element's blur (performance,
+   2026-11-27). A blur on the moving element itself is redone by the graphics
+   card on every frame (Northern lights ran at ~10 fps); on a still child it's
+   drawn once and the picture just moves. Same look: same shape, same blur. */
+.${SKY_CLASS} .prism-still { inset: 0; border-radius: inherit; }
 /* Spotify's cover-colour washes (header, action bar, page) go see-through. */
 [${THEME_ATTR}] .main-entityHeader-backgroundColor,
 [${THEME_ATTR}] .playlist-playlist-actionBarBackground-background,
@@ -485,7 +490,7 @@ ${RING_ANGLE_PROPERTY}
 }
 @keyframes prism-pl-sparkle { 0%, 100% { opacity: 0; transform: scale(0.2) rotate(0); } 50% { opacity: 1; transform: scale(1) rotate(45deg); } }
 /* Bubble nebula */
-.prism-pl-cloud { border-radius: 50%; filter: blur(24px); will-change: transform; animation: prism-pl-cloud var(--d) var(--l) ease-in-out infinite; }
+.prism-pl-cloud { border-radius: 50%; will-change: transform; animation: prism-pl-cloud var(--d) var(--l) ease-in-out infinite; }
 @keyframes prism-pl-cloud { 0%, 100% { transform: translate(0, 0) rotate(0) scale(1); } 50% { transform: translate(30px, -20px) rotate(8deg) scale(1.1); } }
 .prism-pl-bubble { bottom: -50px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.25); will-change: transform; animation: prism-pl-rise var(--d) var(--l) linear infinite; }
 @keyframes prism-pl-rise {
@@ -521,7 +526,7 @@ function starsHtml(count: number, maxSize: number): string {
   for (let i = 0; i < count; i++) {
     const size = rand(5, maxSize).toFixed(1);
     const colour = Math.random() < 0.25 ? pick(PASTELS) : "#fff";
-    html += `<span class="prism-pl-star" style="left:${rand(0, 98).toFixed(1)}%;top:${rand(0, 98).toFixed(1)}%;width:${size}px;height:${size}px;background:${colour};filter:drop-shadow(0 0 4px ${colour});${timing(2.5, 5.5)}"></span>`;
+    html += `<span class="prism-pl-star" style="left:${rand(0, 98).toFixed(1)}%;top:${rand(0, 98).toFixed(1)}%;width:${size}px;height:${size}px;${timing(2.5, 5.5)}"><span class="prism-still" style="background:${colour};filter:drop-shadow(0 0 4px ${colour})"></span></span>`;
   }
   return html;
 }
@@ -537,8 +542,8 @@ function curtainHtml(baseY: number, amplitude: number, phase: number, topColour:
     const height = rand(14, 26);
     const width = (110 / count) * rand(1, 2);
     rays +=
-      `<span class="prism-pl-ray" style="left:${x.toFixed(1)}%;top:${(y - height).toFixed(1)}%;height:${height.toFixed(1)}%;width:${width.toFixed(2)}%;` +
-      `background:linear-gradient(0deg,transparent 0,#8ff7cf 10%,#6fe6c0aa 35%,${topColour}66 70%,transparent);filter:blur(${blur}px);${timing(3, 7)}"></span>`;
+      `<span class="prism-pl-ray" style="left:${x.toFixed(1)}%;top:${(y - height).toFixed(1)}%;height:${height.toFixed(1)}%;width:${width.toFixed(2)}%;${timing(3, 7)}">` +
+      `<span class="prism-still" style="background:linear-gradient(0deg,transparent 0,#8ff7cf 10%,#6fe6c0aa 35%,${topColour}66 70%,transparent);filter:blur(${blur}px)"></span></span>`;
   }
   return `<div class="prism-pl-curtain" style="opacity:${opacity};--d:${swaySeconds}s">${rays}</div>`;
 }
@@ -554,7 +559,7 @@ function skyHtml(theme: PlaylistThemeId, width: number, scale: number): { backgr
       background: "linear-gradient(180deg, #0f0d28, #171338 50%, #1b1335)",
       html:
         dotsHtml(n(50)) +
-        `<div style="left:-10%;right:-10%;top:8%;height:200px;background:radial-gradient(ellipse at 50% 60%,#7ff5c833,transparent 65%);filter:blur(30px);animation:prism-pl-breathe 8s ease-in-out infinite"></div>` +
+        `<div style="left:-10%;right:-10%;top:8%;height:200px;animation:prism-pl-breathe 8s ease-in-out infinite"><div class="prism-still" style="background:radial-gradient(ellipse at 50% 60%,#7ff5c833,transparent 65%);filter:blur(30px)"></div></div>` +
         // The lights slowly drift through other colours (green -> teal/blue ->
         // violet/pink and back, ~70 s; developer's request 2026-11-25).
         `<div class="prism-pl-aurora-hue">` +
@@ -577,7 +582,7 @@ function skyHtml(theme: PlaylistThemeId, width: number, scale: number): { backgr
   ];
   let html = clouds
     .map(([c, x, y, size, d]) => [c, x, y, Math.round((size / 680) * width), d] as const)
-    .map(([c, x, y, size, d], i) => `<span class="prism-pl-cloud" style="left:${x}%;top:${y}%;width:${size}px;height:${Math.round(size * 0.7)}px;background:radial-gradient(ellipse at 40% 45%,${c}88,${c}33 45%,transparent 70%);--d:${d}s;--l:${-i * 4}s"></span>`)
+    .map(([c, x, y, size, d], i) => `<span class="prism-pl-cloud" style="left:${x}%;top:${y}%;width:${size}px;height:${Math.round(size * 0.7)}px;--d:${d}s;--l:${-i * 4}s"><span class="prism-still" style="background:radial-gradient(ellipse at 40% 45%,${c}88,${c}33 45%,transparent 70%);filter:blur(24px)"></span></span>`)
     .join("");
   html += `<span style="left:30%;top:10%;width:${Math.round((280 / 680) * width)}px;height:${Math.round((120 / 680) * width)}px;background:radial-gradient(ellipse,rgba(255,255,255,.18),transparent 70%);filter:blur(14px);transform:rotate(-20deg)"></span>`;
   html += dotsHtml(n(45)) + starsHtml(n(5), 12);
@@ -719,9 +724,9 @@ export function startPlaylistTheme(): void {
 
   const update = () => {
     scheduled = false;
-    scheduleHeader();
     const main = document.querySelector(".Root__main-view");
     const path = Spicetify.Platform.History.location?.pathname;
+    if (headerNeedsCheck(main, path)) scheduleHeader();
     const kind = pageKindFor(path, !!main?.querySelector(ERROR_PAGE_SELECTOR));
     if (path !== lastPath) {
       lastPath = path;
@@ -864,6 +869,23 @@ export function startPlaylistTheme(): void {
     requestAnimationFrame(updateHeader);
   };
   document.addEventListener("scroll", scheduleHeader, { capture: true, passive: true });
+  window.addEventListener("resize", scheduleHeader);
+  // Besides scrolling, the check is only needed when the page changed or
+  // Spotify drew a new header or photo. (It measures the page, which makes the
+  // browser work out the layout: running it on every update, every 1.5 s and
+  // on each change Spotify makes, was wasted work; performance, 2026-11-27.)
+  let checkedPath: string | undefined;
+  const checkedElements = new WeakSet<Element>();
+  const headerNeedsCheck = (main: Element | null, path: string | undefined) => {
+    if (!main) return false;
+    const found = [...main.querySelectorAll(`.main-trackList-trackListHeader, .before-scroll-node > div:has([data-testid="background-image"])`)];
+    const changed = path !== checkedPath || found.some((el) => !checkedElements.has(el));
+    if (changed) {
+      checkedPath = path;
+      found.forEach((el) => checkedElements.add(el));
+    }
+    return changed;
+  };
 
   // Many changes come at once while Spotify draws or scrolls: handle them
   // together on the next frame.
@@ -914,6 +936,7 @@ export function startPlaylistTheme(): void {
     mainTheme = parsePlaylistTheme(loadPlaylistThemeSetting());
     overrides = parseThemeOverrides(loadPlaylistThemeOverrides());
     schedule();
+    scheduleHeader(); // theme on/off changes whether the photo is moved
   });
   window.setInterval(() => {
     watchMainView(); // Spotify may rebuild its main view

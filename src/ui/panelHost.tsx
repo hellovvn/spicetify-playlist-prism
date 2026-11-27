@@ -121,8 +121,31 @@ export function startPanelStats(): void {
     if (collapsed && !peek) return null;
     const uri = playlistUriFromPath(Spicetify.Platform.History.location.pathname);
     if (!isPanelStatsOn(loadPanelStatsSetting()) || !uri || !sidebar || !showingNowPlaying) return null;
-    return { sidebar, peek, uri, saved: parseRecords(loadPlaylistRecordsText())[uri] ?? null };
+    return { sidebar, peek, uri, saved: savedRecord(uri) };
   };
+  // The saved records, parsed again only when their text changed (decide()
+  // runs every 1.5 s, and the same record object lets draw() skip redraws).
+  let recordsText: string | null | undefined;
+  let records: ReturnType<typeof parseRecords> = {};
+  const savedRecord = (uri: string) => {
+    const text = loadPlaylistRecordsText();
+    if (text !== recordsText) {
+      recordsText = text;
+      records = parseRecords(text);
+    }
+    return records[uri] ?? null;
+  };
+
+  // Draws the panel only when something on it changed. update() runs every
+  // 1.5 s and on many events; redrawing each time made React rebuild the
+  // whole panel for nothing (performance, 2026-11-27).
+  let lastDraw: unknown[] | null = null;
+  const draw = (key: unknown[], element: React.ReactNode) => {
+    if (lastDraw && key.length === lastDraw.length && key.every((part, i) => part === lastDraw![i])) return;
+    lastDraw = key;
+    root.render(element);
+  };
+  const nowPlayingKey = (song: NowPlaying | null) => (song ? `${song.name}|${song.artists}|${song.image}` : "");
   // Where the host goes: over the whole panel, or (collapsed) inside the
   // peek box at the panel's full width, clipped by Spotify to the sliver.
   const OPEN_STYLE = "position:absolute;inset:0;";
@@ -177,8 +200,10 @@ export function startPanelStats(): void {
     }
     if (strip.parentElement !== sidebar) sidebar.appendChild(strip);
     sidebar.setAttribute("data-prism-tabs-strip", "");
-    stripRoot.render(tabs("spotify"));
+    if (!stripDrawn) stripRoot.render(tabs("spotify")); // the same every time: draw once
+    stripDrawn = true;
   };
+  let stripDrawn = false;
   const hideStrip = () => {
     strip.remove();
     document.querySelectorAll("[data-prism-tabs-strip]").forEach((el) => el.removeAttribute("data-prism-tabs-strip"));
@@ -200,22 +225,25 @@ export function startPanelStats(): void {
     if (!show.peek) rememberWidth(show.sidebar);
     shownUri = show.uri;
     const openStats = () => openPage({ go: "stats", playlist: show.uri });
+    const song = nowPlaying();
     if (show.saved) {
       stopJob();
-      root.render(
-        <PanelStats record={show.saved} nowPlaying={nowPlaying()} onOpenStats={openStats} loadExtras={loadPlaylistExtras} loadToneFit={loadToneFit} tabs={tabs("prism")} />
+      draw(
+        ["saved", show.uri, show.saved, nowPlayingKey(song)],
+        <PanelStats record={show.saved} nowPlaying={song} onOpenStats={openStats} loadExtras={loadPlaylistExtras} loadToneFit={loadToneFit} tabs={tabs("prism")} />
       );
       return;
     }
     const current = ensureJob(show.uri);
     if (current.state && current.state.record.songCount === 0) {
-      root.render(<PanelWaiting tabs={tabs("prism")} message="No songs here to make stats from (only podcasts, audiobooks or local files)." />);
+      draw(["empty", show.uri], <PanelWaiting tabs={tabs("prism")} message="No songs here to make stats from (only podcasts, audiobooks or local files)." />);
     } else if (current.state) {
-      root.render(
+      draw(
+        ["estimate", show.uri, current.state, current.state.scanning, nowPlayingKey(song)],
         <PanelStats
           record={current.state.record}
           scanning={current.state.scanning}
-          nowPlaying={nowPlaying()}
+          nowPlaying={song}
           onOpenStats={openStats}
           loadExtras={loadPlaylistExtras}
           loadToneFit={loadToneFit}
@@ -223,7 +251,8 @@ export function startPanelStats(): void {
         />
       );
     } else {
-      root.render(
+      draw(
+        ["waiting", show.uri, current.failed],
         <PanelWaiting
           tabs={tabs("prism")}
           message={current.failed ? "Couldn't read this playlist's songs." : "Working out this playlist's stats…"}
@@ -261,6 +290,7 @@ export function startPanelStats(): void {
     if (shownUri !== show.uri) {
       stopJob(); // the last playlist's scan stops here
       root.render(null); // empty until the idle draw below (never another playlist's stats)
+      lastDraw = null;
       shownUri = null;
     }
     updateWhenIdle();
