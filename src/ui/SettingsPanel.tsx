@@ -6,7 +6,8 @@
 // React calls the function again and updates the screen to match.
 
 import React from "react"; // Spicetify Creator maps this to Spotify's own React
-import { getOwnLastfmKey, setLastfmKey, clearLastfmKey, loadLyricsThemeSetting, saveLyricsThemeSetting, loadPanelStatsSetting, savePanelStatsSetting, loadPlaylistThemeSetting, savePlaylistThemeSetting } from "../storage";
+import { getOwnLastfmKey, setLastfmKey, clearLastfmKey, loadLyricsThemeSetting, saveLyricsThemeSetting, loadPanelStatsSetting, savePanelStatsSetting, loadPlaylistThemeSetting, savePlaylistThemeSetting, loadUsageSharingSetting, saveUsageSharingSetting, clearUsageCounts } from "../storage";
+import { isUsageSharingOn } from "../usage/featureCounts";
 import { parsePlaylistTheme, PLAYLIST_THEMES, PLAYLIST_THEME_CHANGED_EVENT, type PlaylistThemeId } from "../theme/playlistTheme";
 import { isPanelStatsOn, PANEL_STATS_CHANGED_EVENT } from "./sidePanel";
 import { isLyricsThemeOn, LYRICS_THEME_CHANGED_EVENT } from "./lyricsTheme";
@@ -106,6 +107,14 @@ export function SettingsPanel({ notice, onReport }: SettingsPanelProps) {
     setPanelOn(on);
     savePanelStatsSetting(on);
     window.dispatchEvent(new Event(PANEL_STATS_CHANGED_EVENT));
+  }
+
+  // Anonymous usage counts (src/usage/featureStats.ts). Off also deletes the counts waiting to be sent.
+  const [usageOn, setUsageOn] = React.useState<boolean>(isUsageSharingOn(loadUsageSharingSetting()));
+  function chooseUsage(on: boolean) {
+    setUsageOn(on);
+    saveUsageSharingSetting(on);
+    if (!on) clearUsageCounts();
   }
 
   // The playlist theme (src/ui/playlistTheme.ts listens for the event).
@@ -322,6 +331,24 @@ export function SettingsPanel({ notice, onReport }: SettingsPanelProps) {
                   </ButtonSecondary>
                 </div>
               )}
+              <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginTop: 8 }}>
+                <span style={{ fontSize: 13, fontWeight: 600 }} id="prism-usage-label">
+                  Share anonymous usage counts
+                </span>
+                <div className="prism-seg" role="group" aria-labelledby="prism-usage-label">
+                  <button type="button" className={usageOn ? "on" : ""} aria-pressed={usageOn} onClick={() => chooseUsage(true)} data-prism="usage-sharing-on">
+                    On
+                  </button>
+                  <button type="button" className={!usageOn ? "on" : ""} aria-pressed={!usageOn} onClick={() => chooseUsage(false)} data-prism="usage-sharing-off">
+                    Off
+                  </button>
+                </div>
+              </div>
+              <p style={sub}>
+                Once a day Prism sends how many times each feature was used (for example "2 Grow playlists, 1 merge"), which
+                settings are on and its version number. Never your songs, playlists, names or Spotify account, and nothing that
+                identifies you. Off: nothing is counted or sent.
+              </p>
             </>
           )}
 

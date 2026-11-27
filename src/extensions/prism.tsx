@@ -40,6 +40,7 @@ import { injectStyles } from "../ui/styles";
 import { addWithPrismState, startAddWithPrism } from "../ui/addWithPrism";
 import { startPlaylistThemeMenu } from "../ui/playlistThemeMenu";
 import { refreshSharedLastfmKey } from "../lastfm/sharedKey";
+import { startUsageSharing } from "../usage/featureStats";
 
 async function main() {
   // This can run before Spotify's UI and the Spicetify APIs are ready.
@@ -51,6 +52,7 @@ async function main() {
   }
 
   void refreshSharedLastfmKey(); // Prism's shared Last.fm key (for users without their own), once per start
+  startUsageSharing(); // anonymous daily feature counts (Settings > Feedback switch, on by default)
   injectHeaderIconStyles(); // hover spin + sparkle on the header diamond
   startLyricsTheme(); // twilight lyrics views + bars kept (Settings switch, on by default)
   injectStyles(); // Prism's styles, also needed by the side-panel stats outside the page

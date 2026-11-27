@@ -16,6 +16,7 @@ import type { TrackInfo } from "./spotify/read";
 import { lastfmFetchers } from "./lastfm/fetchers";
 import { isKeyProblem, keyProblemMessage, noKeyError } from "./lastfm/keyErrors";
 import { LOG_PREFIX } from "./log";
+import { countFeature } from "./usage/countFeature";
 import { ensureLastfmKey } from "./lastfm/sharedKey";
 import {
   getLastfmKeySource,
@@ -391,6 +392,8 @@ export async function createFromPreview(choice: {
   );
   const playlistUri = await createPrismPlaylist(name, trackUris);
   console.log(`${LOG_PREFIX} created ${playlistUri}`);
+  countFeature("grow");
+  if (songs.some((song) => song.newFind)) countFeature("grow_new_finds");
   rememberPlaylist(playlistUri, choice);
   giveGrowTone(playlistUri, choice);
   return playlistUri;
@@ -447,6 +450,7 @@ export async function createOrganizedPlaylist(choice: {
   console.log(`${LOG_PREFIX} organize: creating "${name}" with ${songs.length} songs (from: ${from.join(", ")})`);
   const uri = await createPrismPlaylist(name, songs.map((s) => s.uri));
   console.log(`${LOG_PREFIX} created ${uri}`);
+  countFeature("remix");
   try {
     saveRecord(buildOrganizeRecord({ uri, name, createdAt: Date.now(), labels, from, songs }));
   } catch (error) {
@@ -472,6 +476,7 @@ export async function mergePlaylists(choice: {
     sources.map((s) => ({ uri: s.uri, name: s.name, canRename: s.canRename === true })),
     renameSources
   );
+  countFeature("merge");
   console.log(`${LOG_PREFIX} merged into ${result.uri}; renamed ${result.renamed.length}, not renamed ${result.notRenamed.length}`);
   if (result.renamed.length) window.dispatchEvent(new Event(RECORDS_CHANGED_EVENT)); // the side panel re-checks
   return result;
@@ -483,6 +488,7 @@ export async function mergePlaylists(choice: {
 // tags and moods up in the scan caches, and get BPM/key from Spotify.
 // Nothing is sent to Last.fm.
 export async function loadPlaylistStats(uri: string): Promise<PrismPlaylistRecord> {
+  countFeature("stats");
   const saved = parseRecords(loadPlaylistRecordsText())[uri];
   if (saved) return saved;
   const [name, tracks] = await Promise.all([getPlaylistName(uri), getSourceTracks(uri)]);
@@ -681,6 +687,7 @@ export async function addSongTo(playlist: { uri: string; name: string }, song: {
   const already = hasSong({ uri: playlist.uri, name: playlist.name, songs: tracks.map((t) => ({ ...t, tags: [], audio: null })) }, song);
   await addSongToPlaylist({ uri: playlist.uri, name: source?.name ?? playlist.name, canAdd: source?.canAdd === true, hasSong: already }, song.uri);
   library = null; // the next lookup sees the new song
+  countFeature("add");
   console.log(`${LOG_PREFIX} added ${song.name} to ${playlist.name}`);
 }
 

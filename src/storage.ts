@@ -126,6 +126,33 @@ export function savePanelStatsSetting(on: boolean): void {
   Spicetify.LocalStorage.set(PANEL_STATS_KEY, on ? "on" : "off");
 }
 
+// ----- Anonymous usage counts (see src/usage/featureStats.ts) -----
+// prism:usageSharing: "off" = nothing is counted or sent. Anything else (never set) = on.
+// prism:usageCounts: the counts waiting for the next daily send (src/usage/featureCounts.ts).
+
+const USAGE_SHARING_KEY = "prism:usageSharing";
+const USAGE_COUNTS_KEY = "prism:usageCounts";
+
+export function loadUsageSharingSetting(): string | null {
+  return Spicetify.LocalStorage.get(USAGE_SHARING_KEY);
+}
+
+export function saveUsageSharingSetting(on: boolean): void {
+  Spicetify.LocalStorage.set(USAGE_SHARING_KEY, on ? "on" : "off");
+}
+
+export function loadUsageCountsText(): string | null {
+  return Spicetify.LocalStorage.get(USAGE_COUNTS_KEY);
+}
+
+export function saveUsageCountsText(json: string): void {
+  Spicetify.LocalStorage.set(USAGE_COUNTS_KEY, json);
+}
+
+export function clearUsageCounts(): void {
+  Spicetify.LocalStorage.remove(USAGE_COUNTS_KEY);
+}
+
 // ----- Playlist theme (see src/theme/playlistTheme.ts) -----
 // A PlaylistThemeId (src/theme/playlistTheme.ts), e.g. "nebula". Never set = no theme.
 

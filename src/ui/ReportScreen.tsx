@@ -22,6 +22,7 @@ import {
 import { recentErrors } from "../report/errorLog";
 import { sendReport } from "../report/send";
 import { getOwnLastfmKey, getSharedLastfmKey, loadPlaylistThemeSetting } from "../storage";
+import { countFeature } from "../usage/countFeature";
 import { parsePlaylistTheme, PLAYLIST_THEMES } from "../theme/playlistTheme";
 
 export interface ReportScreenProps {
@@ -73,6 +74,7 @@ export function ReportScreen({ kind, screen, onClose }: ReportScreenProps) {
     setSending(true);
     const result = await sendReport(report);
     setSending(false);
+    if (result.ok) countFeature("report");
     if (result.ok) setSent({ number: result.number, url: result.url });
     else setError(result.error);
   }

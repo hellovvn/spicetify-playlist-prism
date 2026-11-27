@@ -80,6 +80,8 @@ Prism judges every song on its own Last.fm tags, lyrics mood, tempo and key
 ([how songs are matched](https://hellovvn.github.io/spicetify-prism/how-it-works.html)). It only
 writes to Spotify when you click a button that says so, and never deletes playlists or removes songs
 ([what Prism changes](https://hellovvn.github.io/spicetify-prism/what-prism-changes.html)).
+Once a day it sends anonymous usage counts (which features were used, never your songs or names);
+switch that off in Settings > Feedback ([privacy](https://hellovvn.github.io/spicetify-prism/what-prism-changes.html#privacy)).
 
 **Every feature, step by step, with clips: [the Prism guide](https://hellovvn.github.io/spicetify-prism/).**
 
