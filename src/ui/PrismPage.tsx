@@ -281,7 +281,14 @@ export function PrismPage() {
         load={() => loadPlaylistStats(playlist)}
         // Just navigation, like clicking the playlist in the sidebar.
         onOpenPlaylist={(uri) => History.push(`/playlist/${uri.split(":")[2]}`)}
-        onMinimize={isPanelStatsOn(loadPanelStatsSetting()) && readPanelView(document.documentElement) === "prism" ? minimize : undefined}
+        // No morph while the right panel is collapsed (nothing to land in).
+        onMinimize={
+          isPanelStatsOn(loadPanelStatsSetting()) &&
+          readPanelView(document.documentElement) === "prism" &&
+          !document.querySelector(".Root__right-sidebar-collapsed")
+            ? minimize
+            : undefined
+        }
         loadExtras={loadPlaylistExtras}
         loadToneFit={loadToneFit}
         loadCover={getPlaylistCover}
