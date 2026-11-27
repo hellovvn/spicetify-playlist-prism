@@ -61,16 +61,14 @@ const SETTING_LABELS = {
 };
 
 const shared = features.filter((f) => f.sharing > 0);
-console.log("
-Sharing usage counts (people per day; the rest switched it off or haven't sent yet):");
+console.log("\nSharing usage counts (people per day; the rest switched it off or haven't sent yet):");
 for (const f of features.slice(0, Math.min(features.length, 14))) {
   const users = rows.find((r) => r.day === f.day)?.users ?? 0;
   const off = Math.max(0, users - f.sharing);
   console.log(`${f.day}  ${String(users).padStart(4)} users  ${String(f.sharing).padStart(4)} sharing  ~${off} off`);
 }
 if (!shared.length) {
-  console.log("
-No feature counts yet (they start with the Prism release that adds the switch).");
+  console.log("\nNo feature counts yet (they start with the Prism release that adds the switch).");
 } else {
   const sum = (key) => {
     const out = {};
@@ -81,12 +79,10 @@ No feature counts yet (they start with the Prism release that adds the switch)."
   const print = (title, totals, labels, unit) => {
     const entries = Object.entries(totals).sort((a, b) => b[1] - a[1]);
     if (!entries.length) return;
-    console.log(`
-${title}`);
+    console.log(`\n${title}`);
     for (const [k, n] of entries) console.log(`  ${(labels?.[k] ?? k).padEnd(28)} ${String(n).padStart(5)}${unit}`);
   };
-  console.log(`
-Totals over ${rows.length} days (${people} person-days of sharing):`);
+  console.log(`\nTotals over ${rows.length} days (${people} person-days of sharing):`);
   print("Used", sum("counts"), LABELS, "");
   print("Settings (person-days with it on)", sum("settings"), SETTING_LABELS, "");
   print("Main theme (person-days)", sum("themes"), null, "");
