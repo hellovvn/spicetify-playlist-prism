@@ -399,10 +399,16 @@ try {
       await screenshot("source-picker.png");
 
       // Back keeps the chips as they were; Next keeps the ticks.
+      // Back goes through the New finds step (2026-11-26) to the chips.
+      const NEW_STEP = `document.querySelector('[data-prism-state="new-finds"]')`;
       await cdp.evaluate(`[...${SOURCES}.querySelectorAll("button")].find((b) => b.textContent === "Back").click()`);
+      check("Back from the picker returns to the New finds step", await waitFor(`!!${NEW_STEP}`));
+      await cdp.evaluate(`[...${NEW_STEP}.querySelectorAll("button")].find((b) => b.textContent === "Back").click()`);
       await waitFor(READY);
-      check("Back returns to the chips, with 'sexy' still off", (await cdp.evaluate(chipStates))[0] === "false");
+      check("Back again returns to the chips, with 'sexy' still off", (await cdp.evaluate(chipStates))[0] === "false");
       await cdp.evaluate(`${NEXT}.click()`);
+      await waitFor(`!!${NEW_STEP}`);
+      await cdp.evaluate(`document.querySelector('[data-prism="step-new-next"]').click()`);
       await waitFor(`!!${SOURCES}`);
       check(`Next again: ${TEST.name} is still ticked`, JSON.stringify(await cdp.evaluate(tickedNames)) === JSON.stringify([TEST.name]));
 
@@ -462,6 +468,8 @@ try {
   await cdp.evaluate(`window.__prism.startPrism("spotify:track:4PhsKqMdgMEUSstTDAmMpg")`); // Often
   if (await waitFor(READY)) {
     await cdp.evaluate(clickButton("Next"));
+    await waitFor(`!!document.querySelector('[data-prism-state="new-finds"]')`); // New finds step (2026-11-26)
+    await cdp.evaluate(`document.querySelector('[data-prism="step-new-next"]').click()`);
     await waitFor(`!!${SOURCES} && ${rows}.length > 0`);
     await cdp.evaluate(`${ROW(SOURCES)}.click()`);
     await sleep(200);
@@ -525,6 +533,8 @@ try {
   await cdp.evaluate(`window.__prism.startPrism("spotify:track:4PhsKqMdgMEUSstTDAmMpg")`); // Often
   if (await waitFor(READY)) {
     await cdp.evaluate(clickButton("Next"));
+    await waitFor(`!!document.querySelector('[data-prism-state="new-finds"]')`); // New finds step (2026-11-26)
+    await cdp.evaluate(`document.querySelector('[data-prism="step-new-next"]').click()`);
     await waitFor(`!!${SOURCES} && ${rows}.length > 0`);
     await cdp.evaluate(tick("Liked Songs"));
     await sleep(200);
