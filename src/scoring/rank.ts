@@ -38,22 +38,32 @@ export function songKey(song: { name: string; artists: string[] }): string {
 }
 
 export function rankSongs(seed: SeedForRanking, songs: ScannedSong[]): Ranking {
-  const seedKey = songKey(seed);
+  // The seed itself (or another version of it) isn't a candidate:
+  // it goes first in the new playlist anyway.
+  return rankWith((song) => scoreSong(seed, song), songs, { uris: new Set([seed.uri]), keys: new Set([songKey(seed)]) });
+}
+
+// Scores every song with `score` and sorts them. Songs in `exclude` (by URI
+// or "same song" key) are skipped: the seed song, or every song of a seed
+// playlist (they're in the new playlist anyway).
+export function rankWith(
+  score: (song: ScannedSong) => MatchDetails,
+  songs: ScannedSong[],
+  exclude: { uris: Set<string>; keys: Set<string> }
+): Ranking {
   const bestByKey = new Map<string, RankedSong>();
   let noMatch = 0;
 
   for (const song of songs) {
-    // The seed itself (or another version of it) isn't a candidate:
-    // it goes first in the new playlist anyway.
-    if (song.uri === seed.uri || songKey(song) === seedKey) continue;
+    const key = songKey(song);
+    if (exclude.uris.has(song.uri) || exclude.keys.has(key)) continue;
 
-    const match = scoreSong(seed, song);
+    const match = score(song);
     if (match.tagScore === 0) {
       noMatch++;
       continue;
     }
     // Two versions of the same song: keep the better-scoring one.
-    const key = songKey(song);
     const existing = bestByKey.get(key);
     if (!existing || match.score > existing.match.score) bestByKey.set(key, { ...song, match });
   }

@@ -360,9 +360,20 @@ try {
     await cdp.evaluate(`${PANEL}.querySelector('[role="checkbox"]').click()`); // switch "sexy" off
     await sleep(200);
     await cdp.evaluate(`${NEXT}.click()`);
+    // 2026-11-26: the New finds step comes between the seed and the picker.
+    const newStep = await waitFor(`!!document.querySelector('[data-prism-state="new-finds"]')`);
+    check("Next opens the New finds step", newStep);
+    if (newStep) {
+      const chosen = await cdp.evaluate(`document.querySelector('[data-prism="step-new-count"] .on')?.textContent`);
+      info(`New finds count: ${chosen}`);
+      await cdp.evaluate(`document.querySelector('[data-prism="step-new-next"]').click()`);
+    }
     const shown = await waitFor(`!!${SOURCES}`);
     check("Next opens the source picker", shown);
     if (shown) {
+      const skip = await cdp.evaluate(`!!${SOURCES}.parentElement.querySelector('[data-prism="sources-skip"]') || !!document.querySelector('[data-prism="sources-skip"]')`);
+      const newOff = (await cdp.evaluate(`Spicetify.LocalStorage.get("prism:growNewCount")`)) === "off";
+      check(newOff ? "new finds Off: no Skip on the picker" : "Skip shows on the picker (new finds on)", skip === !newOff);
       const names = await cdp.evaluate(rowNames);
       check("Liked Songs is listed first", names[0] === "Liked Songs", names.slice(0, 3).join(", "));
       info(`${names.length} sources: ${names.join(", ")}`);

@@ -67,10 +67,15 @@ describe("count chips and merging", () => {
     expect(newPicks(finds, "off")).toEqual([]);
   });
 
-  test("parseNewCount accepts only the chip values", () => {
+  test("parseNewCount accepts Off and whole numbers 1 to 50 (Custom)", () => {
     expect(parseNewCount("off")).toBe("off");
     expect(parseNewCount("10")).toBe(10);
-    expect(parseNewCount("7")).toBeNull();
+    expect(parseNewCount("7")).toBe(7);
+    expect(parseNewCount("50")).toBe(50);
+    expect(parseNewCount("51")).toBeNull();
+    expect(parseNewCount("0")).toBeNull();
+    expect(parseNewCount("2.5")).toBeNull();
+    expect(parseNewCount("")).toBeNull();
     expect(parseNewCount(null)).toBeNull();
   });
 

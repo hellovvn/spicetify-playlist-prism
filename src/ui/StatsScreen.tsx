@@ -134,7 +134,9 @@ function StatsContent({
           <p style={styles.subtext}>
             {record.seed
               ? `Made from "${record.seed.name}" by ${record.seed.artists.join(", ")}${date ? ` · ${date}` : ""}`
-              : record.organized
+              : record.grownFrom
+                ? `Grown from the playlist "${record.grownFrom.name}"${date ? ` · ${date}` : ""}`
+                : record.organized
                 ? // Not the source playlists' names: they may be deleted later.
                   `Organized with Prism${date ? ` · ${date}` : ""}`
                 : `${record.songCount} songs`}

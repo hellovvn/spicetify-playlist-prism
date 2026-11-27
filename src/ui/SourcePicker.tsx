@@ -28,9 +28,12 @@ export interface SourcePickerProps {
   extra?: React.ReactNode; // mode-specific settings, shown above the buttons
   nextLabel?: string; // the Next button (default "Next: scan songs")
   minPicked?: number; // how many must be ticked before Next works (default 1; Merge needs 2)
+  // Grow (2026-11-26): a "Skip" button next to Back that goes on without any
+  // playlists (new finds only). Left out = no Skip.
+  onSkip?: () => void;
 }
 
-export function SourcePicker({ loadSources, describeError, selected, setSelected, onBack, onNext, intro, extra, nextLabel, minPicked = 1 }: SourcePickerProps) {
+export function SourcePicker({ loadSources, describeError, selected, setSelected, onBack, onNext, intro, extra, nextLabel, minPicked = 1, onSkip }: SourcePickerProps) {
   const { ButtonPrimary, ButtonSecondary } = Spicetify.ReactComponent as any;
   const [sources, setSources] = React.useState<SourceOption[] | null>(null);
   const [error, setError] = React.useState<string | null>(null);
@@ -146,6 +149,11 @@ export function SourcePicker({ loadSources, describeError, selected, setSelected
         <ButtonSecondary buttonSize="sm" onClick={onBack}>
           Back
         </ButtonSecondary>
+        {onSkip && (
+          <ButtonSecondary buttonSize="sm" onClick={onSkip} data-prism="sources-skip">
+            Skip
+          </ButtonSecondary>
+        )}
         <ButtonPrimary
           buttonSize="sm"
           disabled={picked.length < minPicked}

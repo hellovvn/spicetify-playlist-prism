@@ -96,7 +96,7 @@ function parseCamelot(code: string): { number: number; letter: string } | null {
 }
 
 // ----- All together -----
-interface Scorable {
+export interface Scorable {
   tags: SourcedTag[];
   audio: AudioAttributes | null;
   mood?: MoodProfile | null; // optional: missing = unknown
@@ -111,9 +111,19 @@ export function scoreSong(seed: Scorable, song: Scorable): MatchDetails {
   // No shared tags: not a match, whatever the mood/tempo/key.
   if (tags.score === 0) return { score: 0, tagScore: 0, bpmScore, keyScore, moodScore, matchedTags: [] };
 
-  // Weighted average of the parts we HAVE. If mood/BPM/key is unknown, the
-  // score is based on the other parts rather than being punished for missing data.
-  let sum = WEIGHTS.tags * tags.score;
+  return { ...combineParts(tags.score, moodScore, bpmScore, keyScore), matchedTags: tags.matched };
+}
+
+// Weighted average of the parts we HAVE. If mood/BPM/key is unknown, the
+// score is based on the other parts rather than being punished for missing data.
+// Shared by scoreSong and the playlist seed (src/scoring/playlistSeed.ts).
+export function combineParts(
+  tagScore: number,
+  moodScore: number | null,
+  bpmScore: number | null,
+  keyScore: number | null
+): Omit<MatchDetails, "matchedTags"> {
+  let sum = WEIGHTS.tags * tagScore;
   let weights = WEIGHTS.tags;
   if (moodScore !== null) {
     sum += WEIGHTS.mood * moodScore;
@@ -127,5 +137,5 @@ export function scoreSong(seed: Scorable, song: Scorable): MatchDetails {
     sum += WEIGHTS.key * keyScore;
     weights += WEIGHTS.key;
   }
-  return { score: sum / weights, tagScore: tags.score, bpmScore, keyScore, moodScore, matchedTags: tags.matched };
+  return { score: sum / weights, tagScore, bpmScore, keyScore, moodScore };
 }

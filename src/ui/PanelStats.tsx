@@ -188,7 +188,7 @@ export function PanelStats({ record, nowPlaying, onOpenStats, loadExtras, loadTo
 
         {record.match && (
           <div className="prism-glass-panel" style={styles.card} data-prism="panel-match">
-            <p style={styles.cardTitle}>Match to the seed song</p>
+            <p style={styles.cardTitle}>{record.grownFrom ? "Match to the seed playlist" : "Match to the seed song"}</p>
             <p style={styles.big}>{Math.round(record.match.average * 100)}% average</p>
             {record.match.best && <Line label="Closest" name={record.match.best.name} value={`${Math.round(record.match.best.value * 100)}%`} />}
           </div>
