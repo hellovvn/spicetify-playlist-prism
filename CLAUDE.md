@@ -811,6 +811,12 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   YOUR LIBRARY has no page in this Spotify: /collection, /collection/playlists etc. all
   redirect to /collection/tracks (Liked Songs), and "Expand Your Library" only widens the left
   panel, which libraryTheme.ts already themes.
+  16j ERROR PAGE (2026-11-26, developer's pick "B, quiet night" of three): Spotify's "Something
+  went wrong" page can replace ANY page and keeps its address, so it's found by structure
+  (`h1 + p + [data-encore-id="buttonPrimary"]` in .Root__main-view; class names are generated)
+  and wins over the address (`pageKindFor` in src/theme/playlistTheme.ts, tested). Page kind
+  "error": no sky, #151029, lavender icon, pastel Reload button. To test, crash the main view:
+  `History.push({ pathname: "/marketplace/readme", state: { data: { title: 1 } } })`.
   Step 16 pages are all done (2026-11-25); left: Marketplace (Spicetify's, ask).
   Re-checked 2026-11-25 (profile, search results, show, episode, Edit details, shortcuts):
   all themed; the one miss was green PRIMARY buttons outside the action bar (episode
