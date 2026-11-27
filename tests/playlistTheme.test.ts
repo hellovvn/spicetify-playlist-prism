@@ -1,7 +1,7 @@
 // Unit tests for playlist themes (pure parts). Run with: npm test
 
 import { describe, expect, test } from "vitest";
-import { LYRICS_LINE_COLOURS, PLAYLIST_THEMES, effectiveTheme, parseThemeOverrides, withThemeOverride, genreColours, genreMix, mainGenre, mixCaption, parsePlaylistTheme, themedPageKind } from "../src/theme/playlistTheme";
+import { LYRICS_LINE_COLOURS, PLAYLIST_THEMES, effectiveTheme, parseThemeOverrides, withThemeOverride, genreColours, genreMix, mainGenre, mixCaption, pageKindFor, parsePlaylistTheme, themedPageKind } from "../src/theme/playlistTheme";
 
 const tag = (name: string, weight: number) => ({ name, weight, source: "track" as const });
 
@@ -70,6 +70,17 @@ describe("mixCaption", () => {
   });
   test("all scanned: no 'from' part", () => {
     expect(mixCaption(genreMix(["pop", "pop"]))).toBe("pop 100%");
+  });
+});
+
+describe("pageKindFor", () => {
+  test("Spotify's error page wins over the page it replaced", () => {
+    expect(pageKindFor("/playlist/37i9dQZF1DXcBWIGoYBM5M", true)).toBe("error");
+    expect(pageKindFor("/prism", true)).toBe("error");
+  });
+  test("otherwise the address decides", () => {
+    expect(pageKindFor("/playlist/37i9dQZF1DXcBWIGoYBM5M", false)).toBe("playlist");
+    expect(pageKindFor("/prism", false)).toBeNull();
   });
 });
 

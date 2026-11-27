@@ -32,7 +32,7 @@ Click a card for the full guide to that feature.
 
 <p align="center"><img src="docs/media/grow.webp" alt="Growing a playlist from one song: ranked matches with score rings and New finds" width="640"></p>
 
-Right-click a song, pick the tags that fit, and Prism ranks songs from your own playlists, plus a few marked new finds. [Read the guide →](https://hellovvn.github.io/spicetify-prism/grow.html)
+Right-click a song (or a whole playlist), pick the tags that fit, and Prism ranks songs from your own playlists, plus a few marked new finds. [Read the guide →](https://hellovvn.github.io/spicetify-prism/grow.html)
 
 <a href="https://hellovvn.github.io/spicetify-prism/remix.html"><img src="docs/media/cards/remix.svg" alt="Remix into moods: read the guide" width="100%"></a>
 

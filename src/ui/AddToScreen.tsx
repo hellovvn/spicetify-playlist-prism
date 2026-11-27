@@ -1,8 +1,8 @@
 // "Add with Prism" on the Prism page: the 5 playlists that fit a song best,
 // each with its score ring, the shared genres, and an Add button. Reached
 // from the right-click flyout's "More on the Prism page…" and from the start
-// page's "Add a song to your playlists" bar (which first asks for a song:
-// the one playing now, or a pasted link).
+// page's "Add a song to your playlists" bar (which first asks for a song on
+// the shared SongPick screen: the one playing now, or a pasted link).
 // Built only from existing elements (docs/ui-elements.md): list rows, score
 // ring, tag labels, secondary buttons, notice, glass input.
 
@@ -11,7 +11,7 @@ import type { SongFits } from "../flow";
 import { ScoreRing } from "./PreviewScreen";
 import { TagLabels } from "./GenreLabels";
 import { tagColour } from "./tagLabels";
-import { parseTrackLink } from "../nav";
+import { SongPick } from "./SongPick";
 
 interface AddToScreenProps {
   song?: string; // the song's URI; none = ask for one first
@@ -31,8 +31,6 @@ export function AddToScreen({ song: initialSong, playing, find, add, describeErr
   const [result, setResult] = React.useState<SongFits | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [status, setStatus] = React.useState<Record<string, AddStatus>>({});
-  const [link, setLink] = React.useState("");
-  const [linkError, setLinkError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     if (!song) return;
@@ -60,71 +58,21 @@ export function AddToScreen({ song: initialSong, playing, find, add, describeErr
     }
   }
 
-  function useLink() {
-    const uri = parseTrackLink(link);
-    if (!uri) {
-      setLinkError("That isn't a Spotify song link. In Spotify: song's ... menu > Share > Copy Song Link.");
-      return;
-    }
-    setSong(uri);
-  }
-
   const title = <h2 className="prism-screen-title">Add a song to your playlists</h2>;
 
-  // 1. No song yet: pick one (same choices as Grow's start).
+  // 1. No song yet: pick one (the shared SongPick screen, same as Grow's start).
   if (!song) {
     return (
-      <div className="prism-fade-in" style={styles.column} data-prism-state="addto-pick">
-        {title}
-        <p style={styles.sub}>Prism finds the 5 playlists of yours that fit a song best, and adds it to the ones you pick.</p>
-        <div className="prism-glass-panel" style={styles.panel}>
-          <span style={styles.label}>The song playing now</span>
-          {playing ? (
-            <div style={styles.row}>
-              <span data-prism="addto-playing">
-                {playing.name} · {playing.artists}
-              </span>
-              <span style={styles.keep}>
-                <ButtonPrimary buttonSize="sm" onClick={() => setSong(playing.uri)} data-prism="addto-use-playing">
-                  Use this song
-                </ButtonPrimary>
-              </span>
-            </div>
-          ) : (
-            <p style={styles.sub}>Nothing is playing (or it isn't a song).</p>
-          )}
-          <span style={styles.label}>Or paste a song link</span>
-          <div style={styles.row}>
-            <input
-              value={link}
-              placeholder="https://open.spotify.com/track/..."
-              onChange={(e) => {
-                setLink(e.target.value);
-                setLinkError(null);
-              }}
-              onKeyDown={(e) => e.key === "Enter" && useLink()}
-              className="prism-glass-input"
-              style={styles.input}
-              aria-label="Spotify song link"
-              data-prism="addto-link"
-            />
-            <ButtonSecondary buttonSize="sm" onClick={useLink} disabled={!link.trim()}>
-              Find playlists
-            </ButtonSecondary>
-          </div>
-          {linkError && (
-            <p role="alert" style={styles.error}>
-              {linkError}
-            </p>
-          )}
-        </div>
-        <p style={styles.hint}>Tip: right-click any song in Spotify and choose "Add with Prism".</p>
-        <div>
-          <ButtonSecondary buttonSize="sm" onClick={onHome}>
-            Back
-          </ButtonSecondary>
-        </div>
-      </div>
+      <SongPick
+        id="addto"
+        title="Add a song to your playlists"
+        intro="Prism finds the 5 playlists of yours that fit a song best, and adds it to the ones you pick."
+        hint={'Tip: right-click any song in Spotify and choose "Add with Prism".'}
+        nextLabel="Find playlists"
+        playing={playing}
+        onPick={setSong}
+        onBack={onHome}
+      />
     );
   }
 
@@ -218,13 +166,10 @@ export function AddToScreen({ song: initialSong, playing, find, add, describeErr
 
 const styles: Record<string, React.CSSProperties> = {
   column: { display: "flex", flexDirection: "column", gap: 16 },
-  panel: { display: "flex", flexDirection: "column", gap: 10, padding: 20 },
-  label: { color: "var(--spice-text)", fontSize: 13, fontWeight: 600 },
   row: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 },
   keep: { flexShrink: 0, whiteSpace: "nowrap" },
   sub: { color: "var(--spice-subtext)", margin: 0 },
   hint: { margin: 0, color: "var(--spice-subtext)", fontSize: 12 },
-  input: { flex: 1, width: "auto", minWidth: 0, fontSize: 13, padding: "7px 12px" },
   error: { margin: 0, color: "#ffb3d1", fontSize: 12 },
   list: { display: "flex", flexDirection: "column", padding: 8 },
   fitRow: { display: "flex", alignItems: "center", gap: 14, padding: "10px 12px" },

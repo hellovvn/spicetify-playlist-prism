@@ -23,7 +23,8 @@
 // Step 12b adds tabs and scans that keep running while you browse.
 
 import React from "react";
-import { FlipTile } from "./FlipTile";
+import { ModeTile } from "./ModeTile";
+import { GrowStart } from "./GrowStart";
 import { StartBar } from "./StartBar";
 import { UpdateNotice } from "./UpdateNotice";
 import { OrganizeIcon, PrismIcon as PrismTileIcon } from "./HomeIcons";
@@ -39,10 +40,11 @@ import { MergeFlow } from "./MergeFlow";
 import { AddSongIcon, MergeIcon } from "./HomeIcons";
 import { AddToScreen } from "./AddToScreen";
 import { countFeature } from "../usage/countFeature";
-import { addSongTo, findPlaylistsForSong, createFromPreview, createOrganizedPlaylist, findNewSongs, mergePlaylists, friendlyError, loadPlaylistExtras, loadPlaylistStats, loadSeed, loadToneFit, loadToneSongs, loadTones, runScan, saveTone } from "../flow";
+import { addSongTo, findPlaylistsForSong, createFromPreview, createOrganizedPlaylist, findNewSongs, mergePlaylists, friendlyError, loadPlaylistExtras, loadPlaylistStats, loadPlaylistSeed, loadSeed, loadToneFit, loadToneSongs, loadTones, runScan, saveTone } from "../flow";
 import { getPlaylistName } from "../spotify/read";
 import { ToneEditor } from "./ToneEditor";
-import { PAGE_PATH, parsePageRequest, parseTrackLink, type PageRequest } from "../nav";
+import { isPlaylistUri, PAGE_PATH, parsePageRequest, type PageRequest } from "../nav";
+import { seedTrackUris } from "../scoring/growSeed";
 import { SeedPanel } from "./SeedPanel";
 import { SettingsPanel } from "./SettingsPanel";
 import { ReportScreen } from "./ReportScreen";
@@ -67,6 +69,7 @@ type View =
   | { kind: "prism"; seed: string; id: string }
   | { kind: "stats"; playlist: string; id: string } // stats for a Prism playlist
   | { kind: "tone"; playlist: string; id: string } // set a playlist's tone
+  | { kind: "grow"; id: string } // Grow a playlist: pick the seed song
   | { kind: "organize"; id: string } // Organize playlists (step 13)
   | { kind: "merge"; id: string } // Merge playlists
   | { kind: "addto"; song?: string; id: string } // Add with Prism
@@ -253,7 +256,10 @@ export function PrismPage() {
       <SeedPanel
         // key: a NEW panel for every Prism, so nothing carries over from the last one.
         key={view.id}
-        load={() => loadSeed(view.seed)}
+        // The seed is a song or (2026-11-26) a whole playlist.
+        load={(onProgress, shouldStop) =>
+          isPlaylistUri(view.seed) ? loadPlaylistSeed(view.seed, onProgress, shouldStop) : loadSeed(view.seed)
+        }
         loadSources={getSources}
         runScan={runScan}
         findNew={findNewSongs}
@@ -262,7 +268,7 @@ export function PrismPage() {
         onScanningChange={setScanning}
         onCreate={async (choice) => {
           const playlistUri = await createFromPreview(choice);
-          const count = choice.songs.length + 1;
+          const count = choice.songs.length + seedTrackUris(choice.seed).length;
           Spicetify.showNotification(`Created "${choice.name.trim()}" with ${count} songs`);
           goHome();
           // Open the new playlist (just navigation, like clicking it in the sidebar).
@@ -280,7 +286,14 @@ export function PrismPage() {
         load={() => loadPlaylistStats(playlist)}
         // Just navigation, like clicking the playlist in the sidebar.
         onOpenPlaylist={(uri) => History.push(`/playlist/${uri.split(":")[2]}`)}
-        onMinimize={isPanelStatsOn(loadPanelStatsSetting()) && readPanelView(document.documentElement) === "prism" ? minimize : undefined}
+        // No morph while the right panel is collapsed (nothing to land in).
+        onMinimize={
+          isPanelStatsOn(loadPanelStatsSetting()) &&
+          readPanelView(document.documentElement) === "prism" &&
+          !document.querySelector(".Root__right-sidebar-collapsed")
+            ? minimize
+            : undefined
+        }
         loadExtras={loadPlaylistExtras}
         loadToneFit={loadToneFit}
         loadCover={getPlaylistCover}
@@ -309,6 +322,8 @@ export function PrismPage() {
         }}
       />
     );
+  } else if (view.kind === "grow") {
+    body = <GrowRoute key={view.id} onStart={start} onHome={goHome} />;
   } else if (view.kind === "organize") {
     body = (
       <OrganizeFlow
@@ -350,7 +365,7 @@ export function PrismPage() {
   } else {
     body = (
       <HomeScreen
-        onStart={start}
+        onGrow={() => apply({ view: { kind: "grow", id: newId() } })}
         onOrganize={() => apply({ view: { kind: "organize", id: newId() } })}
         onMerge={() => apply({ view: { kind: "merge", id: newId() } })}
         onAddTo={() => apply({ view: { kind: "addto", id: newId() } })}
@@ -461,98 +476,16 @@ export function PrismPage() {
 
 // ----- Start screen -----
 
-function HomeScreen({ onStart, onOrganize, onMerge, onAddTo }: { onStart: (seed: string) => void; onOrganize: () => void; onMerge: () => void; onAddTo: () => void }) {
-  const { ButtonPrimary, ButtonSecondary } = Spicetify.ReactComponent as any;
-  const [link, setLink] = React.useState("");
-  const [linkError, setLinkError] = React.useState<string | null>(null);
-  const playing = usePlayingSong();
-
-  function startFromLink() {
-    const uri = parseTrackLink(link);
-    if (!uri) {
-      setLinkError("That isn't a Spotify song link. In Spotify: song's ... menu > Share > Copy Song Link.");
-      return;
-    }
-    onStart(uri);
-  }
-
+function HomeScreen({ onGrow, onOrganize, onMerge, onAddTo }: { onGrow: () => void; onOrganize: () => void; onMerge: () => void; onAddTo: () => void }) {
   return (
     <div className="prism-fade-in" style={styles.column} data-prism-state="home">
       {/* Only shows when GitHub has a newer Prism release (UpdateNotice.tsx). */}
       <UpdateNotice />
-      {/* Two modes side by side, as flip tiles: an icon on the front, the
-          details and buttons on the back (FlipTile.tsx). */}
+      {/* Two modes side by side: big glass tiles that open their task's own
+          screen, like the start bars below (ModeTile.tsx). */}
       <div style={styles.modes}>
-        <FlipTile id="mode-prism" icon={<PrismTileIcon />} label="Grow a playlist" tip="Turn one favourite song into a whole playlist">
-          <h3 className="prism-screen-title">Grow a playlist</h3>
-          <p style={styles.subtext}>Start with a favourite song and grow a playlist of songs that feel like it.</p>
-
-          <div style={styles.option}>
-            <span style={styles.optionLabel}>The song playing now</span>
-            {playing ? (
-              <div style={styles.row}>
-                <span style={styles.text} data-prism="playing-song">
-                  {playing.name} · {playing.artists}
-                </span>
-                {/* nowrap + no shrinking: the button keeps its pill shape and the song name wraps instead. */}
-                <span style={styles.keepWhole}>
-                  <ButtonPrimary buttonSize="sm" onClick={() => onStart(playing.uri)} data-prism="start-playing">
-                    Use this song
-                  </ButtonPrimary>
-                </span>
-              </div>
-            ) : (
-              <p style={styles.subtext}>Nothing is playing (or it isn't a song).</p>
-            )}
-          </div>
-
-          <div style={styles.option}>
-            <span style={styles.optionLabel}>Or paste a song link</span>
-            <div style={styles.row}>
-              <input
-                value={link}
-                placeholder="https://open.spotify.com/track/..."
-                onChange={(event) => {
-                  setLink(event.target.value);
-                  setLinkError(null);
-                }}
-                onKeyDown={(event) => event.key === "Enter" && startFromLink()}
-                className="prism-glass-input"
-                style={styles.input}
-                data-prism="link-input"
-                aria-label="Spotify song link"
-              />
-              <ButtonSecondary buttonSize="sm" onClick={startFromLink} disabled={!link.trim()}>
-                Start
-              </ButtonSecondary>
-            </div>
-            {linkError && (
-              <p role="alert" style={styles.error}>
-                {linkError}
-              </p>
-            )}
-          </div>
-
-          <p style={styles.hint}>Tip: right-click any song in Spotify and choose "Grow a playlist with Prism".</p>
-        </FlipTile>
-
-        <FlipTile id="mode-organize" icon={<OrganizeIcon />} label="Remix into moods" tip="Split playlists by genre and mood">
-          <h3 className="prism-screen-title">Organize playlists</h3>
-          <p style={styles.subtext}>
-            Shuffle your playlists into fresh ones sorted by genre and mood. Make several, or just the one you want.
-          </p>
-          <ul style={styles.points}>
-            <li>Prism suggests the groups; you can rename, move songs or start from scratch</li>
-            <li>Choose how many new playlists, and whether a song can be in more than one</li>
-            <li>Songs without genre tags still find their closest group</li>
-          </ul>
-          <div style={{ flex: 1 }} />
-          <div>
-            <ButtonPrimary buttonSize="sm" onClick={onOrganize} data-prism="start-organize">
-              Organize playlists
-            </ButtonPrimary>
-          </div>
-        </FlipTile>
+        <ModeTile id="mode-prism" icon={<PrismTileIcon />} label="Grow a playlist" tip="Turn one favourite song into a whole playlist" onClick={onGrow} />
+        <ModeTile id="mode-organize" icon={<OrganizeIcon />} label="Remix into moods" tip="Split playlists by genre and mood" onClick={onOrganize} />
       </div>
 
       {/* Merge: a wide glass bar under the tiles (mockup "B"), opens straight away. */}
@@ -578,6 +511,12 @@ function HomeScreen({ onStart, onOrganize, onMerge, onAddTo }: { onStart: (seed:
       />
     </div>
   );
+}
+
+// The Grow start screen, with the playing song.
+function GrowRoute({ onStart, onHome }: { onStart: (seed: string) => void; onHome: () => void }) {
+  const playing = usePlayingSong();
+  return <GrowStart playing={playing} onStart={onStart} onHome={onHome} />;
 }
 
 // The Add with Prism screen, with the playing song and the real lookups.
@@ -639,17 +578,6 @@ const styles: Record<string, React.CSSProperties> = {
   column: { display: "flex", flexDirection: "column", gap: 16 },
   // The two mode tiles: side by side, wrapping to stacked in a narrow window.
   modes: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 14, alignItems: "stretch" },
-  option: { display: "flex", flexDirection: "column", gap: 6 },
-  optionLabel: { color: "var(--spice-text)", fontSize: 13, fontWeight: 600 },
-  hint: { margin: 0, color: "var(--spice-subtext)", fontSize: 12 },
   barLabel: { fontSize: 15, fontWeight: 600, whiteSpace: "nowrap" },
   barText: { color: "var(--spice-subtext)", fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
-  points: { margin: 0, paddingLeft: 18, color: "var(--spice-subtext)", fontSize: 13, display: "flex", flexDirection: "column", gap: 6 },
-  row: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 },
-  text: { color: "var(--spice-text)" },
-  keepWhole: { flexShrink: 0, whiteSpace: "nowrap" },
-  subtext: { color: "var(--spice-subtext)", margin: 0 },
-  input: { flex: 1, width: "auto", minWidth: 0, fontSize: 13, padding: "7px 12px" },
-  // Soft pink instead of Spotify's red, which clashes with the purple theme.
-  error: { margin: 0, color: "#ffb3d1" },
 };

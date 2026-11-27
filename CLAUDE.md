@@ -8,7 +8,7 @@ by genre and mood, and see what each playlist is made of, all inside a page that
 nicer than plain Spotify. It works from the user's own library and judges songs on **song-level** signals (see "Scoring signals"), not
 Spotify's artist-level genres. ONE deliberate exception to "own library" (developer's
 request, 2026-11-23): Grow's optional "New finds" (14e DISCOVER) add similar songs NOT in
-the user's library, clearly marked, user-controlled (Off/5/10/20), and only ever added to
+the user's library, clearly marked, user-controlled (Off/5/10/20/Custom up to 50), and only ever added to
 the NEW playlist.
 
 ## User flow
@@ -159,7 +159,8 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
 `tests/writeGuard.test.ts`; real test 2026-11-21 made a "[Prism test] ..." playlist, no other list changed).
   Note: `RootlistAPI.createPlaylist` has no public/private option; on the developer's account new
   playlists came out Private. The smoke test never creates playlists.
-- 9b (from the original spec, not built yet): optional second seed song.
+- 9b (from the original spec, not built yet): optional second seed song. (A whole playlist as the
+  seed was built 2026-11-26, see GROW FROM A PLAYLIST; picking a few songs is still open.)
 - 10: Lyrics mood (word list) as an extra score. Done (tested by the developer 2026-11-21).
 - 12 (redesign, decided 2026-11-21): Playlist Prism becomes ONE page (Spicetify custom app,
   `/playlist-prism`) instead of popups. Header (top bar) icon only, no sidebar entry. Inside the
@@ -275,7 +276,7 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
     `organized.from` = source playlist names; stats page says "Organized from ...").
     The smoke test opens the confirm screen only and NEVER clicks Create.
   - Start page redesign: DONE, committed 2026-11-22 with 13d. Mockup
-    "D" flip tiles (`src/ui/FlipTile.tsx`). The front shows a centered whimsical SVG icon and a
+    "D" tiles (`src/ui/ModeTile.tsx`; they flipped like cards until 2026-11-26, see below). The front shows a centered whimsical SVG icon and a
     label (`src/ui/HomeIcons.tsx`, the developer's picks after many mockup rounds). Tile 1,
     "Grow a playlist": a see-through matte pink boombox. Its speakers pulse with two ripple
     rings (no centre dot) and it has a small pill in the middle. Notes fly out from behind it
@@ -287,12 +288,16 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
     whatever order they reached), and music notes drop into whichever tape is on top
     (1.6 s loop, so the notes land during each pause).
     Icon animations run only while the tile has the class `is-animating`. On mouse leave or
-    blur, FlipTile lets each animation finish its current loop (Web Animations API:
+    blur, ModeTile lets each animation finish its current loop (Web Animations API:
     updateTiming iterations = current + 1) before removing the class, so nothing freezes
     mid-move. Hovering again during that wind-down restarts the loops. On hover there's a swirling pastel conic glow, sparkles, the icon
-    animates, and a short line appears. Click flips the tile to the old card content plus
-    "← Back". The hidden face is visibility:hidden, so Tab skips it. Reduced motion means no
-    turn or swirl. Smoke: `flip-prism`/`flip-organize` buttons, `unflip-*` Back.
+    animates, and a short line appears. NO FLIP since 2026-11-26 (developer: flipping felt
+    crowded): a click opens the task's own screen, like the start bars. Grow -> view "grow"
+    (`src/ui/GrowStart.tsx`); Remix -> straight to the playlist picker. Grow and Add a song's
+    first screen are the shared `src/ui/SongPick.tsx` (mockup "A"): two OPTION ROWS (song playing
+    now, picked by default / paste a link) + the action row Back · "Next: pick playlists" /
+    "Find playlists", in the same spot as the playlist picker's on Merge and Remix. Reduced motion: no swirl.
+    Smoke: `tile-prism`/`tile-organize` buttons, `grow-back`, `grow-next`, `grow-option-link`.
 - 14 (to-do, asked 2026-11-22; not designed yet, so show mockups first):
   - 14a THEMES: the user can switch the page's background away from purple twilight. Options:
     sunset, twilight (current), dusk, and a few more (for example dawn, aurora, ocean). Pick in
@@ -357,8 +362,8 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
     118/120 found on Spotify by exact title + artist; ~6% already in the library; the top 1-3
     are usually the seed's own artist, so MAX_PER_ARTIST = 2.
     Pipeline (`findNewSongs` in flow.ts, pure parts in `src/discover/discover.ts` + tests):
-    track.getSimilar (50; fallback artist.getSimilar 10 x artist.getTopTracks 3) -> drop the
-    seed and anything in the WHOLE library (Liked + every playlist, songKey) -> up to 40
+    track.getSimilar (SIMILAR_ASKED = 80; fallback artist.getSimilar 10 x artist.getTopTracks 3) -> drop the
+    seed and anything in the WHOLE library (Liked + every playlist, songKey) -> up to 50 (MAX_CANDIDATES; 40 until 2026-11-26, when track.getSimilar went from 50 to SIMILAR_ASKED = 80)
     candidates -> Last.fm tags (must share a kept tag, same rule as every Prism song) ->
     Spotify search (`src/spotify/search.ts`, GraphQL `searchModalResults`; other search
     definitions fail) -> BPM/key -> same scoreSong (lyrics mood unknown). Cached per seed + tags
@@ -460,6 +465,14 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   `src/ui/panelHost.tsx` from the always-on script (createRoot into a div placed inside
   .Root__right-sidebar, re-checked every 1.5 s). Settings switch "Prism stats in the side panel"
   (`prism:panelStats`, on by default). Right-click > Prism stats still opens the full page.
+  MINIMIZE (2026-11-26): Spotify's collapsed right panel is a 32px strip (`.Root__right-sidebar-collapsed`
+  on the peek box) whose "Show Now Playing view" button sits under where the host was. While collapsed the
+  host moves INSIDE `.Root__right-sidebar-peekContent` (full panel width, pointer-events none, under
+  Spotify's z-6 overlay), so the sliver Spotify slides out on hover shows the stats' edge, not Now
+  Playing; on "Now playing" the strip steps aside and Spotify's own peek shows (a MutationObserver on the peek's class reacts at once, so expanding
+  shows the stats with no Now Playing flash). BOTH tabs have a minimize button in the same spot
+  (`.prism-icon-button` left of the pill, `data-prism="panel-minimize"`) that clicks Spotify's
+  `.main-nowPlayingView-headerCloseButton`; on "Now playing" Spotify's own one is hidden (STRIP_CSS).
 - REMIX "TWO DOORS" FLOW (2026-11-23, mockup A, developer's pick; replaces the count-1 shortcut
   and "Start from scratch"/"Use suggestions" switching). Screens: picker (NO settings panel) ->
   scan -> choose (`ChooseMode` in OrganizeFlow.tsx: "Sort them for me" = mode "auto", "I'll pick
@@ -476,7 +489,7 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   no tags or mood / none of your picks), "Add" (one playlist) or an "Add to…" glass menu, and
   "Add all" (one playlist: into it; several: closest group by mood + tempo via
   closestByMoodAndTempo). Pure helper `addSongs` in editGroups.ts (tested). The page title of
-  this flow is now "Remix into moods" (the flip tile's back face still says "Organize playlists").
+  this flow is now "Remix into moods".
   GROUP CARDS = look "A, door tiles" (developer's pick, 2026-11-23): wide glass tiles (grid
   minmax(280px), so two per row), 84px cover mosaic (TILE_COVER) left, text beside it; hover =
   the standard lavender hover + lift (pink only marks a PICKED door/builder group, see
@@ -501,7 +514,7 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
 - Smoke note: "Cancel stops the scan part-way" can fail as a race when nearly every song is
   cached (the scan finishes before the Cancel click lands); a re-run reports it as SKIPPED.
 - MERGE PLAYLISTS (2026-11-23, built on branch feature/merge-playlists, waiting for the
-  developer's test). Start page: a wide glass bar under the two flip tiles (mockup "B",
+  developer's test). Start page: a wide glass bar under the two mode tiles (mockup "B",
   developer's pick; `.prism-home-bar`). Flow (`src/ui/MergeFlow.tsx`): the shared SourcePicker
   (2+ playlists) -> confirm screen: one row per playlist with its song count, the total and how
   many duplicates are dropped, a name box (default "A + B", `defaultMergeName`), and the switch
@@ -681,7 +694,7 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
 - START BARS (2026-11-25, developer's picks after six mockup rounds; tested by the developer,
   merged in PR #22): the Merge and Add a song
   bars are `src/ui/StartBar.tsx`. Icons in HomeIcons.tsx animate on hover/focus and finish their
-  loop on leave (like FlipTile): Merge = "Q1 bubbles" (pink + sky bubbles drift into one mint
+  loop on leave (like ModeTile): Merge = "Q1 bubbles" (pink + sky bubbles drift into one mint
   bubble with green notes), Add a song = "S1 compass" (needle settles on the mint playlist of
   sky/mint/pink). Lines: "Stack your playlists together and drop the doubles" / "Let Prism find
   the best home for a song", shown ONLY on hover/focus. Rejected along the way: matte boxes,
@@ -807,6 +820,12 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   YOUR LIBRARY has no page in this Spotify: /collection, /collection/playlists etc. all
   redirect to /collection/tracks (Liked Songs), and "Expand Your Library" only widens the left
   panel, which libraryTheme.ts already themes.
+  16j ERROR PAGE (2026-11-26, developer's pick "B, quiet night" of three): Spotify's "Something
+  went wrong" page can replace ANY page and keeps its address, so it's found by structure
+  (`h1 + p + [data-encore-id="buttonPrimary"]` in .Root__main-view; class names are generated)
+  and wins over the address (`pageKindFor` in src/theme/playlistTheme.ts, tested). Page kind
+  "error": no sky, #151029, lavender icon, pastel Reload button. To test, crash the main view:
+  `History.push({ pathname: "/marketplace/readme", state: { data: { title: 1 } } })`.
   Step 16 pages are all done (2026-11-25); left: Marketplace (Spicetify's, ask).
   Re-checked 2026-11-25 (profile, search results, show, episode, Edit details, shortcuts):
   all themed; the one miss was green PRIMARY buttons outside the action bar (episode
@@ -870,6 +889,25 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   Copy; macOS/Linux = only the link to the README's Install section. "Not now" lasts only until Spotify
   restarts (sessionStorage, developer's request), so the notice shows on every Spotify start until they update.
   TO RELEASE: bump package.json "version", then publish a GitHub release tagged vX.Y.Z.
+- GROW STEPS (2026-11-26, developer's flow; built, not committed): seed -> NEW FINDS step (`src/ui/NewFindsStep.tsx`,
+  Off/5/10/20/Custom 1-50 ("max 50" shown) via the shared `NewCountChoice`, also on the preview; saved as prism:growNewCount, the preview starts from it) -> your playlists (SourcePicker with
+  `onSkip`: "Skip" = new finds only, no scan; not offered when new finds are Off) -> scan -> preview
+  (`fromPlaylists` false = new finds only: no Off chip, "New finds only" intro) -> create.
+- GROW FROM A PLAYLIST (2026-11-26, built, not committed; developer's picks): the seed can be a whole
+  PLAYLIST. Right-click a playlist > "Grow from this playlist", or Grow's start screen (GrowStart/SongPick):
+  a third Option row "One of your playlists"; choosing it opens the playlist picker (search, checkbox rows,
+  summary, like Remix's) under the rows, one tick at a time (developer's pick; SongPick's optional `playlists` prop).
+  `?go=start&seed=spotify:playlist:...`. The seed playlist is scanned first (scanTracks, shared caches;
+  `loadPlaylistSeed` in flow.ts). Seed screen = mockup "B": cover + name + "N songs · BPM range · mood",
+  one row per genre (Tag switch + Bar + song count, `blendTags`), and "Show seed songs" (checkbox rows)
+  to untick seed songs (they leave the blend, scores and new playlist). Scoring ("blend + closest
+  songs", `scoreAgainstPlaylist` in `src/scoring/playlistSeed.ts`, tested): tags against the KEPT blend
+  chips, tempo/key/mood = average over the CLOSEST_SONGS (3) seed songs sharing the most tags. Seed
+  kinds are a union in `src/scoring/growSeed.ts` (SongSeedData | PlaylistSeedData; growScorer,
+  seedExclusions, seedTrackUris). New playlist = the seed playlist's ticked songs in their own order,
+  then the picks shuffled. The seed playlist is hidden from the source picker and its songs are never
+  matches. New finds ask Last.fm about up to TYPICAL_SONGS (5) typical seed songs (`mergeSimilar`).
+  Stats record: seed null + `grownFrom: { uri, name }` ("Grown from the playlist ...").
 - 11: Cleanup: remove the debug hook, README, release (after 12).
   RELEASE BUILD (2026-11-26): `src/buildFlags.ts` has DEV_TOOLS (always true in git). Dev builds
   keep the `window.__prism` hook + demo screens; `npm run release` (scripts/release.mjs) flips it to

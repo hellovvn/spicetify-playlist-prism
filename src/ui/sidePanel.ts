@@ -48,6 +48,7 @@ export function formatLength(ms: number): string {
 // The line under the playlist name.
 export function panelSubtitle(record: PrismPlaylistRecord): string {
   if (record.seed) return `Grown from "${record.seed.name}" · ${record.seed.artists.join(", ")}`;
+  if (record.grownFrom) return `Grown from the playlist "${record.grownFrom.name}"`;
   // Not the source playlists' names: those playlists may be deleted later.
   if (record.organized) return "Organized with Prism";
   // An estimate for a playlist Prism didn't make: say how much of it is known.

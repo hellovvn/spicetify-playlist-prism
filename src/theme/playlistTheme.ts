@@ -168,8 +168,19 @@ export const LYRICS_LINE_COLOURS: Record<Exclude<PlaylistThemeId, "none">, { pas
 //                Spotify's own purple banner (developer's pick "A, full sky +
 //                glass", 2026-11-25). Spicetify's Marketplace (/marketplace)
 //                gets the same look.
+//   "error"    = Spotify's "Something went wrong" page, which can replace ANY
+//                page (so it's found by what's on screen, not the address):
+//                NO sky, Quiet night's still dark purple, lavender icon and
+//                the pastel Reload button (developer's pick "B, quiet night",
+//                2026-11-26). See pageKindFor.
 // null = a page the theme leaves alone.
-export type ThemedPage = "playlist" | "sky" | "band" | "search" | "genre" | "settings" | "profile" | "podcast" | "browse";
+export type ThemedPage = "playlist" | "sky" | "band" | "search" | "genre" | "settings" | "profile" | "podcast" | "browse" | "error";
+
+// The page kind to paint: Spotify's error page wins over whatever page it
+// replaced (it keeps that page's address).
+export function pageKindFor(path: string | undefined, showsErrorPage: boolean): ThemedPage | null {
+  return showsErrorPage ? "error" : themedPageKind(path);
+}
 
 export function themedPageKind(path: string | undefined): ThemedPage | null {
   if (path === "/") return "band";

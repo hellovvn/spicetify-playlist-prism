@@ -22,18 +22,31 @@ import type { SourceOption } from "../sources/sources";
 import { SourcePicker } from "./SourcePicker";
 import { ScanScreen, type ScanOutcome, type ScanScreenProps } from "./ScanScreen";
 import { PreviewScreen } from "./PreviewScreen";
+import { NewFindsStep } from "./NewFindsStep";
+import { DEFAULT_NEW_COUNT, parseNewCount, type NewCount } from "../discover/discover";
+import { loadNewCountText, saveNewCountText } from "../storage";
 import type { RankedSong } from "../scoring/rank";
+import type { ScanProgress } from "../scan/scan";
+import type { PlaylistSeedData, SeedData, SongSeedData } from "../scoring/growSeed";
+import { blendMood, blendTags, playlistSeedMessage, tempoRange } from "../scoring/playlistSeed";
+import { tagColours } from "./tagLabels";
+import { ScanningPrism } from "./PrismIcon";
 
-export interface SeedData {
-  track: TrackInfo;
-  tags: SourcedTag[];
-  audio: AudioAttributes | null;
-  mood: MoodProfile | null; // from the lyrics (step 10); null = unknown
+// The seed types live in src/scoring/growSeed.ts (pure); re-exported here
+// because the page code has always imported them from the panel.
+export type { SeedData };
+
+// A seed playlist with only the ticked songs, re-blended: what the next
+// screens get (their chips, scores and the new playlist follow the ticks).
+function withSongs(data: PlaylistSeedData, offSongs: string[]): PlaylistSeedData {
+  const songs = data.songs.filter((song) => !offSongs.includes(song.uri));
+  return { ...data, songs, tags: blendTags(songs), mood: blendMood(songs.map((song) => song.mood)) };
 }
 
 export interface SeedPanelProps {
   // Loads everything about the seed. The panel calls it once when it opens.
-  load: () => Promise<SeedData>;
+  // A seed PLAYLIST reports its scan's progress and stops when the panel closes.
+  load: (onProgress: (progress: ScanProgress) => void, shouldStop: () => boolean) => Promise<SeedData>;
   // Loads the playlists the user can pick from (screen 2).
   loadSources: () => Promise<SourceOption[]>;
   // Scans the picked sources (screen 3).
@@ -65,17 +78,22 @@ export interface SeedPanelProps {
 // The outer component. It owns the state BOTH screens need, so going
 // Back and Next keeps the user's choices ("lifting state up" in React terms).
 //   screen "seed":    loading -> tag chips   (or an error)
-//   screen "sources": playlist picker
+//   screen "new":     how many new finds (2026-11-26; Off/5/10/20)
+//   screen "sources": playlist picker (Skip = new finds only, when not Off)
 //   screen "scan":    scanning progress, then a summary
 //   screen "preview": ranked matches with scores; pick what goes in
 export function SeedPanel({ load, loadSources, runScan, describeError, onCancel, onScanningChange, onCreate, findNew }: SeedPanelProps) {
   const [data, setData] = React.useState<SeedData | null>(null);
   const [error, setError] = React.useState<string | null>(null);
-  const [screen, setScreen] = React.useState<"seed" | "sources" | "scan" | "preview">("seed");
+  const [screen, setScreen] = React.useState<"seed" | "new" | "sources" | "scan" | "preview">("seed");
+  // How many new finds (remembered; the preview starts from it too).
+  const [newCount, setNewCount] = React.useState<NewCount>(() => parseNewCount(loadNewCountText()) ?? DEFAULT_NEW_COUNT);
   const [scan, setScan] = React.useState<ScanOutcome | null>(null); // the finished scan
   const [offNames, setOffNames] = React.useState<string[]>([]); // chips switched off
   const [selectedSources, setSelectedSources] = React.useState<string[]>([]); // ticked playlist URIs
   const [picked, setPicked] = React.useState<SourceOption[]>([]); // the sources being scanned
+  const [offSongs, setOffSongs] = React.useState<string[]>([]); // seed playlist songs unticked
+  const [loadProgress, setLoadProgress] = React.useState<ScanProgress | null>(null);
 
   // useEffect runs code AFTER the panel is on screen (so the spinner can
   // appear first). The empty [] means "only once, when it opens".
@@ -83,7 +101,10 @@ export function SeedPanel({ load, loadSources, runScan, describeError, onCancel,
     // If the panel goes away before loading finishes, don't update a
     // component that's gone. The function we return runs when it goes.
     let closed = false;
-    load()
+    load(
+      (progress) => !closed && setLoadProgress(progress),
+      () => closed
+    )
       .then((loaded) => !closed && setData(loaded))
       .catch((err) => {
         console.error("[Prism] loading the seed failed", err);
@@ -94,6 +115,13 @@ export function SeedPanel({ load, loadSources, runScan, describeError, onCancel,
     };
   }, []);
 
+  // What the next screens use: a seed playlist with only its ticked songs.
+  const seed = React.useMemo(
+    () => (data && data.kind === "playlist" ? withSongs(data, offSongs) : data),
+    [data, offSongs]
+  );
+  const kept = seed ? keptTags(seed.tags, offNames) : [];
+
   let body: React.ReactNode;
   if (error) {
     body = (
@@ -101,22 +129,58 @@ export function SeedPanel({ load, loadSources, runScan, describeError, onCancel,
         <p style={styles.text}>{error}</p>
       </div>
     );
-  } else if (!data) {
-    body = (
+  } else if (!data || !seed) {
+    body = loadProgress ? (
+      // A seed playlist: its songs are scanned first (the standard scanning star).
+      <div style={styles.centered} data-prism-state="loading">
+        <ScanningPrism size={132} progress={loadProgress.total > 0 ? loadProgress.done / loadProgress.total : null} />
+        <p style={styles.subtext} data-prism="seed-load-progress">
+          {loadProgress.total > 0
+            ? `Reading the playlist's songs: ${loadProgress.done} of ${loadProgress.total}`
+            : "Reading the playlist..."}
+        </p>
+      </div>
+    ) : (
       <div style={styles.centered} data-prism-state="loading">
         <div className="prism-spinner" />
         <p style={styles.subtext}>Reading the song...</p>
       </div>
     );
   } else if (screen === "seed") {
+    body =
+      data.kind === "song" ? (
+        <SeedContent
+          data={data}
+          offNames={offNames}
+          setOffNames={setOffNames}
+          onNext={() => setScreen(findNew ? "new" : "sources")}
+          onCancel={onCancel}
+        />
+      ) : (
+        <PlaylistSeedContent
+          data={data}
+          seed={seed as PlaylistSeedData}
+          offNames={offNames}
+          setOffNames={setOffNames}
+          offSongs={offSongs}
+          setOffSongs={setOffSongs}
+          onNext={() => setScreen(findNew ? "new" : "sources")}
+          onCancel={onCancel}
+        />
+      );
+  } else if (screen === "new") {
     body = (
-      <SeedContent
-        data={data}
-        offNames={offNames}
-        setOffNames={setOffNames}
-        onNext={() => setScreen("sources")}
-        onCancel={onCancel}
-      />
+      <div key="new" className="prism-fade-in">
+        <NewFindsStep
+          count={newCount}
+          onChoose={(next) => {
+            setNewCount(next);
+            saveNewCountText(String(next));
+          }}
+          onBack={() => setScreen("seed")}
+          onNext={() => setScreen("sources")}
+        />
+      </div>
     );
   } else if (screen === "sources") {
     body = (
@@ -124,15 +188,34 @@ export function SeedPanel({ load, loadSources, runScan, describeError, onCancel,
       // fade-in plays when switching screens.
       <div key="sources" className="prism-fade-in">
         <SourcePicker
-          loadSources={loadSources}
+          // A seed playlist isn't offered as a source: its songs are in already.
+          loadSources={
+            data.kind === "playlist" ? () => loadSources().then((all) => all.filter((s) => s.uri !== data.playlist.uri)) : loadSources
+          }
           describeError={describeError}
           selected={selectedSources}
           setSelected={setSelectedSources}
-          onBack={() => setScreen("seed")}
+          onBack={() => setScreen(findNew ? "new" : "seed")}
           onNext={(sources) => {
             setPicked(sources);
             setScreen("scan");
           }}
+          intro={
+            findNew && newCount !== "off"
+              ? "Pick playlists your songs can also come from, or skip this to get only new finds. Nothing in them is changed."
+              : undefined
+          }
+          // Skip = new finds only (no playlist songs, no scan). Not when new
+          // finds are Off: the playlist would only have the seed.
+          onSkip={
+            findNew && newCount !== "off"
+              ? () => {
+                  setPicked([]);
+                  setScan(null);
+                  setScreen("preview");
+                }
+              : undefined
+          }
         />
       </div>
     );
@@ -157,14 +240,15 @@ export function SeedPanel({ load, loadSources, runScan, describeError, onCancel,
     body = (
       <div key="preview" className="prism-fade-in">
         <PreviewScreen
-          seed={data}
-          kept={keptTags(data.tags, offNames)}
+          seed={seed}
+          kept={kept}
           songs={scan?.songs ?? []}
           // Back goes to the playlist picker (re-scanning is quick thanks to the cache).
           onBack={() => setScreen("sources")}
+          fromPlaylists={picked.length > 0}
           describeError={describeError}
-          onCreate={(name, songs) => onCreate({ name, seed: data, kept: keptTags(data.tags, offNames), sources: picked, songs })}
-          findNew={findNew && ((onProgress, shouldStop) => findNew(data, keptTags(data.tags, offNames), onProgress, shouldStop))}
+          onCreate={(name, songs) => onCreate({ name, seed, kept, sources: picked, songs })}
+          findNew={findNew && ((onProgress, shouldStop) => findNew(seed, kept, onProgress, shouldStop))}
         />
       </div>
     );
@@ -179,7 +263,7 @@ export function SeedPanel({ load, loadSources, runScan, describeError, onCancel,
 
 // The loaded content: song info, chips, and buttons.
 interface SeedContentProps {
-  data: SeedData;
+  data: SongSeedData;
   // The names of the tags the user switched off (empty = all on). Owned by
   // the parent so it survives going to the next screen and back.
   offNames: string[];
@@ -272,7 +356,153 @@ function SeedContent({ data, offNames, setOffNames, onNext, onCancel }: SeedCont
           Cancel
         </ButtonSecondary>
         <ButtonPrimary buttonSize="sm" disabled={!allowed} onClick={() => allowed && onNext()}>
-          Next: choose playlists
+          Next: new finds
+        </ButtonPrimary>
+      </div>
+    </div>
+  );
+}
+
+// A seed PLAYLIST (2026-11-26, mockup "B", developer's pick): cover + name +
+// a summary line, one row per genre (Tag switch + Bar + song count), and the
+// seed songs as a Show/hide list of checkbox rows: unticked songs stay out of
+// the blend, the scores and the new playlist. All catalogue elements.
+interface PlaylistSeedContentProps {
+  data: PlaylistSeedData; // everything loaded
+  seed: PlaylistSeedData; // only the ticked songs, re-blended
+  offNames: string[];
+  setOffNames: React.Dispatch<React.SetStateAction<string[]>>;
+  offSongs: string[];
+  setOffSongs: React.Dispatch<React.SetStateAction<string[]>>;
+  onNext: () => void;
+  onCancel: () => void;
+}
+
+function PlaylistSeedContent({ data, seed, offNames, setOffNames, offSongs, setOffSongs, onNext, onCancel }: PlaylistSeedContentProps) {
+  const { ButtonPrimary, ButtonSecondary } = Spicetify.ReactComponent as any;
+  const [showSongs, setShowSongs] = React.useState(false);
+
+  const kept = keptTags(seed.tags, offNames);
+  const included = seed.songs.length;
+  const tagged = seed.songs.filter((song) => song.tags.length > 0).length;
+  const message = playlistSeedMessage(seed.tags, kept, included);
+  const colours = tagColours(seed.tags.map((tag) => tag.name));
+  const tempo = tempoRange(seed.songs.map((song) => song.audio));
+  const summary = [
+    included === data.songs.length ? `${included} songs` : `${included} of ${data.songs.length} songs`,
+    tempo ? (tempo.min === tempo.max ? `${tempo.min} BPM` : `${tempo.min}–${tempo.max} BPM`) : null,
+    formatMood(seed.mood),
+  ].filter(Boolean);
+  const allTicked = offSongs.length === 0;
+
+  return (
+    <div className="prism-fade-in" style={styles.panel} data-prism-state="ready" data-prism-seed="playlist">
+      <div style={styles.head}>
+        {data.playlist.cover && <img src={data.playlist.cover} alt="" style={styles.cover} />}
+        <div style={{ minWidth: 0 }}>
+          <div className="prism-screen-title">{data.playlist.name}</div>
+          <div style={styles.subtext} data-prism="seed-summary">
+            {summary.join(" · ")}
+          </div>
+        </div>
+      </div>
+
+      {seed.tags.length > 0 && (
+        <>
+          <p style={styles.subtext}>Genres in this playlist. Switch off any you don't want more of.</p>
+          <div style={styles.genreGrid} data-prism="seed-genres">
+            {seed.tags.map((tag, i) => {
+              const on = !offNames.includes(tag.name);
+              const colour = colours.get(tag.name) ?? tagColour(tag.name);
+              return (
+                <React.Fragment key={tag.name}>
+                  <button
+                    type="button"
+                    role="checkbox"
+                    aria-checked={on}
+                    className={`prism-tag prism-tag-pick prism-tag-big${on ? " shared" : ""}`}
+                    style={{ ["--tag" as any]: colour, justifySelf: "start" }}
+                    onClick={() => setOffNames((previous) => toggleTag(previous, tag.name))}
+                  >
+                    <span className="prism-tag-text">{tag.name}</span>
+                  </button>
+                  <span className="prism-bar-track" style={{ opacity: on ? 1 : 0.4 }}>
+                    <span
+                      className="prism-bar-fill"
+                      style={{
+                        width: `${(tag.count / Math.max(tagged, 1)) * 100}%`,
+                        ["--tag" as any]: colour,
+                        ["--delay" as any]: `${i * 60}ms`,
+                      }}
+                    />
+                  </span>
+                  <span style={styles.count}>{tag.count}</span>
+                </React.Fragment>
+              );
+            })}
+          </div>
+          <p style={styles.subtext} data-prism="kept-count">
+            {kept.length} of {seed.tags.length} genres on · {tagged} of {included} songs have tags
+          </p>
+        </>
+      )}
+
+      {/* Show/hide list (catalogue): the seed songs, all ticked at first. */}
+      <div>
+        <button
+          type="button"
+          className="prism-quiet-button"
+          aria-expanded={showSongs}
+          aria-controls="prism-seed-songs"
+          onClick={() => setShowSongs(!showSongs)}
+          data-prism="seed-songs-toggle"
+        >
+          {showSongs ? "▴ Hide seed songs" : `▾ Show seed songs (${data.songs.length})`}
+          {" · untick any that don't fit"}
+        </button>
+        {showSongs && (
+          <div id="prism-seed-songs" className="prism-glass-panel" style={styles.songList} data-prism="seed-songs">
+            <label className="prism-row is-clickable is-head" style={styles.songRow}>
+              <input
+                type="checkbox"
+                className="prism-checkbox"
+                checked={allTicked}
+                ref={(el) => {
+                  if (el) el.indeterminate = !allTicked && offSongs.length < data.songs.length;
+                }}
+                onChange={() => setOffSongs(allTicked ? data.songs.map((song) => song.uri) : [])}
+              />
+              <span style={styles.songName}>All songs ({data.songs.length})</span>
+            </label>
+            {data.songs.map((song) => (
+              <label key={song.uri} className="prism-row is-clickable" style={styles.songRow} data-uri={song.uri}>
+                <input
+                  type="checkbox"
+                  className="prism-checkbox"
+                  checked={!offSongs.includes(song.uri)}
+                  onChange={() => setOffSongs((previous) => toggleTag(previous, song.uri))}
+                />
+                <span style={styles.songName}>
+                  {song.name} <span style={styles.subtext}>· {song.artists.join(", ")}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {message && (
+        <p role="status" data-prism="status" className="prism-notice">
+          {message}
+        </p>
+      )}
+
+      <div className="prism-actions" style={styles.buttons}>
+        <ButtonSecondary buttonSize="sm" onClick={onCancel}>
+          Cancel
+        </ButtonSecondary>
+        <ButtonPrimary buttonSize="sm" disabled={!!message} onClick={() => !message && onNext()}>
+          Next: new finds
         </ButtonPrimary>
       </div>
     </div>
@@ -288,4 +518,12 @@ const styles: Record<string, React.CSSProperties> = {
   subtext: { color: "var(--spice-subtext)", margin: 0 },
   chipRow: { display: "flex", flexWrap: "wrap", gap: 8 },
   buttons: { display: "flex", justifyContent: "flex-end", gap: 8 },
+  head: { display: "flex", alignItems: "center", gap: 16 },
+  cover: { width: 64, height: 64, borderRadius: 4, objectFit: "cover", flexShrink: 0 },
+  // Same grid as the stats page's bars: label column fits the widest pill.
+  genreGrid: { display: "grid", gridTemplateColumns: "fit-content(220px) 1fr 32px", gap: "8px 12px", alignItems: "center" },
+  count: { color: "var(--spice-subtext)", fontSize: 13, fontVariantNumeric: "tabular-nums" },
+  songList: { maxHeight: 190, overflowY: "auto", display: "flex", flexDirection: "column", padding: "4px 6px", marginTop: 8 },
+  songRow: { display: "flex", alignItems: "center", gap: 10, padding: "6px 8px" },
+  songName: { color: "var(--spice-text)", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
 };

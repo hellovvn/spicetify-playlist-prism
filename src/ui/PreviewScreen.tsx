@@ -1,6 +1,6 @@
 // Preview screen: screen 4 of the Prism flow. Shows every matching song,
 // best first, with its score and WHY it matched. The best ones start ticked;
-// the user can change any tick. The seed song is always first.
+// the user can change any tick. The seed (song or playlist songs) is always first.
 //
 // Each row: tick box, a score ring, the song, its genre labels (frosted glass
 // with a colour dot; bright = shared with the seed, faint = extra), and on
@@ -18,12 +18,13 @@ import {
   PICK_COUNTS,
   parsePickCount,
   picksFor,
-  rankSongs,
+  rankWith,
   type PickCount,
   type RankedSong,
 } from "../scoring/rank";
 import { loadNewCountText, loadPickCountText, saveNewCountText, savePickCountText } from "../storage";
-import { DEFAULT_NEW_COUNT, mergeByScore, NEW_COUNTS, newPicks, parseNewCount, type NewCount } from "../discover/discover";
+import { DEFAULT_NEW_COUNT, mergeByScore, newPicks, parseNewCount, type NewCount } from "../discover/discover";
+import { NewCountChoice } from "./NewCountChoice";
 import type { SourcedTag } from "../tags/combineTags";
 import { formatAudio } from "../spotify/audio";
 import { formatMood, topMoods, type MoodProfile } from "../mood/lyricsMood";
@@ -31,7 +32,7 @@ import type { AudioAttributes } from "../spotify/audio";
 import { labelsFor, tagColour } from "./tagLabels";
 import { TagLabels } from "./GenreLabels";
 import { allShownSelected, clearShown, selectShown } from "../sources/sources";
-import type { SeedData } from "./SeedPanel";
+import { growScorer, seedExclusions, seedName, seedTrackUris, type SeedData } from "../scoring/growSeed";
 import { SCREEN_HEIGHT } from "./styles";
 import { toggleTag as toggleInList } from "./tagSelection";
 
@@ -40,6 +41,8 @@ export interface PreviewScreenProps {
   kept: SourcedTag[]; // the seed tags the user kept ON
   songs: ScannedSong[]; // everything the scan found
   onBack: () => void;
+  // false = the user skipped the playlist step: new finds only (2026-11-26).
+  fromPlaylists?: boolean;
   // Creates the playlist (step 9). Resolves when done; rejects with an error to show.
   onCreate: (name: string, picked: RankedSong[]) => Promise<void>;
   describeError: (error: unknown) => string;
@@ -53,9 +56,11 @@ export interface PreviewScreenProps {
 
 const percent = (value: number) => `${Math.round(value * 100)}%`;
 
-export function PreviewScreen({ seed, kept, songs, onBack, onCreate, describeError, findNew }: PreviewScreenProps) {
+export function PreviewScreen({ seed, kept, songs, onBack, onCreate, describeError, findNew, fromPlaylists = true }: PreviewScreenProps) {
   const { ButtonPrimary, ButtonSecondary } = Spicetify.ReactComponent as any;
-  const [name, setName] = React.useState(`Prism · ${seed.track.name}`);
+  const [name, setName] = React.useState(`Prism · ${seedName(seed)}`);
+  // How many seed songs go first (1, or a seed playlist's ticked songs).
+  const seedCount = seedTrackUris(seed).length;
   // "creating" blocks a second click, which would otherwise make TWO playlists.
   const [creating, setCreating] = React.useState(false);
   const [createError, setCreateError] = React.useState<string | null>(null);
@@ -65,7 +70,7 @@ export function PreviewScreen({ seed, kept, songs, onBack, onCreate, describeErr
   // useMemo: remember the ranking and only recompute it if its inputs change,
   // not on every tick of a checkbox (ranking 900 songs is wasted work to repeat).
   const ranking = React.useMemo(
-    () => rankSongs({ ...seed.track, tags: kept, audio: seed.audio, mood: seed.mood }, songs),
+    () => rankWith(growScorer(seed, kept), songs, seedExclusions(seed)),
     [seed, kept, songs]
   );
   // HOW MANY songs to recommend: one of the count chips (10/20/30/50/All) or
@@ -82,7 +87,7 @@ export function PreviewScreen({ seed, kept, songs, onBack, onCreate, describeErr
   const [showMore, setShowMore] = React.useState(false);
 
   // ----- New finds (DISCOVER) -----
-  // How many to tick (Off/5/10/20, remembered), the songs found, and how the
+  // How many to tick (Off/5/10/20/Custom 1-40, remembered), the songs found, and how the
   // search is going. The search starts once, when the count isn't Off.
   const [newCount, setNewCount] = React.useState<NewCount>(() => parseNewCount(loadNewCountText()) ?? DEFAULT_NEW_COUNT);
   const [newSongs, setNewSongs] = React.useState<RankedSong[]>([]);
@@ -212,7 +217,9 @@ export function PreviewScreen({ seed, kept, songs, onBack, onCreate, describeErr
   return (
     <div style={styles.screen} data-prism-state="preview">
       <p style={styles.subtext}>
-        {matches.length === 0
+        {!fromPlaylists
+          ? "New finds only: similar songs you don't have yet, best first. Untick any you don't want."
+          : matches.length === 0
           ? "No songs in those playlists share this vibe's tags."
           : count === "all"
             ? `All ${recommendedLibrary.length} matching songs${
@@ -298,20 +305,14 @@ export function PreviewScreen({ seed, kept, songs, onBack, onCreate, describeErr
           <span style={styles.countLabel} id="prism-count-new-label">
             New finds
           </span>
-          <div className="prism-seg" role="group" aria-labelledby="prism-count-new-label">
-            {NEW_COUNTS.map((option) => (
-              <button
-                key={String(option)}
-                type="button"
-                className={newCount === option ? "on" : ""}
-                aria-pressed={newCount === option}
-                onClick={() => chooseNewCount(option)}
-                data-prism={`new-count-${option}`}
-              >
-                {option === "off" ? "Off" : option}
-              </button>
-            ))}
-          </div>
+          {/* No playlist songs: Off would leave only the seed, so it's not offered. */}
+          <NewCountChoice
+            count={newCount}
+            onChoose={chooseNewCount}
+            labelledBy="prism-count-new-label"
+            allowOff={fromPlaylists}
+            prefix="new-count"
+          />
           <span style={styles.newStatus} data-prism="new-status" aria-live="polite">
             {newStatusText()}
           </span>
@@ -320,14 +321,26 @@ export function PreviewScreen({ seed, kept, songs, onBack, onCreate, describeErr
 
       {/* The seed: always first in the playlist, can't be unticked. */}
       <div className="prism-row is-glass" style={{ ...styles.row, ...styles.seedRow }} data-prism="preview-seed">
-        <span className="prism-checkbox is-locked" role="img" aria-label="Always included" title="The seed song is always included" />
+        <span
+          className="prism-checkbox is-locked"
+          role="img"
+          aria-label="Always included"
+          title={seed.kind === "song" ? "The seed song is always included" : "The seed songs are always included"}
+        />
         <span style={styles.rowText}>
-          <span style={styles.name}>
-            {seed.track.name} <span style={styles.artist}>· {seed.track.artists.join(", ")} · seed song, always first</span>
-          </span>
+          {seed.kind === "song" ? (
+            <span style={styles.name}>
+              {seed.track.name} <span style={styles.artist}>· {seed.track.artists.join(", ")} · seed song, always first</span>
+            </span>
+          ) : (
+            <span style={styles.name}>
+              {seedCount === 1 ? "1 song" : `${seedCount} songs`} from {seed.playlist.name}{" "}
+              <span style={styles.artist}>· seed playlist, always first</span>
+            </span>
+          )}
           <TagLabels labels={kept.slice(0, 4).map((tag) => ({ name: tag.name, colour: tagColour(tag.name), shared: true }))} />
         </span>
-        <SideInfo audio={seed.audio} mood={seed.mood} />
+        {seed.kind === "song" && <SideInfo audio={seed.audio} mood={seed.mood} />}
       </div>
 
       {recommended.length > 0 && (
@@ -378,7 +391,7 @@ export function PreviewScreen({ seed, kept, songs, onBack, onCreate, describeErr
         </ButtonSecondary>
         {/* Opens the naming popup; nothing is created until "Create" in there. */}
         <ButtonPrimary buttonSize="sm" onClick={() => setNaming(true)} data-prism="open-naming">
-          {`Create playlist (${pickedSongs.length + 1} songs)`}
+          {`Create playlist (${pickedSongs.length + seedCount} songs)`}
         </ButtonPrimary>
       </div>
 
@@ -386,8 +399,8 @@ export function PreviewScreen({ seed, kept, songs, onBack, onCreate, describeErr
         <NamePopup
           name={name}
           setName={setName}
-          songCount={pickedSongs.length + 1}
-          seedName={seed.track.name}
+          songCount={pickedSongs.length + seedCount}
+          startsWith={seed.kind === "song" ? seed.track.name : `the ${seedCount} songs of ${seed.playlist.name}`}
           creating={creating}
           error={createError}
           onCancel={() => {
@@ -420,14 +433,14 @@ interface NamePopupProps {
   name: string;
   setName: (name: string) => void;
   songCount: number;
-  seedName: string;
+  startsWith: string; // "Often", or "the 39 songs of Late night drive"
   creating: boolean;
   error: string | null;
   onCancel: () => void;
   onCreate: () => void;
 }
 
-function NamePopup({ name, setName, songCount, seedName, creating, error, onCancel, onCreate }: NamePopupProps) {
+function NamePopup({ name, setName, songCount, startsWith, creating, error, onCancel, onCreate }: NamePopupProps) {
   const { ButtonPrimary, ButtonSecondary } = Spicetify.ReactComponent as any;
   const blank = !name.trim();
   return (
@@ -441,7 +454,7 @@ function NamePopup({ name, setName, songCount, seedName, creating, error, onCanc
       <div className="prism-glass-card" role="dialog" aria-modal="true" aria-labelledby="prism-name-title">
         <h2 id="prism-name-title" className="prism-screen-title">Name your playlist</h2>
         <p style={styles.popupSub}>
-          {songCount} songs, starting with {seedName}, then the rest in shuffled order
+          {songCount} songs, starting with {startsWith}, then the rest in shuffled order
         </p>
         <input
           type="text"

@@ -290,7 +290,7 @@ function MergeReview(props: {
 }
 
 const styles: Record<string, React.CSSProperties> = {
-  title: { margin: "0 0 12px" },
+  title: { margin: "0 0 12px", height: 34, lineHeight: "34px" },
   screen: { display: "flex", flexDirection: "column", gap: 12, height: SCREEN_HEIGHT },
   centered: { display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, height: SCREEN_HEIGHT },
   text: { color: "var(--spice-text)", margin: 0 },

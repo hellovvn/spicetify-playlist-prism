@@ -144,16 +144,16 @@ const scenarios = {
   async home() {
     await setTheme("aurora");
     await goHome();
-    await waitFor(`!!document.querySelector('[data-prism="flip-organize"]')`, 10000);
+    await waitFor(`!!document.querySelector('[data-prism="tile-organize"]')`, 10000);
     await scrollTop0();
     await send("Input.dispatchMouseEvent", { type: "mouseMoved", x: 5, y: VIEW.height - 5 });
     await sleep(1200);
     const box = await rect('[data-prism="page"]');
     await startRec();
     await sleep(800);
-    await hover('[data-prism="flip-prism"]');
+    await hover('[data-prism="tile-prism"]');
     await sleep(3400);
-    await hover('[data-prism="flip-organize"]');
+    await hover('[data-prism="tile-organize"]');
     await sleep(3600);
     for (const bar of await ev(`[...document.querySelectorAll(".prism-home-bar")].map((_, i) => i)`)) {
       await ev(`(() => { const b = document.querySelectorAll(".prism-home-bar")[${bar}].getBoundingClientRect(); window.__prismBar = [b.x + b.width / 2, b.y + b.height / 2]; })()`);
@@ -249,10 +249,8 @@ const scenarios = {
   async remix() {
     await setTheme("aurora");
     await goHome();
-    await waitFor(`!!document.querySelector('[data-prism="flip-organize"]')`, 10000);
-    await ev(`document.querySelector('[data-prism="flip-organize"]').click()`);
-    await sleep(600);
-    await ev(`document.querySelector('[data-prism="start-organize"]').click()`);
+    await waitFor(`!!document.querySelector('[data-prism="tile-organize"]')`, 10000);
+    await ev(`document.querySelector('[data-prism="tile-organize"]').click()`);
     await waitFor(`!!document.querySelector('[data-prism="organize"] [data-uri=${JSON.stringify(TTH)}]')`, 15000);
     await ev(`document.querySelector('[data-prism="organize"] [data-uri=${JSON.stringify(TTH)}]').click()`);
     await sleep(300);

@@ -31,7 +31,8 @@ export interface FoundTrack {
 }
 
 export const MAX_PER_ARTIST = 2; // variety: at most 2 new finds by one artist
-export const MAX_CANDIDATES = 40; // similar songs looked up (tags + Spotify search)
+export const MAX_CANDIDATES = 50; // similar songs looked up (tags + Spotify search); was 40 until 2026-11-26
+export const SIMILAR_ASKED = 80; // similar songs asked from Last.fm per seed song, so ~50 are left after the filters
 
 // Which similar songs to look up, most similar first: not the seed, not a
 // song already in the library (same title + main artist, any version), no
@@ -57,6 +58,18 @@ export function pickCandidates(
     result.push(song);
   }
   return result;
+}
+
+// A playlist seed asks Last.fm about several seed songs: one list of similar
+// songs, the same song only once (its best match), most similar first.
+export function mergeSimilar(lists: SimilarSong[][]): SimilarSong[] {
+  const best = new Map<string, SimilarSong>();
+  for (const song of ([] as SimilarSong[]).concat(...lists)) {
+    const key = songKey({ name: song.name, artists: [song.artist] });
+    const existing = best.get(key);
+    if (!existing || song.match > existing.match) best.set(key, song);
+  }
+  return [...best.values()].sort((a, b) => b.match - a.match);
 }
 
 // Title for comparing: no "(feat. ...)", no "- Remastered", lower case, only
@@ -86,11 +99,16 @@ export type NewCount = number | "off";
 export const NEW_COUNTS: NewCount[] = ["off", 5, 10, 20];
 export const DEFAULT_NEW_COUNT: NewCount = 10;
 
+// Custom (2026-11-26): any whole number up to MAX_NEW_CUSTOM. More can't be
+// found anyway: one search looks up at most MAX_CANDIDATES similar songs.
+export const MAX_NEW_CUSTOM = MAX_CANDIDATES;
+
 export function parseNewCount(text: string | null | undefined): NewCount | null {
   const value = (text ?? "").trim().toLowerCase();
   if (value === "off") return "off";
+  if (!/^\d+$/.test(value)) return null;
   const n = Number(value);
-  return NEW_COUNTS.includes(n) ? n : null;
+  return n >= 1 && n <= MAX_NEW_CUSTOM ? n : null;
 }
 
 // The new finds to tick: the best `count` by score.
