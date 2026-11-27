@@ -17,7 +17,7 @@ import { DEV_TOOLS } from "./buildFlags";
 export const PAGE_PATH = "/prism";
 
 export type PageRequest =
-  | { go: "start"; seed: string } // start a Prism for this song
+  | { go: "start"; seed: string } // start a Prism for this song, or (2026-11-26) this playlist
   | { go: "settings" } // show the settings (Last.fm key)
   | { go: "home" } // the start screen
   | { go: "stats"; playlist: string } // the stats page for a Prism playlist
@@ -43,7 +43,7 @@ export function parsePageRequest(search: string): { request: PageRequest; reques
   if (!requestId || !go) return null;
   if (go === "start") {
     const seed = params.get("seed");
-    return seed && isTrackUri(seed) ? { request: { go, seed }, requestId } : null;
+    return seed && (isTrackUri(seed) || isPlaylistUri(seed)) ? { request: { go, seed }, requestId } : null;
   }
   if (go === "addto") {
     const song = params.get("song");

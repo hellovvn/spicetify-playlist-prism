@@ -8,7 +8,7 @@ by genre and mood, and see what each playlist is made of, all inside a page that
 nicer than plain Spotify. It works from the user's own library and judges songs on **song-level** signals (see "Scoring signals"), not
 Spotify's artist-level genres. ONE deliberate exception to "own library" (developer's
 request, 2026-11-23): Grow's optional "New finds" (14e DISCOVER) add similar songs NOT in
-the user's library, clearly marked, user-controlled (Off/5/10/20), and only ever added to
+the user's library, clearly marked, user-controlled (Off/5/10/20/Custom up to 50), and only ever added to
 the NEW playlist.
 
 ## User flow
@@ -159,7 +159,8 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
 `tests/writeGuard.test.ts`; real test 2026-11-21 made a "[Prism test] ..." playlist, no other list changed).
   Note: `RootlistAPI.createPlaylist` has no public/private option; on the developer's account new
   playlists came out Private. The smoke test never creates playlists.
-- 9b (from the original spec, not built yet): optional second seed song.
+- 9b (from the original spec, not built yet): optional second seed song. (A whole playlist as the
+  seed was built 2026-11-26, see GROW FROM A PLAYLIST; picking a few songs is still open.)
 - 10: Lyrics mood (word list) as an extra score. Done (tested by the developer 2026-11-21).
 - 12 (redesign, decided 2026-11-21): Playlist Prism becomes ONE page (Spicetify custom app,
   `/playlist-prism`) instead of popups. Header (top bar) icon only, no sidebar entry. Inside the
@@ -361,8 +362,8 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
     118/120 found on Spotify by exact title + artist; ~6% already in the library; the top 1-3
     are usually the seed's own artist, so MAX_PER_ARTIST = 2.
     Pipeline (`findNewSongs` in flow.ts, pure parts in `src/discover/discover.ts` + tests):
-    track.getSimilar (50; fallback artist.getSimilar 10 x artist.getTopTracks 3) -> drop the
-    seed and anything in the WHOLE library (Liked + every playlist, songKey) -> up to 40
+    track.getSimilar (SIMILAR_ASKED = 80; fallback artist.getSimilar 10 x artist.getTopTracks 3) -> drop the
+    seed and anything in the WHOLE library (Liked + every playlist, songKey) -> up to 50 (MAX_CANDIDATES; 40 until 2026-11-26, when track.getSimilar went from 50 to SIMILAR_ASKED = 80)
     candidates -> Last.fm tags (must share a kept tag, same rule as every Prism song) ->
     Spotify search (`src/spotify/search.ts`, GraphQL `searchModalResults`; other search
     definitions fail) -> BPM/key -> same scoreSong (lyrics mood unknown). Cached per seed + tags
@@ -873,6 +874,25 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   Copy; macOS/Linux = only the link to the README's Install section. "Not now" lasts only until Spotify
   restarts (sessionStorage, developer's request), so the notice shows on every Spotify start until they update.
   TO RELEASE: bump package.json "version", then publish a GitHub release tagged vX.Y.Z.
+- GROW STEPS (2026-11-26, developer's flow; built, not committed): seed -> NEW FINDS step (`src/ui/NewFindsStep.tsx`,
+  Off/5/10/20/Custom 1-50 ("max 50" shown) via the shared `NewCountChoice`, also on the preview; saved as prism:growNewCount, the preview starts from it) -> your playlists (SourcePicker with
+  `onSkip`: "Skip" = new finds only, no scan; not offered when new finds are Off) -> scan -> preview
+  (`fromPlaylists` false = new finds only: no Off chip, "New finds only" intro) -> create.
+- GROW FROM A PLAYLIST (2026-11-26, built, not committed; developer's picks): the seed can be a whole
+  PLAYLIST. Right-click a playlist > "Grow from this playlist", or Grow's start screen (GrowStart/SongPick):
+  a third Option row "One of your playlists"; choosing it opens the playlist picker (search, checkbox rows,
+  summary, like Remix's) under the rows, one tick at a time (developer's pick; SongPick's optional `playlists` prop).
+  `?go=start&seed=spotify:playlist:...`. The seed playlist is scanned first (scanTracks, shared caches;
+  `loadPlaylistSeed` in flow.ts). Seed screen = mockup "B": cover + name + "N songs · BPM range · mood",
+  one row per genre (Tag switch + Bar + song count, `blendTags`), and "Show seed songs" (checkbox rows)
+  to untick seed songs (they leave the blend, scores and new playlist). Scoring ("blend + closest
+  songs", `scoreAgainstPlaylist` in `src/scoring/playlistSeed.ts`, tested): tags against the KEPT blend
+  chips, tempo/key/mood = average over the CLOSEST_SONGS (3) seed songs sharing the most tags. Seed
+  kinds are a union in `src/scoring/growSeed.ts` (SongSeedData | PlaylistSeedData; growScorer,
+  seedExclusions, seedTrackUris). New playlist = the seed playlist's ticked songs in their own order,
+  then the picks shuffled. The seed playlist is hidden from the source picker and its songs are never
+  matches. New finds ask Last.fm about up to TYPICAL_SONGS (5) typical seed songs (`mergeSimilar`).
+  Stats record: seed null + `grownFrom: { uri, name }` ("Grown from the playlist ...").
 - 11: Cleanup: remove the debug hook, README, release (after 12).
   RELEASE BUILD (2026-11-26): `src/buildFlags.ts` has DEV_TOOLS (always true in git). Dev builds
   keep the `window.__prism` hook + demo screens; `npm run release` (scripts/release.mjs) flips it to

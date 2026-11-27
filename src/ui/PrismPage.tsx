@@ -39,10 +39,11 @@ import { OrganizeFlow } from "./OrganizeFlow";
 import { MergeFlow } from "./MergeFlow";
 import { AddSongIcon, MergeIcon } from "./HomeIcons";
 import { AddToScreen } from "./AddToScreen";
-import { addSongTo, findPlaylistsForSong, createFromPreview, createOrganizedPlaylist, findNewSongs, mergePlaylists, friendlyError, loadPlaylistExtras, loadPlaylistStats, loadSeed, loadToneFit, loadToneSongs, loadTones, runScan, saveTone } from "../flow";
+import { addSongTo, findPlaylistsForSong, createFromPreview, createOrganizedPlaylist, findNewSongs, mergePlaylists, friendlyError, loadPlaylistExtras, loadPlaylistStats, loadPlaylistSeed, loadSeed, loadToneFit, loadToneSongs, loadTones, runScan, saveTone } from "../flow";
 import { getPlaylistName } from "../spotify/read";
 import { ToneEditor } from "./ToneEditor";
-import { PAGE_PATH, parsePageRequest, type PageRequest } from "../nav";
+import { isPlaylistUri, PAGE_PATH, parsePageRequest, type PageRequest } from "../nav";
+import { seedTrackUris } from "../scoring/growSeed";
 import { SeedPanel } from "./SeedPanel";
 import { SettingsPanel } from "./SettingsPanel";
 import { ReportScreen } from "./ReportScreen";
@@ -254,7 +255,10 @@ export function PrismPage() {
       <SeedPanel
         // key: a NEW panel for every Prism, so nothing carries over from the last one.
         key={view.id}
-        load={() => loadSeed(view.seed)}
+        // The seed is a song or (2026-11-26) a whole playlist.
+        load={(onProgress, shouldStop) =>
+          isPlaylistUri(view.seed) ? loadPlaylistSeed(view.seed, onProgress, shouldStop) : loadSeed(view.seed)
+        }
         loadSources={getSources}
         runScan={runScan}
         findNew={findNewSongs}
@@ -263,7 +267,7 @@ export function PrismPage() {
         onScanningChange={setScanning}
         onCreate={async (choice) => {
           const playlistUri = await createFromPreview(choice);
-          const count = choice.songs.length + 1;
+          const count = choice.songs.length + seedTrackUris(choice.seed).length;
           Spicetify.showNotification(`Created "${choice.name.trim()}" with ${count} songs`);
           goHome();
           // Open the new playlist (just navigation, like clicking it in the sidebar).

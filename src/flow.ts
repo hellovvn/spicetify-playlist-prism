@@ -5,11 +5,11 @@
 // its own page. READ-ONLY except createFromPreview, which writes ONLY through
 // src/spotify/write.ts.
 
-import { getPlaylistName, getSources, getSourceTracks, getTrackInfo } from "./spotify/read";
+import { getPlaylistCover, getPlaylistName, getSources, getSourceTracks, getTrackInfo } from "./spotify/read";
 import { searchTracks } from "./spotify/search";
 import { getArtistTopTracks, getSimilarArtists, getSimilarTracks, LastfmError } from "./lastfm/client";
-import { bestSearchHit, pickCandidates, type FoundTrack, type SimilarSong } from "./discover/discover";
-import { scoreSong, tagMatch } from "./scoring/score";
+import { bestSearchHit, mergeSimilar, pickCandidates, SIMILAR_ASKED, type FoundTrack, type SimilarSong } from "./discover/discover";
+import { tagMatch } from "./scoring/score";
 import { addSongToPlaylist, createMergedPlaylist, createPrismPlaylist, PrismWriteError, type MergeResult } from "./spotify/write";
 import { hasSong, rankPlaylists, type CandidatePlaylist, type FitSong, type PlaylistFit } from "./addto/fitPlaylists";
 import type { TrackInfo } from "./spotify/read";
@@ -63,7 +63,8 @@ import type { SourcedTag } from "./tags/combineTags";
 import { songKey, type RankedSong } from "./scoring/rank";
 import { playlistOrder } from "./scoring/playlistOrder";
 import type { ScanOutcome } from "./ui/ScanScreen";
-import type { SeedData } from "./ui/SeedPanel";
+import { growScorer, seedExclusions, seedId, seedTrackUris, type PlaylistSeedData, type SeedData } from "./scoring/growSeed";
+import { blendMood, blendTags, typicalSongs } from "./scoring/playlistSeed";
 
 
 // Last.fm asks for about 5 requests per second at most; stay a bit under.
@@ -100,7 +101,35 @@ export async function loadSeed(uri: string): Promise<SeedData> {
     .join(", ");
   console.log(`${LOG_PREFIX} tags: ${tagList || "(none)"}`);
 
-  return { track, tags: result.tags, audio, mood };
+  return { kind: "song", track, tags: result.tags, audio, mood };
+}
+
+// A PLAYLIST as the seed (2026-11-26): its songs scanned like a Grow scan
+// (shared caches, so a scanned playlist loads at once), then blended into
+// genre chips and an average mood (src/scoring/playlistSeed.ts). READ-ONLY.
+export async function loadPlaylistSeed(
+  uri: string,
+  onProgress: (progress: ScanProgress) => void,
+  shouldStop: () => boolean
+): Promise<PlaylistSeedData> {
+  const apiKey = await ensureLastfmKey();
+  if (!apiKey) throw noKeyError();
+  const [name, cover, tracks] = await Promise.all([
+    getPlaylistName(uri).catch(() => null),
+    getPlaylistCover(uri).catch(() => null),
+    getSourceTracks(uri),
+  ]);
+  const songTracks = mergeTracks([tracks.filter((track) => track.uri.startsWith("spotify:track:"))]).tracks;
+  if (songTracks.length === 0) throw new Error("This playlist has no songs to grow from.");
+  console.log(`${LOG_PREFIX} seed playlist: ${songTracks.length} songs`);
+  const { songs } = await scanTracks(songTracks, apiKey, onProgress, shouldStop);
+  return {
+    kind: "playlist",
+    playlist: { uri, name: name ?? "This playlist", cover },
+    songs,
+    tags: blendTags(songs),
+    mood: blendMood(songs.map((song) => song.mood)),
+  };
 }
 
 // The seed's lyrics mood: from the mood cache if a scan already looked it up,
@@ -261,7 +290,7 @@ export async function findNewSongs(
   onProgress: (progress: NewFindsProgress) => void,
   shouldStop: () => boolean
 ): Promise<RankedSong[]> {
-  const cacheKey = `${seed.track.uri}|${kept.map((tag) => tag.name).join(",")}`;
+  const cacheKey = `${seedId(seed)}|${kept.map((tag) => tag.name).join(",")}`;
   const cached = newFindsCache.get(cacheKey);
   if (cached) return cached;
   const apiKey = await ensureLastfmKey();
@@ -270,14 +299,21 @@ export async function findNewSongs(
   const started = Date.now();
 
   // 1. Similar songs (or, if Last.fm has none, similar artists' top songs).
-  const artist = seed.track.artists[0] ?? "";
-  await wait();
-  let similar = await notFoundIsEmpty(getSimilarTracks(artist, seed.track.name, apiKey));
-  if (similar.length === 0) similar = await similarFromArtists(artist, apiKey, wait);
+  // A playlist seed asks about its most typical songs (typicalSongs).
+  const askAbout = seed.kind === "song" ? [seed.track] : typicalSongs(seed.songs, kept);
+  const lists: SimilarSong[][] = [];
+  for (const song of askAbout) {
+    await wait();
+    lists.push(await notFoundIsEmpty(getSimilarTracks(song.artists[0] ?? "", song.name, apiKey, SIMILAR_ASKED)));
+  }
+  let similar = mergeSimilar(lists);
+  if (similar.length === 0 && askAbout[0]) similar = await similarFromArtists(askAbout[0].artists[0] ?? "", apiKey, wait);
 
-  // 2. Skip the seed and anything already in the library.
+  // 2. Skip the seed (every seed song) and anything already in the library.
   const library = await libraryIndex();
-  const candidates = pickCandidates(similar, { seed: seed.track, libraryKeys: library.keys });
+  const excluded = seedExclusions(seed);
+  const libraryKeys = new Set([...library.keys, ...excluded.keys]);
+  const candidates = askAbout[0] ? pickCandidates(similar, { seed: askAbout[0], libraryKeys }) : [];
   onProgress({ done: 0, total: candidates.length });
 
   // 3. Tags (must share a kept tag, like every Prism song), then Spotify.
@@ -292,7 +328,7 @@ export async function findNewSongs(
         const { tags } = await getSongTags({ name: candidate.name, artists: [candidate.artist] }, fetchers);
         if (tagMatch(kept, tags).score > 0) {
           const hit = bestSearchHit(candidate, await searchTracks(`${candidate.name} ${candidate.artist}`));
-          if (hit && !library.uris.has(hit.uri) && !found.has(hit.uri)) found.set(hit.uri, { similar: candidate, track: hit, tags });
+          if (hit && !library.uris.has(hit.uri) && !excluded.uris.has(hit.uri) && !found.has(hit.uri)) found.set(hit.uri, { similar: candidate, track: hit, tags });
         }
       } catch (error) {
         if (isKeyProblem(error)) throw error; // the whole search is pointless
@@ -306,7 +342,7 @@ export async function findNewSongs(
   // 4. BPM/key, then the same score as library songs (lyrics mood unknown).
   const entries = [...found.values()];
   const audio = await getAudioAttributes(entries.map((e) => e.track.uri)).catch(() => new Map());
-  const seedScorable = { tags: kept, audio: seed.audio, mood: seed.mood };
+  const score = growScorer(seed, kept);
   const songs: RankedSong[] = entries
     .map(({ similar: s, track, tags }) => {
       const songAudio = audio.get(track.uri) ?? null;
@@ -316,7 +352,7 @@ export async function findNewSongs(
         audio: songAudio,
         mood: null,
         tagStatus: tagStatusOf(tags),
-        match: scoreSong(seedScorable, { tags, audio: songAudio, mood: null }),
+        match: score({ tags, audio: songAudio, mood: null }),
         newFind: { similarity: s.match },
       };
     })
@@ -373,7 +409,8 @@ function libraryIndex(): Promise<{ uris: Set<string>; keys: Set<string> }> {
   return index;
 }
 
-// Creates the NEW playlist: seed first, then the picks SHUFFLED, with any
+// Creates the NEW playlist: the seed first (a seed playlist's songs in their
+// own order), then the picks SHUFFLED, with any
 // new finds spread through it (playlistOrder).
 // All writing happens in src/spotify/write.ts. Returns the new playlist's URI.
 export async function createFromPreview(choice: {
@@ -384,7 +421,7 @@ export async function createFromPreview(choice: {
   songs: RankedSong[];
 }): Promise<string> {
   const { name, seed, kept, sources, songs } = choice;
-  const trackUris = [seed.track.uri, ...playlistOrder(songs).map((song) => song.uri)];
+  const trackUris = [...seedTrackUris(seed), ...playlistOrder(songs).map((song) => song.uri)];
   console.log(
     `${LOG_PREFIX} creating "${name}" with ${trackUris.length} songs ` +
       `(tags: ${kept.map((tag) => tag.name).join(", ")}; from: ${sources.map((s) => s.name).join(", ")})`
@@ -401,7 +438,8 @@ export async function createFromPreview(choice: {
 // (prism:tones); if it fails, the playlist is still fine.
 function giveGrowTone(uri: string, choice: { seed: SeedData; kept: SourcedTag[]; songs: RankedSong[] }) {
   try {
-    const bpms = [choice.seed.audio?.bpm ?? null, ...choice.songs.map((s) => s.audio?.bpm ?? null)];
+    const seedBpms = choice.seed.kind === "song" ? [choice.seed.audio?.bpm ?? null] : choice.seed.songs.map((s) => s.audio?.bpm ?? null);
+    const bpms = [...seedBpms, ...choice.songs.map((s) => s.audio?.bpm ?? null)];
     saveTone(uri, toneFromGrow({ kept: choice.kept, seedMood: choice.seed.mood, bpms, now: Date.now() }));
   } catch (error) {
     console.warn(`${LOG_PREFIX} couldn't save the playlist's tone`, error);
@@ -413,12 +451,15 @@ function giveGrowTone(uri: string, choice: { seed: SeedData; kept: SourcedTag[];
 // still fine: the stats page just won't know about it.
 function rememberPlaylist(uri: string, choice: { name: string; seed: SeedData; kept: SourcedTag[]; songs: RankedSong[] }) {
   try {
-    const { track, tags, audio, mood } = choice.seed;
+    const seed = choice.seed;
     const record = buildRecord({
       uri,
       name: choice.name,
       createdAt: Date.now(),
-      seed: { uri: track.uri, name: track.name, artists: track.artists, durationMs: track.durationMs, tags, audio, mood },
+      seed:
+        seed.kind === "song"
+          ? { uri: seed.track.uri, name: seed.track.name, artists: seed.track.artists, durationMs: seed.track.durationMs, tags: seed.tags, audio: seed.audio, mood: seed.mood }
+          : { playlist: { uri: seed.playlist.uri, name: seed.playlist.name }, songs: seed.songs },
       keptTags: choice.kept,
       songs: choice.songs,
     });

@@ -360,9 +360,20 @@ try {
     await cdp.evaluate(`${PANEL}.querySelector('[role="checkbox"]').click()`); // switch "sexy" off
     await sleep(200);
     await cdp.evaluate(`${NEXT}.click()`);
+    // 2026-11-26: the New finds step comes between the seed and the picker.
+    const newStep = await waitFor(`!!document.querySelector('[data-prism-state="new-finds"]')`);
+    check("Next opens the New finds step", newStep);
+    if (newStep) {
+      const chosen = await cdp.evaluate(`document.querySelector('[data-prism="step-new-count"] .on')?.textContent`);
+      info(`New finds count: ${chosen}`);
+      await cdp.evaluate(`document.querySelector('[data-prism="step-new-next"]').click()`);
+    }
     const shown = await waitFor(`!!${SOURCES}`);
     check("Next opens the source picker", shown);
     if (shown) {
+      const skip = await cdp.evaluate(`!!${SOURCES}.parentElement.querySelector('[data-prism="sources-skip"]') || !!document.querySelector('[data-prism="sources-skip"]')`);
+      const newOff = (await cdp.evaluate(`Spicetify.LocalStorage.get("prism:growNewCount")`)) === "off";
+      check(newOff ? "new finds Off: no Skip on the picker" : "Skip shows on the picker (new finds on)", skip === !newOff);
       const names = await cdp.evaluate(rowNames);
       check("Liked Songs is listed first", names[0] === "Liked Songs", names.slice(0, 3).join(", "));
       info(`${names.length} sources: ${names.join(", ")}`);
@@ -388,10 +399,16 @@ try {
       await screenshot("source-picker.png");
 
       // Back keeps the chips as they were; Next keeps the ticks.
+      // Back goes through the New finds step (2026-11-26) to the chips.
+      const NEW_STEP = `document.querySelector('[data-prism-state="new-finds"]')`;
       await cdp.evaluate(`[...${SOURCES}.querySelectorAll("button")].find((b) => b.textContent === "Back").click()`);
+      check("Back from the picker returns to the New finds step", await waitFor(`!!${NEW_STEP}`));
+      await cdp.evaluate(`[...${NEW_STEP}.querySelectorAll("button")].find((b) => b.textContent === "Back").click()`);
       await waitFor(READY);
-      check("Back returns to the chips, with 'sexy' still off", (await cdp.evaluate(chipStates))[0] === "false");
+      check("Back again returns to the chips, with 'sexy' still off", (await cdp.evaluate(chipStates))[0] === "false");
       await cdp.evaluate(`${NEXT}.click()`);
+      await waitFor(`!!${NEW_STEP}`);
+      await cdp.evaluate(`document.querySelector('[data-prism="step-new-next"]').click()`);
       await waitFor(`!!${SOURCES}`);
       check(`Next again: ${TEST.name} is still ticked`, JSON.stringify(await cdp.evaluate(tickedNames)) === JSON.stringify([TEST.name]));
 
@@ -451,6 +468,8 @@ try {
   await cdp.evaluate(`window.__prism.startPrism("spotify:track:4PhsKqMdgMEUSstTDAmMpg")`); // Often
   if (await waitFor(READY)) {
     await cdp.evaluate(clickButton("Next"));
+    await waitFor(`!!document.querySelector('[data-prism-state="new-finds"]')`); // New finds step (2026-11-26)
+    await cdp.evaluate(`document.querySelector('[data-prism="step-new-next"]').click()`);
     await waitFor(`!!${SOURCES} && ${rows}.length > 0`);
     await cdp.evaluate(`${ROW(SOURCES)}.click()`);
     await sleep(200);
@@ -514,6 +533,8 @@ try {
   await cdp.evaluate(`window.__prism.startPrism("spotify:track:4PhsKqMdgMEUSstTDAmMpg")`); // Often
   if (await waitFor(READY)) {
     await cdp.evaluate(clickButton("Next"));
+    await waitFor(`!!document.querySelector('[data-prism-state="new-finds"]')`); // New finds step (2026-11-26)
+    await cdp.evaluate(`document.querySelector('[data-prism="step-new-next"]').click()`);
     await waitFor(`!!${SOURCES} && ${rows}.length > 0`);
     await cdp.evaluate(tick("Liked Songs"));
     await sleep(200);

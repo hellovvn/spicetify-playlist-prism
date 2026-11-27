@@ -34,6 +34,9 @@ export interface PrismPlaylistRecord {
   // Set for playlists made by Organize (step 13d): the playlists its songs
   // were sorted out of. Organize playlists have no seed song (seed = null).
   organized?: { from: string[] };
+  // Set for playlists grown from a seed PLAYLIST (2026-11-26; seed = null).
+  // The name is the one it had then (it may be renamed or deleted later).
+  grownFrom?: { uri: string; name: string };
 }
 
 export interface NamedValue {
@@ -161,17 +164,22 @@ export function buildRecord(input: {
   uri: string;
   name: string;
   createdAt: number;
-  seed: { uri: string; name: string; artists: string[] } & Omit<SongLike, "uri">;
+  // A seed SONG, or (2026-11-26) a seed PLAYLIST with the seed songs used.
+  seed:
+    | ({ uri: string; name: string; artists: string[] } & Omit<SongLike, "uri">)
+    | { playlist: { uri: string; name: string }; songs: SongLike[] };
   keptTags: SourcedTag[];
   // The picked songs (not including the seed); match.score = how close to the seed.
   songs: (SongLike & { name: string; match?: { score: number } })[];
 }): PrismPlaylistRecord {
-  const all: Omit<SongLike, "uri">[] = [input.seed, ...input.songs];
+  const seedSongs: Omit<SongLike, "uri">[] = "playlist" in input.seed ? input.seed.songs : [input.seed];
+  const all: Omit<SongLike, "uri">[] = [...seedSongs, ...input.songs];
   return {
     uri: input.uri,
     name: input.name.trim(),
     createdAt: input.createdAt,
-    seed: { uri: input.seed.uri, name: input.seed.name, artists: input.seed.artists },
+    seed: "playlist" in input.seed ? null : { uri: input.seed.uri, name: input.seed.name, artists: input.seed.artists },
+    ...("playlist" in input.seed ? { grownFrom: { ...input.seed.playlist } } : {}),
     keptTags: input.keptTags.map((tag) => tag.name),
     songCount: all.length,
     ...summarize(all),

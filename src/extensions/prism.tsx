@@ -79,6 +79,13 @@ function registerContextMenu() {
     "playlist" // icon, from Spicetify's built-in icon list
   );
   item.register();
+  // Grow from a whole playlist (2026-11-26): its songs are the seed.
+  new Spicetify.ContextMenu.Item(
+    "Grow from this playlist",
+    (uris) => openPage({ go: "start", seed: uris[0] }),
+    isSinglePlaylist,
+    PRISM_MENU_ICON as Spicetify.Icon
+  ).register();
 }
 
 // Adds "Prism stats" to the right-click menu of playlists. Prism playlists

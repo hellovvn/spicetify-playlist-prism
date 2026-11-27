@@ -10,6 +10,11 @@ describe("pageUrl / parsePageRequest", () => {
     expect(parsePageRequest(url.split("?")[1])).toEqual({ request: { go: "start", seed: `spotify:track:${ID}` }, requestId: "7" });
   });
 
+  test("start request with a seed playlist survives the round trip", () => {
+    const url = pageUrl({ go: "start", seed: `spotify:playlist:${ID}` }, "8");
+    expect(parsePageRequest(url.split("?")[1])).toEqual({ request: { go: "start", seed: `spotify:playlist:${ID}` }, requestId: "8" });
+  });
+
   test("stats request survives the round trip", () => {
     const url = pageUrl({ go: "stats", playlist: `spotify:playlist:${ID}` }, "9");
     expect(parsePageRequest(url.split("?")[1])).toEqual({ request: { go: "stats", playlist: `spotify:playlist:${ID}` }, requestId: "9" });
@@ -30,7 +35,7 @@ describe("pageUrl / parsePageRequest", () => {
     ["no request id", "go=home"],
     ["unknown request", "go=delete&r=1"],
     ["start without a seed", "go=start&r=1"],
-    ["start with a playlist, not a song", "go=start&seed=spotify:playlist:37i9dQZF1DXcBWIGoYBM5M&r=1"],
+    ["start with an album, not a song or playlist", `go=start&seed=spotify:album:${ID}&r=1`],
     ["stats without a playlist", "go=stats&r=1"],
     ["stats for a song, not a playlist", `go=stats&playlist=spotify:track:${ID}&r=1`],
   ])("%s -> null", (_label, search) => {
