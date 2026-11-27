@@ -20,5 +20,12 @@ unit test fails if one shows up anywhere else.
   The relay counts how many different people ask each day, so the developer knows roughly how many
   people use Prism: your IP address is never stored (only a scrambled version for 2 days, so you're
   counted once a day), and only the daily total is kept.
+- **Anonymous usage counts** (on by default, switch off in Settings > Feedback): once a day Prism
+  sends how many times each feature was used (Grow, Remix, Merge, Add with Prism, tones, stats page,
+  playlist themes, reports), which of a few settings are on (lyrics look, side panel stats, own
+  Last.fm key, has a tone, has a playlist theme), the main theme and Prism's version. Never song,
+  playlist or artist names, Spotify ids or anything that identifies you. The relay only keeps daily
+  totals (your IP is used the same way as above, to count you once a day). Switched off, nothing is
+  counted or sent.
 - Song titles and artists are sent to Last.fm to look up tags and similar songs.
 - Lyrics are read to work out a mood profile. The lyrics themselves are never stored.

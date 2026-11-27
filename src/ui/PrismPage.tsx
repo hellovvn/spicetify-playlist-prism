@@ -39,6 +39,7 @@ import { OrganizeFlow } from "./OrganizeFlow";
 import { MergeFlow } from "./MergeFlow";
 import { AddSongIcon, MergeIcon } from "./HomeIcons";
 import { AddToScreen } from "./AddToScreen";
+import { countFeature } from "../usage/countFeature";
 import { addSongTo, findPlaylistsForSong, createFromPreview, createOrganizedPlaylist, findNewSongs, mergePlaylists, friendlyError, loadPlaylistExtras, loadPlaylistStats, loadPlaylistSeed, loadSeed, loadToneFit, loadToneSongs, loadTones, runScan, saveTone } from "../flow";
 import { getPlaylistName } from "../spotify/read";
 import { ToneEditor } from "./ToneEditor";
@@ -312,6 +313,7 @@ export function PrismPage() {
         onBack={openPlaylist}
         onSave={(tone) => {
           saveTone(playlist, tone);
+          countFeature("tone");
           openPlaylist(); // with the Tone view switched on
         }}
         onRemove={() => {

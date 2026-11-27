@@ -5,12 +5,15 @@
 // users need no key of their own and the key can be swapped without a Prism release.
 // It also counts distinct callers per day, anonymously (src/usage.ts); GET /usage reads the
 // counts with the STATS_TOKEN secret.
+// POST /features takes Prism's anonymous daily feature counts (src/features.ts); /usage
+// returns those too.
 // The App's private key lives ONLY here (Cloudflare secret GITHUB_PRIVATE_KEY), never in Prism.
 // Setup and how to switch repos: relay/README.md.
 
 import { buildIssue, parseReport } from "./report";
 import { importPrivateKey, makeAppJwt } from "./githubAuth";
 import { countUser, isUsageAuthorized, readUsage } from "./usage";
+import { parseFeatureReport, readFeatures, recordFeatures } from "./features";
 
 // Minimal type for the KV binding, so the project needs no Cloudflare type package.
 interface KV {
@@ -76,7 +79,35 @@ export default {
         return reply(404, { ok: false, error: "Not found." }, cors);
       }
       const days = Math.min(Math.max(Number(url.searchParams.get("days")) || 30, 1), 90);
-      return reply(200, { ok: true, days: await readUsage(env.LIMITS, new Date(), days) }, cors);
+      const now = new Date();
+      return reply(
+        200,
+        { ok: true, days: await readUsage(env.LIMITS, now, days), features: await readFeatures(env.LIMITS, now, days) },
+        cors,
+      );
+    }
+    if (url.pathname === "/features") {
+      if (request.method !== "POST") return reply(405, { ok: false, error: "Use POST." }, cors);
+      const pepper = (env.STATS_TOKEN ?? "").trim();
+      if (!pepper) return new Response(null, { status: 204, headers: cors }); // counting not set up: accept and drop
+      const text = await request.text();
+      if (text.length > 2_000) return reply(413, { ok: false, error: "Too long." }, cors);
+      let raw: unknown;
+      try {
+        raw = JSON.parse(text);
+      } catch {
+        return reply(400, { ok: false, error: "Not valid JSON." }, cors);
+      }
+      const parsed = parseFeatureReport(raw);
+      if (!parsed.ok) return reply(400, { ok: false, error: parsed.error }, cors);
+      const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";
+      try {
+        await recordFeatures(env.LIMITS, parsed.report, ip, new Date(), pepper);
+      } catch (e) {
+        console.log("feature count failed:", e instanceof Error ? e.message : String(e));
+        return reply(503, { ok: false, error: "Couldn't save." }, cors);
+      }
+      return reply(200, { ok: true }, cors);
     }
     if (url.pathname !== "/report") return reply(404, { ok: false, error: "Not found." }, cors);
     if (request.method !== "POST") return reply(405, { ok: false, error: "Use POST." }, cors);

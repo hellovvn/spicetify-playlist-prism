@@ -730,6 +730,15 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
   `Authorization: Bearer <STATS_TOKEN>`, easiest `npm run users [days]` (token in
   %USERPROFILE%\.prism\stats-token, never in the repo, never printed). Deployed 2026-11-26. Approximate (shared networks,
   changing IPs, KV races). Mentioned in the README's Privacy line.
+  FEATURE COUNTS (2026-11-26, developer's picks: on by default + Settings switch, opt-outs ESTIMATED
+  not pinged): `relay/src/features.ts` (shared lists FEATURES/SETTINGS/THEMES + parse/store, tests/
+  relayFeatures.test.ts) and POST /features. Prism counts with `countFeature()` (src/usage/countFeature.ts;
+  grow, grow_new_finds, remix, merge, add, tone, stats, playlist_theme, report) into `prism:usageCounts`;
+  the always-on script sends once per UTC day (src/usage/featureStats.ts: counts + On settings + main
+  theme + version). Settings > Feedback "Share anonymous usage counts" (`prism:usageSharing`, Off = nothing
+  counted or sent, waiting counts deleted). Relay keeps `features:<day>` JSON; sharers counted once via a
+  2-day IP hash. `npm run users` prints users vs sharing (~off = users - sharing) and the totals. Never add
+  free-text or ids to a report: only names from the fixed lists. Privacy: site what-prism-changes + README.
 - 15 (DONE 2026-11-26, smoke-tested, committed): internal ids renamed from "playlist-prism" /
   "Playlist Prism" to "prism" (see "Name"). The header icon's aria-label was already "Prism"
   (it follows displayName). Each machine needs the Spicetify swap once:

@@ -12,6 +12,7 @@
 // Settings update at once.
 
 import { loadPlaylistThemeOverrides, loadPlaylistThemeSetting, savePlaylistThemeOverrides } from "../storage";
+import { countFeature } from "../usage/countFeature";
 import {
   parsePlaylistTheme,
   parseThemeOverrides,
@@ -60,6 +61,7 @@ function choose(theme: PlaylistThemeId): void {
   const own = theme === mainTheme() ? null : theme;
   const next = withThemeOverride(parseThemeOverrides(loadPlaylistThemeOverrides()), currentUri, own);
   savePlaylistThemeOverrides(JSON.stringify(next));
+  if (own) countFeature("playlist_theme");
   window.dispatchEvent(new Event(PLAYLIST_THEME_CHANGED_EVENT));
 }
 

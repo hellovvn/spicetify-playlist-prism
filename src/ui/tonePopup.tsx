@@ -12,6 +12,7 @@
 
 import React from "react";
 import { friendlyError, loadTones, loadToneSongs, saveTone } from "../flow";
+import { countFeature } from "../usage/countFeature";
 import { getPlaylistName } from "../spotify/read";
 import { ToneEditor } from "./ToneEditor";
 import { playlistUriFromPath } from "./toneView";
@@ -94,6 +95,7 @@ export function openTonePopup(playlist: string): void {
           onBack={close}
           onSave={(tone) => {
             saveTone(playlist, tone); // the strip and rings update by themselves
+            countFeature("tone");
             close();
           }}
           onRemove={() => {

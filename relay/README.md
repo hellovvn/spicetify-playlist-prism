@@ -7,7 +7,8 @@ GitHub issue as the `prism-reports` GitHub App. The App's private key lives only
 ```
 Prism --POST /report--> relay (checks, rate limits) --GitHub App--> issue on GITHUB_REPO
 Prism --GET /lastfm-key--> relay --> { ok: true, key } (Prism's own Last.fm API key)
-you   --GET /usage (token)--> relay --> { ok: true, days: [{ day, users }] }
+Prism --POST /features--> relay (anonymous daily feature counts, src/features.ts)
+you   --GET /usage (token)--> relay --> { ok: true, days: [{ day, users }], features: [...] }
 ```
 
 The Last.fm key is Prism's shared key for users who haven't added their own. It's a
@@ -18,6 +19,10 @@ here means it is never in the repo and can be swapped without a Prism release.
   `tests/relayReport.test.ts`). `@mentions` are defused so a report never notifies anyone.
 - `src/githubAuth.ts`: the App's sign-in (JWT from the .pem key, then an installation token).
 - `src/usage.ts`: the anonymous daily user count (pure, tested in `tests/relayUsage.test.ts`).
+- `src/features.ts`: the anonymous daily feature counts (POST /features; tested in
+  `tests/relayFeatures.test.ts`). Only names from its fixed lists are accepted; one JSON record
+  per day (`features:<day>`), people sharing counted once each via a 2-day IP hash (`fseen:`).
+  Switched-off users send nothing, so `npm run users` estimates them as users minus sharing.
 - `src/worker.ts`: the HTTP endpoint, rate limits, GitHub calls.
 
 Limits: 3 reports per sender per hour, 50 per day in total, 20 KB per report.
