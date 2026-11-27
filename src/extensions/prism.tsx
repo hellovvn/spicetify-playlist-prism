@@ -32,7 +32,8 @@ import { startLyricsTheme } from "../ui/lyricsTheme";
 import { startPanelStats } from "../ui/panelHost";
 import { startToneRows } from "../ui/toneRows";
 import { openTonePopupOnPlaylist } from "../ui/tonePopup";
-import { startPlaylistTheme } from "../ui/playlistTheme";
+import { buildSky, startPlaylistTheme } from "../ui/playlistTheme";
+import type { PlaylistThemeId } from "../theme/playlistTheme";
 import { startLibraryTheme } from "../ui/libraryTheme";
 import { startChromeTheme } from "../ui/chromeTheme";
 import { findPlaylistsForSong, loadTones } from "../flow";
@@ -193,6 +194,21 @@ function exposeDebugHook() {
       const key = getLastfmKey();
       if (!key) throw new Error("No Last.fm key saved");
       return getTrackTopTags(artist, track, key);
+    },
+    // Performance checks: draws a playlist theme's sky in a temporary box over
+    // the main view (null removes it). Changes no setting and nothing in Spotify.
+    previewSky: (theme: PlaylistThemeId | null) => {
+      document.getElementById("prism-sky-preview")?.remove();
+      if (!theme || theme === "none") return false;
+      const view = document.querySelector(".Root__main-view");
+      if (!view) return false;
+      const r = view.getBoundingClientRect();
+      const box = document.createElement("div");
+      box.id = "prism-sky-preview";
+      box.style.cssText = `position:fixed;left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px;z-index:9999;isolation:isolate;pointer-events:none;border-radius:8px;overflow:hidden`;
+      document.body.appendChild(box);
+      box.appendChild(buildSky(theme, box, false));
+      return true;
     },
     // The full chain (title retries + artist fallback) for one song.
     getSongTags: (song: { name: string; artists: string[] }) => {
