@@ -30,7 +30,7 @@ import { loadPlaylistThemeOverrides, loadPlaylistThemeSetting, loadTagCacheText 
 import { getSourceTracks } from "../spotify/read";
 import { TagCache } from "../scan/tagCache";
 import { LOG_PREFIX } from "../log";
-import { effectiveTheme, genreColours, genreMix, mainGenre, mixCaption, parsePlaylistTheme, parseThemeOverrides, PLAYLIST_THEME_CHANGED_EVENT, themedPageKind, type PlaylistThemeId } from "../theme/playlistTheme";
+import { effectiveTheme, genreColours, genreMix, mainGenre, mixCaption, parsePlaylistTheme, parseThemeOverrides, PLAYLIST_THEME_CHANGED_EVENT, pageKindFor, themedPageKind, type PlaylistThemeId } from "../theme/playlistTheme";
 import { playlistUriFromPath } from "./toneView";
 import { RING_ANGLE_PROPERTY, RING_GLINT, RING_RAINBOW } from "./ringColours";
 import { isNewSkyTheme, NEW_SKY_CSS, newSkyHtml, wireSky } from "./themeSkies";
@@ -42,6 +42,9 @@ const RAIL_CLASS = "prism-rail";
 const MIX_ATTR = "data-prism-genre-mix";
 const LIB_ATTR = "data-prism-lib-theme"; // on .Root__nav-bar while the left panel is themed (src/ui/libraryTheme.ts)
 const BAND_ATTR = "data-prism-band"; // on .Root__main-view while Home shows the sky as a band
+// Spotify's "Something went wrong" page (its class names are generated):
+// icon, heading, "Try reloading the page." and the primary Reload button.
+const ERROR_PAGE_SELECTOR = 'h1 + p + [data-encore-id="buttonPrimary"]';
 const PAGE_ATTR = "data-prism-page"; // on .Root__main-view: the themed page kind (themedPageKind)
 const CHIP_ROW_ATTR = "data-prism-chip-row"; // Search's sticky filter-chip row (found by structure)
 const PHOTO_ATTR = "data-prism-photo"; // Spotify's big photo header box while we move it with the scroll
@@ -333,6 +336,14 @@ ${RING_ANGLE_PROPERTY}
 }
 [${PAGE_ATTR}="genre"] .before-scroll-node { visibility: hidden; }
 [${PAGE_ATTR}="genre"] div:has(> .main-actionBarBackground-background) { background-color: transparent !important; }
+
+/* ERROR PAGE ("B, quiet night"): Spotify's "Something went wrong" page on
+   Quiet night's still dark purple, a lavender icon and softer body text; the
+   Reload button is the primary button rule below (pastel gradient). */
+.Root__main-view[${THEME_ATTR}][${PAGE_ATTR}="error"] { background-color: #151029 !important; }
+[${PAGE_ATTR}="error"] :has(> h1 + p + [data-encore-id="buttonPrimary"]) > svg { color: #cdb8ff; fill: #cdb8ff; }
+[${PAGE_ATTR}="error"] h1:has(+ p + [data-encore-id="buttonPrimary"]) { color: #f3ecff; }
+[${PAGE_ATTR}="error"] h1 + p:has(+ [data-encore-id="buttonPrimary"]) { color: #cbbef0; }
 
 /* SETTINGS ("C, quiet night + cards"): no sky, Quiet night's still dark
    purple, every section on a card like the right panel's, Spotify's green
@@ -711,7 +722,7 @@ export function startPlaylistTheme(): void {
     scheduleHeader();
     const main = document.querySelector(".Root__main-view");
     const path = Spicetify.Platform.History.location?.pathname;
-    const kind = themedPageKind(path);
+    const kind = pageKindFor(path, !!main?.querySelector(ERROR_PAGE_SELECTOR));
     if (path !== lastPath) {
       lastPath = path;
       (main as HTMLElement | null)?.style.removeProperty("--prism-banner-fade"); // a new page starts at the top
@@ -734,8 +745,9 @@ export function startPlaylistTheme(): void {
     if (kind === "search") markChipRow(main);
     else document.querySelectorAll(`[${CHIP_ROW_ATTR}]`).forEach((el) => el.removeAttribute(CHIP_ROW_ATTR));
     let sky = main.querySelector(`:scope > .${SKY_CLASS}`) as HTMLElement | null;
-    // Settings: no sky at all (still Quiet night purple, the CSS does the rest).
-    if (kind === "settings") {
+    // Settings and the error page: no sky at all (still Quiet night purple,
+    // the CSS does the rest).
+    if (kind === "settings" || kind === "error") {
       sky?.remove();
       data = null;
       main.querySelectorAll(`.${RAIL_CLASS}, [${MIX_ATTR}]`).forEach((el) => el.remove());
