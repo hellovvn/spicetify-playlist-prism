@@ -1045,6 +1045,9 @@ behaves. The goal is a consistent app. Rules:
 
 ## Git
 - "Commit" means commit AND push to the chat's own branch (its PR), not to `main`.
+- BEFORE EVERY COMMIT, check whether the change makes README.md out of date (features,
+  install steps, commands, settings, privacy line, credits) and update it in the same commit.
+  Same for the guide site (`site/pages/*.md`) when a feature's behaviour changes.
 - No `Co-Authored-By` or other AI attribution lines in commit messages or PR descriptions.
 - On Windows PowerShell 5.1, write the message to a file and use `git commit -F <file>`:
   double quotes inside `-m "..."` get mangled and the commit can fail silently.
