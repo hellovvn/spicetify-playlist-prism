@@ -205,7 +205,7 @@ const LYRICS_BOX = ".Root__cinema-view > .main-actionBar-ActionBarContainer"; //
 
 // The theme the lyrics should show, or "none" for Prism's twilight lyrics
 // (or Spotify's own, when the lyrics switch is off).
-function lyricsSkyTheme(): PlaylistThemeId {
+export function lyricsSkyTheme(): PlaylistThemeId {
   if (!isLyricsThemeOn(loadLyricsThemeSetting())) return "none";
   // Playing from a playlist with its own theme (14b)? Then that one.
   const playingFrom = Spicetify.Player?.data?.context?.uri;

@@ -355,6 +355,30 @@ Done: 1 research, 2 scaffold + right-click item, 3 Last.fm key + tags, 4 tag cle
     No theme = twilight lyrics as before.
   - 14d NEW VIEW: the playlist and its lyrics side by side, so the user can see the playlist
     while singing along. Never store or log lyrics text.
+    BUILT 2026-11-27 (layout "C, lyrics first", developer's pick; button behaviour "2, switch
+    inside the view" was Claude's default, not picked by the developer: confirm). `src/ui/lyricsSplit.ts`
+    (always-on, pure parts tested in tests/lyricsSplit.test.ts). Spotify's lyrics button opens
+    `.Root__cinema-view` (grid area left-sidebar..right-sidebar); while it's open Spotify gives
+    `.Root__main-view` display:none + inert and slides `.Root__nav-bar` off screen (transform) +
+    inert. Side by side (`html[data-prism-lyrics-split]`): the view spans main-view-start /
+    right-sidebar-end with margin-left 38%, the main view the same columns at width 38% (display,
+    transform and inert undone), right panel hidden. On entering it opens the playing
+    playlist/album/Liked Songs (`listPathFor`). The switch = two round icon buttons
+    (look "A", developer's pick; they disliked the pill switch here; `[data-prism="lyrics-layout"]`)
+    just left of Spotify's own buttons in the view's title row (`[style*="--header-text-color"]`).
+    SPEED: while the lyrics are open (and there's room) the middle view stays laid out, hidden,
+    in BOTH layouts (`html[data-prism-lyrics-room]`): unhiding it from display:none made Spotify
+    re-render the page (~0.5 s stutter per switch; now ~0.13 s, measured over CDP);
+    ONE SKY: side by side with a themed lyrics view, ONE sky (`.prism-split-sky`, built by buildSky for
+    the whole area, first child of .Root__top-container) sits behind both halves; the playlist page's
+    and the lyrics' own skies are display:none (`html[data-prism-lyrics-one-sky]`), the veil stays.
+    Two Milky Way skies were 2 x 264 animations. Still ~26 fps side by side vs ~34 Full: next suspect
+    is the frosted top bar (backdrop-filter blur 16px) re-blurring the moving sky every frame; saved as `prism:lyricsLayout` (default split). Only while
+    the lyrics button is active (not artwork/canvas) and the window minus the left panel is
+    >= 980px. Checks run every 500 ms only while the view is open.
+    Spotify 1.3.11 (installed 2026-11-27 by Spotify's own update when `spicetify watch -a`
+    restarted it; fixed with `spicetify backup apply`). If Spotify looks plain (no Prism,
+    `Spicetify` undefined, Apps\xpui.spa present), it updated: run `spicetify backup apply`.
   - 14e DISCOVER in Prism playlists: BUILT 2026-11-23 (not committed; smoke-tested, waiting for
     the developer's test). Similar songs NOT in the user's library ("New finds"), only ever
     added to the NEW playlist.
