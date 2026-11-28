@@ -3,7 +3,7 @@
 
 <p class="lead">Start with one song you love, or a whole playlist, and get more songs that feel like it.</p>
 
-<img class="clip" src="media/grow.webp" alt="Growing a playlist from one song: ranked matches with score rings and New finds">
+<img class="clip" src="media/grow.webp" alt="Growing a playlist from one song: picking its tags, choosing how many new finds, then ranked matches with score rings">
 
 ## Start
 
