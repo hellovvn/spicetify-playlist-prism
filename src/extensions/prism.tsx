@@ -29,6 +29,7 @@ import { LOG_PREFIX } from "../log";
 import { isPlaylistUri, openPage } from "../nav";
 import { injectHeaderIconStyles } from "../ui/headerIcon";
 import { startLyricsTheme } from "../ui/lyricsTheme";
+import { startLyricsSplit } from "../ui/lyricsSplit";
 import { startPanelStats } from "../ui/panelHost";
 import { startToneRows } from "../ui/toneRows";
 import { openTonePopupOnPlaylist } from "../ui/tonePopup";
@@ -56,6 +57,7 @@ async function main() {
   startUsageSharing(); // anonymous daily feature counts (Settings > Feedback switch, on by default)
   injectHeaderIconStyles(); // hover spin + sparkle on the header diamond
   startLyricsTheme(); // twilight lyrics views + bars kept (Settings switch, on by default)
+  startLyricsSplit(); // lyrics side by side with the playing playlist (Full / Side by side switch)
   injectStyles(); // Prism's styles, also needed by the side-panel stats outside the page
   startPanelStats(); // Prism playlist stats in the right-hand panel (Settings switch, on by default)
   registerContextMenu();

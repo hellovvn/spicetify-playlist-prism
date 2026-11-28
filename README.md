@@ -74,7 +74,7 @@ The open playlist's stats in Spotify's right-hand panel while you listen. [Read 
 
 <p align="center"><img src="docs/media/themes.webp" alt="A playlist page switching between Prism themes" width="640"></p>
 
-Moving skies for Spotify, and a different one per playlist if you like. [Read the guide →](https://hellovvn.github.io/spicetify-prism/themes.html)
+Moving skies for Spotify, a different one per playlist if you like, and lyrics side by side with the playing playlist. [Read the guide →](https://hellovvn.github.io/spicetify-prism/themes.html)
 
 Prism judges every song on its own Last.fm tags, lyrics mood, tempo and key
 ([how songs are matched](https://hellovvn.github.io/spicetify-prism/how-it-works.html)). It only

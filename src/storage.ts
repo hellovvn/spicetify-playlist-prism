@@ -113,6 +113,18 @@ export function saveLyricsThemeSetting(on: boolean): void {
   Spicetify.LocalStorage.set(LYRICS_THEME_KEY, on ? "on" : "off");
 }
 
+// ----- Lyrics layout: "full" or "split" (side by side, see src/ui/lyricsSplit.ts) -----
+
+const LYRICS_LAYOUT_KEY = "prism:lyricsLayout";
+
+export function loadLyricsLayoutSetting(): string | null {
+  return Spicetify.LocalStorage.get(LYRICS_LAYOUT_KEY);
+}
+
+export function saveLyricsLayoutSetting(layout: "full" | "split"): void {
+  Spicetify.LocalStorage.set(LYRICS_LAYOUT_KEY, layout);
+}
+
 // ----- Prism stats in Spotify's right-hand panel (see src/ui/sidePanel.ts) -----
 // "off" = the panel stays plain Spotify. Anything else (including never set) = on.
 
