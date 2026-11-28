@@ -1,4 +1,4 @@
-// Records a README demo clip from Spotify over the debug port (CDP screencast),
+// Records a README demo clip from Spotify over the debug port (CDP screenshots, see startRec),
 // then turns the frames into a GIF with ffmpeg.
 // Usage: node scripts/record-demos.mjs <scenario> [--gif] [--keep-frames]
 //   scenarios: grow, remix, tone, themes, stats, side-panel, add-with-prism (see docs/media/SHOTLIST.md)
@@ -19,7 +19,11 @@ const SEED = "spotify:track:4EoJ151oQ5jY48z4RhSE96"; // "the cure", Olivia Rodri
 const VIEW = { width: 1600, height: 1080 };
 const DPR = 2; // record at double density so small text stays sharp
 const SHAPE = 0.8; // every feature clip is cropped to this height/width (5:4), so the README rows line up
-const QUALITY = 82;
+const QUALITY = Number(process.env.QUALITY) || 70; // webp quality: 70 at 2x width looks sharper than 82 did at 1x
+// Output widths: twice the size the README/site show them at (640 / 720 px), so sharp (HiDPI)
+// screens get one clip pixel per screen pixel instead of a stretched, blurry picture.
+const CLIP_WIDTH = 1280;
+const HERO_WIDTH = 1440;
 
 // ----- CDP -----
 const list = await (await fetch("http://127.0.0.1:9222/json/list")).json();
@@ -89,25 +93,48 @@ async function setTone(uri, tone) {
 }
 
 // ----- recording -----
+// Page.startScreencast ignores the emulated pixel density (its frames are always 1x, which made
+// the clips blurry), so frames are Page.captureScreenshot calls instead: a few in flight at once
+// gives ~20-30 fps at true double density. Only the main view is captured (or `area`), which
+// keeps each shot small; every crop rect below is still in page (CSS px) coordinates.
 let frames = [];
 let segment = 0;
-listeners.set("Page.screencastFrame", (p) => {
-  frames.push({ data: p.data, ts: p.metadata.timestamp, seg: segment });
-  send("Page.screencastFrameAck", { sessionId: p.sessionId });
-});
-async function startRec() {
-  frames = [];
+let recording = null;
+let recArea = null;
+const IN_FLIGHT = 3;
+// keep = add to the frames already recorded (a clip made of several screens).
+async function startRec(keep = false, area = ".Root__main-view") {
+  if (!keep) frames = [];
   segment++;
-  await send("Page.startScreencast", { format: "jpeg", quality: 95, everyNthFrame: 1 });
+  const a = await rect(area);
+  if (!a) throw new Error("nothing to record: " + area);
+  if (keep && recArea && (recArea.x !== a.x || recArea.y !== a.y || recArea.w !== a.w || recArea.h !== a.h)) throw new Error("recorded area moved between segments");
+  recArea = a;
+  const clip = { x: a.x, y: a.y, width: a.w, height: a.h, scale: 1 };
+  let stop = false;
+  let order = 0;
+  const seg = segment;
+  const worker = async () => {
+    while (!stop) {
+      const n = order++;
+      const m = await send("Page.captureScreenshot", { format: "jpeg", quality: 95, clip, optimizeForSpeed: true });
+      if (m.result?.data) frames.push({ data: m.result.data, ts: Date.now() / 1000, n, seg });
+    }
+  };
+  const workers = Array.from({ length: IN_FLIGHT }, worker);
+  recording = async () => { stop = true; await Promise.all(workers); };
 }
 async function stopRec() {
-  await send("Page.stopScreencast");
-  await sleep(200);
+  if (recording) await recording();
+  recording = null;
+  frames.sort((a, b) => a.seg - b.seg || a.n - b.n);
+  // Shots finish out of step: keep the time order honest by never letting a frame end before it starts.
+  for (let i = 1; i < frames.length; i++) if (frames[i].seg === frames[i - 1].seg && frames[i].ts < frames[i - 1].ts) frames[i].ts = frames[i - 1].ts;
   return frames;
 }
 
 // crop = CSS px rect; width = output width in px
-async function toGif(name, recorded, crop, width = 800, quality = QUALITY) {
+async function toGif(name, recorded, crop, width = CLIP_WIDTH, quality = QUALITY) {
   if (recorded.length < 2) throw new Error("no frames recorded");
   const dir = path.join(TMP, name);
   await rm(dir, { recursive: true, force: true });
@@ -124,8 +151,11 @@ async function toGif(name, recorded, crop, width = 800, quality = QUALITY) {
   await writeFile(path.join(dir, "list.txt"), concat);
   // Frames come in device pixels: scale the CSS-px crop to match (keep sizes even for the encoder).
   const probe = execFileSync(FFMPEG.replace(/ffmpeg(\.exe)?$/i, "ffprobe$1"), ["-v", "error", "-show_entries", "stream=width", "-of", "csv=p=0", path.join(dir, "0000.jpg")]).toString();
-  const k = parseInt(probe, 10) / VIEW.width;
-  const c = [crop.w, crop.h, crop.x, crop.y].map((n) => Math.round((n * k) / 2) * 2);
+  const k = parseInt(probe, 10) / recArea.w;
+  // Keep the crop inside the recorded area.
+  const x0 = Math.max(crop.x, recArea.x), y0 = Math.max(crop.y, recArea.y);
+  crop = { x: x0, y: y0, w: Math.min(crop.x + crop.w, recArea.x + recArea.w) - x0, h: Math.min(crop.y + crop.h, recArea.y + recArea.h) - y0 };
+  const c = [crop.w, crop.h, crop.x - recArea.x, crop.y - recArea.y].map((n) => Math.round((n * k) / 2) * 2);
   const webp = !process.argv.includes("--gif");
   const out = path.join(OUT_DIR, name + (webp ? ".webp" : ".gif"));
   const vf = `fps=15,crop=${c[0]}:${c[1]}:${c[2]}:${c[3]},scale=${width}:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=112:stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle`;
@@ -167,7 +197,7 @@ const scenarios = {
     // From the page's top edge to just under the last start bar, no Spotify edges in frame.
     const bottom = await ev(`Math.max(...[...document.querySelectorAll(".prism-home-bar")].map((b) => b.getBoundingClientRect().bottom))`);
     const y = Math.max(0, box.y - 4);
-    await toGif("home", rec, { x: box.x, y, w: box.w, h: Math.min(VIEW.height - y, bottom + 36 - y) }, 960, 80);
+    await toGif("home", rec, { x: box.x, y, w: box.w, h: Math.min(VIEW.height - y, bottom + 36 - y) }, HERO_WIDTH);
   },
 
   async stats() {
@@ -188,17 +218,21 @@ const scenarios = {
   },
 
   async "side-panel"() {
+    // A taller window, so the 5:4 frame can hold the whole song list (titles too) plus the panel.
+    await send("Emulation.setDeviceMetricsOverride", { width: VIEW.width, height: 1400, deviceScaleFactor: DPR, mobile: false });
     await setTheme("aurora");
     await go("/playlist/37i9dQZF1DXcBWIGoYBM5M");
     if (await waitFor(`!!document.querySelector('[data-prism="panel-tab-stats"]')`, 15000)) await clickAt('[data-prism="panel-tab-stats"]');
+    await scrollTop0(); // start at the playlist's header, whatever page was open before
+    await send("Input.dispatchMouseEvent", { type: "mouseMoved", x: 5, y: 1395 });
     await sleep(3000);
-    await startRec();
+    await startRec(false, ".Root__top-container"); // the songs and the panel beside them
     await sleep(4000);
     const rec = await stopRec();
-    // The playlist's songs on the left, the stats panel on the right.
     const side = await rect(".Root__right-sidebar");
-    const w = Math.min(side.x + side.w, side.h / SHAPE);
-    await toGif("side-panel", rec, { x: side.x + side.w - w, y: side.y, w, h: w * SHAPE });
+    const main = await rect(".Root__main-view");
+    const w = side.x + side.w - main.x;
+    await toGif("side-panel", rec, { x: main.x, y: side.y, w, h: Math.min(side.h, w * SHAPE) });
   },
 
   async themes() {
@@ -216,15 +250,39 @@ const scenarios = {
     await sleep(1300);
     for (const t of ["aurora", "blossom", "rain", "milkyway"]) { await setTheme(t); await sleep(2000); }
     const rec = await stopRec();
-    await toGif("themes", rec, belowTopBar(main), 800, 76); // busy skies: a bit lower quality keeps it near 5 MB
+    await toGif("themes", rec, belowTopBar(main), CLIP_WIDTH, QUALITY - 6); // busy skies: a bit lower quality keeps it near 5 MB
   },
 
-  // Grow: seed chips, then the ranked preview (the source picker isn't recorded: it lists your playlists).
+  // Grow: seed chips -> New finds step -> the ranked preview (the source picker isn't recorded:
+  // it lists your playlists).
   async grow() {
     await setTheme("aurora");
+    await setLocal("prism:growNewCount", "10");
+    await setLocal("prism:growCount", "30");
     await ev(`window.__prism.startPrism(${JSON.stringify(SEED)})`);
     if (!(await waitFor(`!!document.querySelector('[data-prism-state="ready"]')`, 60000))) throw new Error("seed panel didn't load");
-    await clickButton("Next");
+    await scrollTop0();
+    await send("Input.dispatchMouseEvent", { type: "mouseMoved", x: 5, y: VIEW.height - 5 });
+    await sleep(1000);
+    const box = await rect('[data-prism="page"]');
+    // 1. The seed song's tags as chips: switch one off and on again.
+    await startRec();
+    await sleep(1200);
+    const chip = '[data-prism-state="ready"] .prism-tag-pick:nth-child(2)';
+    await clickAt(chip);
+    await sleep(900);
+    await clickAt(chip);
+    await sleep(1100);
+    await clickAt('[data-prism-state="ready"] .prism-actions button:last-child');
+    await waitFor(`!!document.querySelector('[data-prism-state="new-finds"]')`, 5000);
+    // 2. How many new finds.
+    await sleep(1000);
+    await clickAt('[data-prism="step-new-20"]');
+    await sleep(900);
+    await clickAt('[data-prism="step-new-10"]');
+    await sleep(1200);
+    await stopRec();
+    await clickButton("your playlists");
     await waitFor(`!!document.querySelector('[data-uri=${JSON.stringify(TTH)}]')`, 15000);
     await ev(`document.querySelector('[data-uri=${JSON.stringify(TTH)}]').click()`);
     await sleep(300);
@@ -234,9 +292,10 @@ const scenarios = {
     await waitFor(`!!document.querySelector('[data-prism-state="preview"]')`, 15000);
     await waitFor(`!/Looking/.test(document.querySelector('[data-prism="new-status"]')?.textContent || "")`, 120000);
     await scrollTop0();
+    await send("Input.dispatchMouseEvent", { type: "mouseMoved", x: 5, y: VIEW.height - 5 });
     await sleep(1000);
-    const box = await rect('[data-prism="page"]');
-    await startRec();
+    // 3. The ranked matches with score rings and New finds.
+    await startRec(true);
     await sleep(1000);
     await hover('[data-prism="preview-list"] label');
     await sleep(1600);
